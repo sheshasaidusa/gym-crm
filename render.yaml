@@ -1,0 +1,55 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repo.
+# Creates a Postgres database, the API and the web app. See docs/deploy-render.md.
+#
+# The service names below set the public URLs (gym-crm-web.onrender.com, ...). If Render adds
+# a suffix because a name is taken, update FRONTEND_URL and BACKEND_URL to match.
+# (This deployment: the API got the suffix, so BACKEND_URL below uses gym-crm-api-ale7.)
+
+databases:
+  - name: gym-crm-db
+    plan: free # free Postgres expires after 30 days; switch to basic-256mb to keep the data
+    databaseName: gym_crm
+    user: gym
+
+services:
+  - type: web
+    name: gym-crm-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free # sleeps after 15 min idle; the first request then takes about a minute
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gym-crm-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: FRONTEND_URL
+        value: https://gym-crm-web.onrender.com
+      - key: CORS_ORIGINS
+        value: '["https://gym-crm-web.onrender.com"]'
+      - key: SCHEDULER
+        value: inprocess
+      - key: EMAIL_PROVIDER
+        value: console # emails are only written to the log; use resend or smtp for real ones
+      - key: ANTHROPIC_API_KEY
+        sync: false # optional; AI plan generation is off without it
+
+  - type: web
+    name: gym-crm-web
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      # Baked in at build time: the web app proxies /api/* to this address.
+      - key: BACKEND_URL
+        value: https://gym-crm-api-ale7.onrender.com

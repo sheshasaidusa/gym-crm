@@ -68,7 +68,7 @@ def upgrade() -> None:
         batch_op.create_index(batch_op.f('ix_reminder_logs_membership_id'), ['membership_id'], unique=False)
 
     with op.batch_alter_table('gyms', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('reminders_enabled', sa.Boolean(), server_default=sa.text('1'), nullable=False))
+        batch_op.add_column(sa.Column('reminders_enabled', sa.Boolean(), server_default=sa.true(), nullable=False))
         batch_op.add_column(sa.Column('reminder_hour', sa.Integer(), server_default='9', nullable=False))
         batch_op.add_column(sa.Column('reminder_templates', sa.JSON(), server_default='{}', nullable=False))
 
