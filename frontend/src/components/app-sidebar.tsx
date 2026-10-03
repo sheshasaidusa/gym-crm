@@ -51,13 +51,13 @@ import {
   useSwitchGym,
   type Role,
 } from "@/lib/queries";
+import { useLeadStats } from "@/lib/lead-queries";
 import { useDueReminders } from "@/lib/reminder-queries";
 
 type NavItem = {
   title: string;
   href: string;
   icon: LucideIcon;
-  soon?: boolean;
   hideFor?: Role[];
 };
 
@@ -70,7 +70,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
         title: "Analytics",
         href: "/analytics",
         icon: BarChart3Icon,
-        soon: true,
+        hideFor: ["trainer", "front_desk"],
       },
     ],
   },
@@ -90,14 +90,24 @@ const NAV: { label: string; items: NavItem[] }[] = [
         href: "/checkups",
         icon: HeartPulseIcon,
       },
-      { title: "Leads", href: "/leads", icon: MagnetIcon, soon: true },
+      { title: "Leads", href: "/leads", icon: MagnetIcon },
     ],
   },
   {
     label: "Business",
     items: [
-      { title: "Finance", href: "/finance", icon: WalletIcon, soon: true },
-      { title: "Import data", href: "/import", icon: FileUpIcon, soon: true },
+      {
+        title: "Finance",
+        href: "/finance",
+        icon: WalletIcon,
+        hideFor: ["trainer"],
+      },
+      {
+        title: "Import data",
+        href: "/import",
+        icon: FileUpIcon,
+        hideFor: ["trainer", "front_desk"],
+      },
       { title: "Settings", href: "/settings", icon: SettingsIcon },
     ],
   },
@@ -124,10 +134,14 @@ export function AppSidebar() {
     due.data?.items.filter(
       (i) => i.email_status !== "sent" && !i.whatsapp_sent_at,
     ).length ?? 0;
+  const leadStats = useLeadStats(!!role);
+  const dueFollowUps = leadStats.data?.follow_ups_due ?? 0;
   const badgeFor = (href: string) =>
     href === "/reminders" && pendingReminders > 0
       ? String(pendingReminders)
-      : null;
+      : href === "/leads" && dueFollowUps > 0
+        ? String(dueFollowUps)
+        : null;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -169,25 +183,14 @@ export function AppSidebar() {
                 .filter((item) => !(role && item.hideFor?.includes(role)))
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    {item.soon ? (
-                      <SidebarMenuButton
-                        disabled
-                        tooltip={`${item.title} (coming soon)`}
-                      >
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    ) : (
-                      <SidebarMenuButton
-                        isActive={isActive(item.href)}
-                        tooltip={item.title}
-                        render={<Link href={item.href} />}
-                      >
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    )}
-                    {item.soon && <SidebarMenuBadge>Soon</SidebarMenuBadge>}
+                    <SidebarMenuButton
+                      isActive={isActive(item.href)}
+                      tooltip={item.title}
+                      render={<Link href={item.href} />}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
                     {badgeFor(item.href) && (
                       <SidebarMenuBadge className="bg-red-500/15 text-red-600 dark:text-red-400">
                         {badgeFor(item.href)}

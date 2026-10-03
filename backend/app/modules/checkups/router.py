@@ -11,6 +11,7 @@ from sqlalchemy.orm import aliased, selectinload
 from app.core.deps import CurrentContext, DbSession, TenantContext
 from app.core.schemas import Page
 from app.core.storage import IMAGE_TYPES, get_storage, sniff_image_type
+from app.modules.audit import service as audit
 from app.modules.auth.models import User
 from app.modules.checkups.models import CheckUp, CheckUpPhoto
 from app.modules.checkups.schemas import (
@@ -168,6 +169,14 @@ async def delete_checkup(checkup_id: uuid.UUID, ctx: CurrentContext, db: DbSessi
     _can_modify(ctx, c)
     keys = [p.storage_key for p in c.photos]
     await db.delete(c)
+    name = await db.scalar(select(Member.name).where(Member.id == c.member_id))
+    audit.record(
+        db,
+        ctx,
+        "checkup.deleted",
+        f"Deleted {name}'s check-up from {c.recorded_on:%d %b %Y}",
+        details={"member_id": c.member_id},
+    )
     await db.commit()
     for key in keys:
         await get_storage().delete(key)

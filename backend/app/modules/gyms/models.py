@@ -52,6 +52,10 @@ class Gym(IdMixin, TimestampMixin, Base):
     # {"before"|"on_day"|"after": {"subject": ..., "body": ...}}; missing kinds use defaults.
     reminder_templates: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     checkup_interval_days: Mapped[int] = mapped_column(Integer, default=7, server_default="7")
+    # Public website enquiry form (/join/{token}). Null = form turned off.
+    lead_form_token: Mapped[str | None] = mapped_column(String(64), unique=True)
+    # Last receipt number issued (RCPT-0001, RCPT-0002, ...). Incremented atomically.
+    receipt_counter: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 class Branch(IdMixin, TenantMixin, TimestampMixin, Base):

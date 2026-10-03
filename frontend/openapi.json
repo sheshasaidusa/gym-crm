@@ -11,6 +11,7 @@
           "meta"
         ],
         "summary": "Health",
+        "description": "Liveness: the process is up.",
         "operationId": "health_api_health_get",
         "responses": {
           "200": {
@@ -23,6 +24,32 @@
                   },
                   "type": "object",
                   "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Ready",
+        "description": "Readiness: the database answers. Point load balancer health checks here.",
+        "operationId": "ready_api_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Ready Api Health Ready Get"
                 }
               }
             }
@@ -2352,6 +2379,1791 @@
         }
       }
     },
+    "/api/leads": {
+      "get": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "List Leads",
+        "description": "All open leads (for the board), plus converted/lost ones from the last 30 days when\ninclude_closed is set. Follow-ups due first.",
+        "operationId": "list_leads_api_leads_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/LeadSource"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "name": "assigned",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "\"me\", \"none\" or a user id",
+              "title": "Assigned"
+            },
+            "description": "\"me\", \"none\" or a user id"
+          },
+          {
+            "name": "due",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Due"
+            }
+          },
+          {
+            "name": "include_closed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Closed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeadOut"
+                  },
+                  "title": "Response List Leads Api Leads Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Create Lead",
+        "operationId": "create_lead_api_leads_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/stats": {
+      "get": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Lead Stats",
+        "operationId": "lead_stats_api_leads_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/form-settings": {
+      "get": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Form Settings",
+        "operationId": "form_settings_api_leads_form_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadFormSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Set Form Settings",
+        "description": "Turns the public enquiry form on/off. new_link=true issues a fresh URL.",
+        "operationId": "set_form_settings_api_leads_form_settings_post",
+        "parameters": [
+          {
+            "name": "enabled",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "boolean",
+              "title": "Enabled"
+            }
+          },
+          {
+            "name": "new_link",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "New Link"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadFormSettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{lead_id}": {
+      "get": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Get Lead",
+        "operationId": "get_lead_api_leads__lead_id__get",
+        "parameters": [
+          {
+            "name": "lead_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Lead Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Update Lead",
+        "operationId": "update_lead_api_leads__lead_id__patch",
+        "parameters": [
+          {
+            "name": "lead_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Lead Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Delete Lead",
+        "operationId": "delete_lead_api_leads__lead_id__delete",
+        "parameters": [
+          {
+            "name": "lead_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Lead Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{lead_id}/stage": {
+      "post": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Change Stage",
+        "operationId": "change_stage_api_leads__lead_id__stage_post",
+        "parameters": [
+          {
+            "name": "lead_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Lead Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StageIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{lead_id}/activities": {
+      "post": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Add Activity",
+        "operationId": "add_activity_api_leads__lead_id__activities_post",
+        "parameters": [
+          {
+            "name": "lead_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Lead Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{lead_id}/convert": {
+      "post": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Convert",
+        "description": "Creates a member from the lead (optionally with a first membership).",
+        "operationId": "convert_api_leads__lead_id__convert_post",
+        "parameters": [
+          {
+            "name": "lead_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Lead Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/payments": {
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Record Payment",
+        "operationId": "record_payment_api_members__member_id__payments_post",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "List Payments",
+        "operationId": "list_payments_api_payments_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Member Id"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PaymentMethod"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Method"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "include_voided",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Voided"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/{payment_id}/receipt": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Receipt",
+        "operationId": "receipt_api_payments__payment_id__receipt_get",
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/{payment_id}/void": {
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Void Payment",
+        "operationId": "void_payment_api_payments__payment_id__void_post",
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finance/dues": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Dues",
+        "description": "Memberships (not cancelled) with money still owed. Oldest first.",
+        "operationId": "dues_api_finance_dues_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__modules__finance__schemas__DueList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/expenses": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "List Expenses",
+        "operationId": "list_expenses_api_expenses_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ExpenseCategory"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Create Expense",
+        "operationId": "create_expense_api_expenses_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/expenses/{expense_id}": {
+      "patch": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Update Expense",
+        "operationId": "update_expense_api_expenses__expense_id__patch",
+        "parameters": [
+          {
+            "name": "expense_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Expense Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Delete Expense",
+        "operationId": "delete_expense_api_expenses__expense_id__delete",
+        "parameters": [
+          {
+            "name": "expense_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Expense Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/expenses/{expense_id}/attachment": {
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Upload Attachment",
+        "operationId": "upload_attachment_api_expenses__expense_id__attachment_post",
+        "parameters": [
+          {
+            "name": "expense_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Expense Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_attachment_api_expenses__expense_id__attachment_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Get Attachment",
+        "operationId": "get_attachment_api_expenses__expense_id__attachment_get",
+        "parameters": [
+          {
+            "name": "expense_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Expense Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finance/summary": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Summary",
+        "description": "Revenue (non-voided payments) vs expenses per month, oldest first.",
+        "operationId": "summary_api_finance_summary_get",
+        "parameters": [
+          {
+            "name": "months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 24,
+              "minimum": 1,
+              "default": 6,
+              "title": "Months"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/fields": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Fields",
+        "operationId": "fields_api_imports_fields_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "$ref": "#/components/schemas/FieldOut"
+                    },
+                    "type": "array"
+                  },
+                  "propertyNames": {
+                    "$ref": "#/components/schemas/ImportEntity"
+                  },
+                  "type": "object",
+                  "title": "Response Fields Api Imports Fields Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/templates/{entity}": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Template",
+        "operationId": "template_api_imports_templates__entity__get",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ImportEntity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "List Imports",
+        "operationId": "list_imports_api_imports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ImportJobOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Imports Api Imports Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Upload",
+        "operationId": "upload_api_imports_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_imports_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/{job_id}": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Get Import",
+        "operationId": "get_import_api_imports__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/{job_id}/check": {
+      "post": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Check",
+        "description": "Saves the column mapping and validates every row (nothing is written).",
+        "operationId": "check_api_imports__job_id__check_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/{job_id}/run": {
+      "post": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Run",
+        "operationId": "run_api_imports__job_id__run_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/{job_id}/problems.csv": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Problems",
+        "operationId": "problems_api_imports__job_id__problems_csv_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Analytics",
+        "description": "Members, money, leads and progress over the last `months` months (this one included).",
+        "operationId": "analytics_api_analytics_get",
+        "parameters": [
+          {
+            "name": "months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 24,
+              "minimum": 1,
+              "default": 6,
+              "title": "Months"
+            }
+          },
+          {
+            "name": "branch_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "List Audit",
+        "description": "The gym's activity log, newest first. Owners only: it covers managers too.",
+        "operationId": "list_audit_api_audit_get",
+        "parameters": [
+          {
+            "name": "target_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Type"
+            }
+          },
+          {
+            "name": "actor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor Id"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AuditOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exports/{entity}.csv": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export",
+        "operationId": "export_api_exports__entity__csv_get",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ExportEntity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/public/members/{token}": {
       "get": {
         "tags": [
@@ -2377,6 +4189,103 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicMemberPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/lead-forms/{token}": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Lead Form",
+        "operationId": "lead_form_api_public_lead_forms__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFormInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Submit Lead Form",
+        "description": "Creates a website lead. Repeat submissions from the same phone are added to the\nexisting open lead instead of creating duplicates.",
+        "operationId": "submit_lead_form_api_public_lead_forms__token__post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicLeadIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Submit Lead Form Api Public Lead Forms  Token  Post"
                 }
               }
             }
@@ -2427,7 +4336,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DueList"
+                  "$ref": "#/components/schemas/app__modules__reminders__schemas__DueList"
                 }
               }
             }
@@ -2984,6 +4893,254 @@
         ],
         "title": "AcceptInviteIn"
       },
+      "ActivityIn": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ActivityKind",
+            "default": "note"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Content"
+          },
+          "next_follow_up_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up At"
+          },
+          "clear_follow_up": {
+            "type": "boolean",
+            "title": "Clear Follow Up",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "ActivityIn"
+      },
+      "ActivityKind": {
+        "type": "string",
+        "enum": [
+          "created",
+          "note",
+          "call",
+          "whatsapp",
+          "visit",
+          "stage",
+          "converted"
+        ],
+        "title": "ActivityKind"
+      },
+      "ActivityOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ActivityKind"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StaffRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "content",
+          "created_by",
+          "created_at"
+        ],
+        "title": "ActivityOut"
+      },
+      "AnalyticsOut": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "today": {
+            "type": "string",
+            "format": "date",
+            "title": "Today"
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Period Start"
+          },
+          "kpis": {
+            "$ref": "#/components/schemas/Kpis"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberMonth"
+            },
+            "type": "array",
+            "title": "Members"
+          },
+          "finance": {
+            "items": {
+              "$ref": "#/components/schemas/FinanceMonth"
+            },
+            "type": "array",
+            "title": "Finance"
+          },
+          "revenue_by_plan": {
+            "items": {
+              "$ref": "#/components/schemas/PlanAmount"
+            },
+            "type": "array",
+            "title": "Revenue By Plan"
+          },
+          "active_by_plan": {
+            "items": {
+              "$ref": "#/components/schemas/PlanCount"
+            },
+            "type": "array",
+            "title": "Active By Plan"
+          },
+          "upcoming": {
+            "$ref": "#/components/schemas/Upcoming"
+          },
+          "leads": {
+            "$ref": "#/components/schemas/LeadAnalytics"
+          },
+          "checkups": {
+            "$ref": "#/components/schemas/CheckupProgress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "today",
+          "period_start",
+          "kpis",
+          "members",
+          "finance",
+          "revenue_by_plan",
+          "active_by_plan",
+          "upcoming",
+          "leads",
+          "checkups"
+        ],
+        "title": "AnalyticsOut"
+      },
+      "AuditOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "actor_name": {
+            "type": "string",
+            "title": "Actor Name"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "target_type": {
+            "type": "string",
+            "title": "Target Type"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "actor_id",
+          "actor_name",
+          "action",
+          "target_type",
+          "target_id",
+          "summary",
+          "details"
+        ],
+        "title": "AuditOut"
+      },
       "AuthOut": {
         "properties": {
           "user": {
@@ -3026,6 +5183,38 @@
           "refresh_token"
         ],
         "title": "AuthOut"
+      },
+      "Body_upload_api_imports_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/ImportEntity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "entity"
+        ],
+        "title": "Body_upload_api_imports_post"
+      },
+      "Body_upload_attachment_api_expenses__expense_id__attachment_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_attachment_api_expenses__expense_id__attachment_post"
       },
       "Body_upload_photo_api_checkups__checkup_id__photos_post": {
         "properties": {
@@ -3173,6 +5362,73 @@
           "whatsapp"
         ],
         "title": "Channel"
+      },
+      "CheckIn": {
+        "properties": {
+          "mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Mapping"
+          },
+          "duplicate_mode": {
+            "$ref": "#/components/schemas/DuplicateMode",
+            "default": "skip"
+          },
+          "date_order": {
+            "$ref": "#/components/schemas/DateOrder",
+            "default": "dmy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mapping"
+        ],
+        "title": "CheckIn"
+      },
+      "CheckOut": {
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/ImportJobOut"
+          },
+          "new": {
+            "type": "integer",
+            "title": "New"
+          },
+          "duplicates": {
+            "type": "integer",
+            "title": "Duplicates"
+          },
+          "invalid": {
+            "type": "integer",
+            "title": "Invalid"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/RowProblem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "preview": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewRow"
+            },
+            "type": "array",
+            "title": "Preview"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job",
+          "new",
+          "duplicates",
+          "invalid",
+          "errors",
+          "preview"
+        ],
+        "title": "CheckOut"
       },
       "CheckUpIn": {
         "properties": {
@@ -3651,6 +5907,72 @@
         "type": "object",
         "title": "CheckUpUpdate"
       },
+      "CheckupProgress": {
+        "properties": {
+          "members_tracked": {
+            "type": "integer",
+            "title": "Members Tracked"
+          },
+          "on_track": {
+            "type": "integer",
+            "title": "On Track"
+          },
+          "avg_weight_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Weight Change"
+          },
+          "avg_body_fat_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Body Fat Change"
+          },
+          "by_goal": {
+            "items": {
+              "$ref": "#/components/schemas/GoalProgress"
+            },
+            "type": "array",
+            "title": "By Goal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "members_tracked",
+          "on_track",
+          "avg_weight_change",
+          "avg_body_fat_change",
+          "by_goal"
+        ],
+        "title": "CheckupProgress"
+      },
+      "ConvertIn": {
+        "properties": {
+          "membership": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MembershipIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "ConvertIn"
+      },
       "CurrentMembershipOut": {
         "properties": {
           "id": {
@@ -3697,6 +6019,15 @@
           "days_left"
         ],
         "title": "CurrentMembershipOut"
+      },
+      "DateOrder": {
+        "type": "string",
+        "enum": [
+          "dmy",
+          "mdy",
+          "ymd"
+        ],
+        "title": "DateOrder"
       },
       "DietPlan": {
         "properties": {
@@ -3841,32 +6172,67 @@
         ],
         "title": "DueCheckUp"
       },
-      "DueList": {
+      "DueOut": {
         "properties": {
-          "day": {
+          "membership_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Membership Id"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "start_date": {
             "type": "string",
             "format": "date",
-            "title": "Day"
+            "title": "Start Date"
           },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/DueReminderOut"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "email_provider": {
+          "end_date": {
             "type": "string",
-            "title": "Email Provider"
+            "format": "date",
+            "title": "End Date"
+          },
+          "total": {
+            "type": "number",
+            "title": "Total"
+          },
+          "paid": {
+            "type": "number",
+            "title": "Paid"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
           }
         },
         "type": "object",
         "required": [
-          "day",
-          "items",
-          "email_provider"
+          "membership_id",
+          "member_id",
+          "member_name",
+          "phone",
+          "plan_name",
+          "start_date",
+          "end_date",
+          "total",
+          "paid",
+          "balance"
         ],
-        "title": "DueList"
+        "title": "DueOut"
       },
       "DueReminderOut": {
         "properties": {
@@ -3976,6 +6342,14 @@
         ],
         "title": "DueReminderOut"
       },
+      "DuplicateMode": {
+        "type": "string",
+        "enum": [
+          "skip",
+          "update"
+        ],
+        "title": "DuplicateMode"
+      },
       "DurationUnit": {
         "type": "string",
         "enum": [
@@ -4019,6 +6393,351 @@
         ],
         "title": "Exercise"
       },
+      "ExpenseCategory": {
+        "type": "string",
+        "enum": [
+          "rent",
+          "salaries",
+          "utilities",
+          "equipment",
+          "maintenance",
+          "marketing",
+          "supplies",
+          "software",
+          "taxes",
+          "other"
+        ],
+        "title": "ExpenseCategory"
+      },
+      "ExpenseIn": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ExpenseCategory"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              }
+            ],
+            "title": "Amount"
+          },
+          "spent_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spent On"
+          },
+          "vendor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "amount"
+        ],
+        "title": "ExpenseIn"
+      },
+      "ExpenseList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ExpenseOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "amount_total": {
+            "type": "number",
+            "title": "Amount Total"
+          },
+          "by_category": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ExpenseCategory"
+            },
+            "type": "object",
+            "title": "By Category"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "amount_total",
+          "by_category"
+        ],
+        "title": "ExpenseList"
+      },
+      "ExpenseOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExpenseCategory"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "spent_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Spent On"
+          },
+          "vendor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "attachment_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachment Url"
+          },
+          "recorded_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StaffRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "amount",
+          "spent_on",
+          "vendor",
+          "method",
+          "note",
+          "branch_id",
+          "attachment_url",
+          "recorded_by",
+          "created_at"
+        ],
+        "title": "ExpenseOut"
+      },
+      "ExpenseUpdate": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpenseCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "spent_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spent On"
+          },
+          "vendor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          }
+        },
+        "type": "object",
+        "title": "ExpenseUpdate"
+      },
       "ExperienceLevel": {
         "type": "string",
         "enum": [
@@ -4027,6 +6746,131 @@
           "advanced"
         ],
         "title": "ExperienceLevel"
+      },
+      "ExportEntity": {
+        "type": "string",
+        "enum": [
+          "members",
+          "memberships",
+          "payments",
+          "expenses",
+          "leads",
+          "checkups",
+          "plans"
+        ],
+        "title": "ExportEntity"
+      },
+      "FieldOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "hint": {
+            "type": "string",
+            "title": "Hint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "required",
+          "hint"
+        ],
+        "title": "FieldOut"
+      },
+      "FinanceMonth": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "title": "Month"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          },
+          "expenses": {
+            "type": "number",
+            "title": "Expenses"
+          },
+          "profit": {
+            "type": "number",
+            "title": "Profit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "revenue",
+          "expenses",
+          "profit"
+        ],
+        "title": "FinanceMonth"
+      },
+      "FinanceSummary": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "months": {
+            "items": {
+              "$ref": "#/components/schemas/MonthTotals"
+            },
+            "type": "array",
+            "title": "Months"
+          },
+          "this_month": {
+            "$ref": "#/components/schemas/MonthTotals"
+          },
+          "last_month": {
+            "$ref": "#/components/schemas/MonthTotals"
+          },
+          "outstanding_dues": {
+            "type": "number",
+            "title": "Outstanding Dues"
+          },
+          "revenue_by_method": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "type": "object",
+            "title": "Revenue By Method"
+          },
+          "expenses_by_category": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ExpenseCategory"
+            },
+            "type": "object",
+            "title": "Expenses By Category"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "months",
+          "this_month",
+          "last_month",
+          "outstanding_dues",
+          "revenue_by_method",
+          "expenses_by_category"
+        ],
+        "title": "FinanceSummary"
       },
       "FreezeIn": {
         "properties": {
@@ -4119,6 +6963,47 @@
           "rehab"
         ],
         "title": "Goal"
+      },
+      "GoalProgress": {
+        "properties": {
+          "goal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Goal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "type": "integer",
+            "title": "Members"
+          },
+          "on_track": {
+            "type": "integer",
+            "title": "On Track"
+          },
+          "avg_weight_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Weight Change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal",
+          "members",
+          "on_track",
+          "avg_weight_change"
+        ],
+        "title": "GoalProgress"
       },
       "GymMembershipOut": {
         "properties": {
@@ -4416,6 +7301,185 @@
         ],
         "title": "HistoryItem"
       },
+      "ImportEntity": {
+        "type": "string",
+        "enum": [
+          "members",
+          "leads",
+          "payments",
+          "checkups",
+          "plans"
+        ],
+        "title": "ImportEntity"
+      },
+      "ImportJobOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/ImportEntity"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "total_rows": {
+            "type": "integer",
+            "title": "Total Rows"
+          },
+          "mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Mapping"
+          },
+          "duplicate_mode": {
+            "$ref": "#/components/schemas/DuplicateMode"
+          },
+          "date_order": {
+            "$ref": "#/components/schemas/DateOrder"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated"
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "processed": {
+            "type": "integer",
+            "title": "Processed"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "has_error_file": {
+            "type": "boolean",
+            "title": "Has Error File"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "entity",
+          "status",
+          "filename",
+          "columns",
+          "total_rows",
+          "mapping",
+          "duplicate_mode",
+          "date_order",
+          "created",
+          "updated",
+          "skipped",
+          "failed",
+          "processed",
+          "error",
+          "has_error_file",
+          "created_at",
+          "finished_at"
+        ],
+        "title": "ImportJobOut"
+      },
+      "ImportStatus": {
+        "type": "string",
+        "enum": [
+          "uploaded",
+          "ready",
+          "running",
+          "done",
+          "failed"
+        ],
+        "title": "ImportStatus"
+      },
+      "InitialPayment": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              }
+            ],
+            "title": "Amount"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PaymentMethod",
+            "default": "cash"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "InitialPayment",
+        "description": "Money taken at the moment a membership is sold."
+      },
       "InviteIn": {
         "properties": {
           "email": {
@@ -4541,6 +7605,851 @@
           "after"
         ],
         "title": "Kind"
+      },
+      "Kpis": {
+        "properties": {
+          "active_members": {
+            "type": "integer",
+            "title": "Active Members"
+          },
+          "active_last_month": {
+            "type": "integer",
+            "title": "Active Last Month"
+          },
+          "new_this_month": {
+            "type": "integer",
+            "title": "New This Month"
+          },
+          "new_last_month": {
+            "type": "integer",
+            "title": "New Last Month"
+          },
+          "renewal_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renewal Rate"
+          },
+          "revenue_this_month": {
+            "type": "number",
+            "title": "Revenue This Month"
+          },
+          "revenue_last_month": {
+            "type": "number",
+            "title": "Revenue Last Month"
+          },
+          "lead_conversion_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Conversion Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_members",
+          "active_last_month",
+          "new_this_month",
+          "new_last_month",
+          "renewal_rate",
+          "revenue_this_month",
+          "revenue_last_month",
+          "lead_conversion_rate"
+        ],
+        "title": "Kpis"
+      },
+      "LeadAnalytics": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "converted": {
+            "type": "integer",
+            "title": "Converted"
+          },
+          "lost": {
+            "type": "integer",
+            "title": "Lost"
+          },
+          "conversion_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Rate"
+          },
+          "avg_days_to_convert": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Days To Convert"
+          },
+          "by_stage": {
+            "items": {
+              "$ref": "#/components/schemas/StageCount"
+            },
+            "type": "array",
+            "title": "By Stage"
+          },
+          "by_source": {
+            "items": {
+              "$ref": "#/components/schemas/SourceCount"
+            },
+            "type": "array",
+            "title": "By Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "converted",
+          "lost",
+          "conversion_rate",
+          "avg_days_to_convert",
+          "by_stage",
+          "by_source"
+        ],
+        "title": "LeadAnalytics"
+      },
+      "LeadDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LeadSource"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          },
+          "interest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest"
+          },
+          "interested_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interested Plan Id"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StaffRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_follow_up_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up At"
+          },
+          "trial_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial At"
+          },
+          "lost_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lost Reason"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "converted_member_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted Member Id"
+          },
+          "converted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted At"
+          },
+          "stage_changed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Changed At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "activities": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityOut"
+            },
+            "type": "array",
+            "title": "Activities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "email",
+          "source",
+          "stage",
+          "interest",
+          "interested_plan_id",
+          "assigned_to",
+          "next_follow_up_at",
+          "trial_at",
+          "lost_reason",
+          "notes",
+          "converted_member_id",
+          "converted_at",
+          "stage_changed_at",
+          "created_at",
+          "last_activity_at",
+          "activities"
+        ],
+        "title": "LeadDetail"
+      },
+      "LeadFormSettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "url"
+        ],
+        "title": "LeadFormSettings"
+      },
+      "LeadIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LeadSource",
+            "default": "walk_in"
+          },
+          "interest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest"
+          },
+          "interested_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interested Plan Id"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          },
+          "next_follow_up_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up At"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "phone"
+        ],
+        "title": "LeadIn"
+      },
+      "LeadOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LeadSource"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          },
+          "interest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest"
+          },
+          "interested_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interested Plan Id"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StaffRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_follow_up_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up At"
+          },
+          "trial_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial At"
+          },
+          "lost_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lost Reason"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "converted_member_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted Member Id"
+          },
+          "converted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted At"
+          },
+          "stage_changed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Changed At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "email",
+          "source",
+          "stage",
+          "interest",
+          "interested_plan_id",
+          "assigned_to",
+          "next_follow_up_at",
+          "trial_at",
+          "lost_reason",
+          "notes",
+          "converted_member_id",
+          "converted_at",
+          "stage_changed_at",
+          "created_at",
+          "last_activity_at"
+        ],
+        "title": "LeadOut"
+      },
+      "LeadSource": {
+        "type": "string",
+        "enum": [
+          "walk_in",
+          "phone_call",
+          "instagram",
+          "facebook",
+          "google",
+          "referral",
+          "website",
+          "other"
+        ],
+        "title": "LeadSource"
+      },
+      "LeadStage": {
+        "type": "string",
+        "enum": [
+          "new",
+          "contacted",
+          "trial_booked",
+          "trial_done",
+          "converted",
+          "lost"
+        ],
+        "title": "LeadStage"
+      },
+      "LeadStats": {
+        "properties": {
+          "open": {
+            "type": "integer",
+            "title": "Open"
+          },
+          "by_stage": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/LeadStage"
+            },
+            "type": "object",
+            "title": "By Stage"
+          },
+          "follow_ups_due": {
+            "type": "integer",
+            "title": "Follow Ups Due"
+          },
+          "new_last_30_days": {
+            "type": "integer",
+            "title": "New Last 30 Days"
+          },
+          "converted_last_30_days": {
+            "type": "integer",
+            "title": "Converted Last 30 Days"
+          },
+          "conversion_rate_90_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Rate 90 Days"
+          },
+          "by_source_90_days": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/LeadSource"
+            },
+            "type": "object",
+            "title": "By Source 90 Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "open",
+          "by_stage",
+          "follow_ups_due",
+          "new_last_30_days",
+          "converted_last_30_days",
+          "conversion_rate_90_days",
+          "by_source_90_days"
+        ],
+        "title": "LeadStats"
+      },
+      "LeadUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest"
+          },
+          "interested_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interested Plan Id"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          },
+          "next_follow_up_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up At"
+          },
+          "trial_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial At"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "title": "LeadUpdate"
       },
       "LoginIn": {
         "properties": {
@@ -4988,6 +8897,56 @@
           "current_membership"
         ],
         "title": "MemberListItem"
+      },
+      "MemberMonth": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "title": "Month"
+          },
+          "active": {
+            "type": "integer",
+            "title": "Active"
+          },
+          "new": {
+            "type": "integer",
+            "title": "New"
+          },
+          "renewed": {
+            "type": "integer",
+            "title": "Renewed"
+          },
+          "churned": {
+            "type": "integer",
+            "title": "Churned"
+          },
+          "renewal_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renewal Rate"
+          },
+          "checkups": {
+            "type": "integer",
+            "title": "Checkups"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "active",
+          "new",
+          "renewed",
+          "churned",
+          "renewal_rate",
+          "checkups"
+        ],
+        "title": "MemberMonth"
       },
       "MemberOut": {
         "properties": {
@@ -5562,6 +9521,16 @@
               }
             ],
             "title": "Notes"
+          },
+          "payment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InitialPayment"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5703,6 +9672,14 @@
               }
             ],
             "title": "Days Left"
+          },
+          "paid": {
+            "type": "number",
+            "title": "Paid"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
           }
         },
         "type": "object",
@@ -5727,9 +9704,39 @@
           "notes",
           "created_at",
           "status",
-          "days_left"
+          "days_left",
+          "paid",
+          "balance"
         ],
         "title": "MembershipOut"
+      },
+      "MonthTotals": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "title": "Month"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          },
+          "expenses": {
+            "type": "number",
+            "title": "Expenses"
+          },
+          "profit": {
+            "type": "number",
+            "title": "Profit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "revenue",
+          "expenses",
+          "profit"
+        ],
+        "title": "MonthTotals"
       },
       "NotificationList": {
         "properties": {
@@ -5818,6 +9825,37 @@
           "created_at"
         ],
         "title": "NotificationOut"
+      },
+      "Page_AuditOut_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[AuditOut]"
       },
       "Page_DueCheckUp_": {
         "properties": {
@@ -5912,6 +9950,265 @@
         ],
         "title": "Page[MemberListItem]"
       },
+      "PaymentIn": {
+        "properties": {
+          "membership_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membership Id"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              }
+            ],
+            "title": "Amount"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PaymentMethod",
+            "default": "cash"
+          },
+          "paid_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid On"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "PaymentIn"
+      },
+      "PaymentList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "amount_total": {
+            "type": "number",
+            "title": "Amount Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "amount_total"
+        ],
+        "title": "PaymentList"
+      },
+      "PaymentMethod": {
+        "type": "string",
+        "enum": [
+          "cash",
+          "upi",
+          "card",
+          "bank_transfer",
+          "cheque",
+          "other"
+        ],
+        "title": "PaymentMethod"
+      },
+      "PaymentOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "receipt_no": {
+            "type": "string",
+            "title": "Receipt No"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "membership_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membership Id"
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          },
+          "paid_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Paid On"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "recorded_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StaffRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "voided_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voided At"
+          },
+          "void_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Void Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "receipt_no",
+          "member_id",
+          "member_name",
+          "membership_id",
+          "plan_name",
+          "amount",
+          "method",
+          "paid_on",
+          "reference",
+          "note",
+          "recorded_by",
+          "voided_at",
+          "void_reason",
+          "created_at"
+        ],
+        "title": "PaymentOut"
+      },
       "PhotoOut": {
         "properties": {
           "id": {
@@ -5936,6 +10233,24 @@
           "created_at"
         ],
         "title": "PhotoOut"
+      },
+      "PlanAmount": {
+        "properties": {
+          "plan": {
+            "type": "string",
+            "title": "Plan"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "amount"
+        ],
+        "title": "PlanAmount"
       },
       "PlanContent": {
         "properties": {
@@ -5974,6 +10289,24 @@
           "safety_notes"
         ],
         "title": "PlanContent"
+      },
+      "PlanCount": {
+        "properties": {
+          "plan": {
+            "type": "string",
+            "title": "Plan"
+          },
+          "members": {
+            "type": "integer",
+            "title": "Members"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "members"
+        ],
+        "title": "PlanCount"
       },
       "PlanIn": {
         "properties": {
@@ -6358,6 +10691,62 @@
         ],
         "title": "PreviewOut"
       },
+      "PreviewRow": {
+        "properties": {
+          "row": {
+            "type": "integer",
+            "title": "Row"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "values": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Values"
+          }
+        },
+        "type": "object",
+        "required": [
+          "row",
+          "status",
+          "values"
+        ],
+        "title": "PreviewRow"
+      },
+      "PublicFormInfo": {
+        "properties": {
+          "gym_name": {
+            "type": "string",
+            "title": "Gym Name"
+          },
+          "brand_color": {
+            "type": "string",
+            "title": "Brand Color"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gym_name",
+          "brand_color",
+          "logo_url"
+        ],
+        "title": "PublicFormInfo"
+      },
       "PublicGym": {
         "properties": {
           "name": {
@@ -6399,6 +10788,62 @@
           "phone"
         ],
         "title": "PublicGym"
+      },
+      "PublicLeadIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "phone"
+        ],
+        "title": "PublicLeadIn"
       },
       "PublicMemberPage": {
         "properties": {
@@ -6640,6 +11085,137 @@
         ],
         "title": "PublicProgress"
       },
+      "ReceiptGym": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "brand_color": {
+            "type": "string",
+            "title": "Brand Color"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "phone",
+          "address",
+          "logo_url",
+          "brand_color",
+          "currency"
+        ],
+        "title": "ReceiptGym"
+      },
+      "ReceiptMembership": {
+        "properties": {
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "total": {
+            "type": "number",
+            "title": "Total"
+          },
+          "paid": {
+            "type": "number",
+            "title": "Paid"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_name",
+          "start_date",
+          "end_date",
+          "total",
+          "paid",
+          "balance"
+        ],
+        "title": "ReceiptMembership"
+      },
+      "ReceiptOut": {
+        "properties": {
+          "payment": {
+            "$ref": "#/components/schemas/PaymentOut"
+          },
+          "gym": {
+            "$ref": "#/components/schemas/ReceiptGym"
+          },
+          "member_phone": {
+            "type": "string",
+            "title": "Member Phone"
+          },
+          "membership": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReceiptMembership"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "payment",
+          "gym",
+          "member_phone",
+          "membership"
+        ],
+        "title": "ReceiptOut"
+      },
       "RefreshIn": {
         "properties": {
           "refresh_token": {
@@ -6793,6 +11369,27 @@
         ],
         "title": "Role"
       },
+      "RowProblem": {
+        "properties": {
+          "row": {
+            "type": "integer",
+            "title": "Row"
+          },
+          "messages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "row",
+          "messages"
+        ],
+        "title": "RowProblem"
+      },
       "RunSummaryOut": {
         "properties": {
           "due": {
@@ -6881,6 +11478,28 @@
           "gym_name"
         ],
         "title": "SignupIn"
+      },
+      "SourceCount": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/LeadSource"
+          },
+          "leads": {
+            "type": "integer",
+            "title": "Leads"
+          },
+          "converted": {
+            "type": "integer",
+            "title": "Converted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "leads",
+          "converted"
+        ],
+        "title": "SourceCount"
       },
       "StaffOut": {
         "properties": {
@@ -6982,6 +11601,59 @@
         "type": "object",
         "title": "StaffUpdate"
       },
+      "StageCount": {
+        "properties": {
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          },
+          "leads": {
+            "type": "integer",
+            "title": "Leads"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "leads"
+        ],
+        "title": "StageCount"
+      },
+      "StageIn": {
+        "properties": {
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          },
+          "lost_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lost Reason"
+          },
+          "trial_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage"
+        ],
+        "title": "StageIn"
+      },
       "Status": {
         "type": "string",
         "enum": [
@@ -7030,6 +11702,62 @@
           "body"
         ],
         "title": "Template"
+      },
+      "Upcoming": {
+        "properties": {
+          "expiring_30_days": {
+            "type": "integer",
+            "title": "Expiring 30 Days"
+          },
+          "renewal_value": {
+            "type": "number",
+            "title": "Renewal Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expiring_30_days",
+          "renewal_value"
+        ],
+        "title": "Upcoming"
+      },
+      "UploadOut": {
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/ImportJobOut"
+          },
+          "sample": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Sample"
+          },
+          "suggested_mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Suggested Mapping"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job",
+          "sample",
+          "suggested_mapping"
+        ],
+        "title": "UploadOut"
       },
       "UserOut": {
         "properties": {
@@ -7095,6 +11823,21 @@
         ],
         "title": "ValidationError"
       },
+      "VoidIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 2,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "VoidIn"
+      },
       "WhatsAppLogIn": {
         "properties": {
           "membership_id": {
@@ -7151,6 +11894,54 @@
           "cooldown"
         ],
         "title": "WorkoutDay"
+      },
+      "app__modules__finance__schemas__DueList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DueOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "outstanding": {
+            "type": "number",
+            "title": "Outstanding"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "outstanding"
+        ],
+        "title": "DueList"
+      },
+      "app__modules__reminders__schemas__DueList": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DueReminderOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "email_provider": {
+            "type": "string",
+            "title": "Email Provider"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "items",
+          "email_provider"
+        ],
+        "title": "DueList"
       }
     }
   }

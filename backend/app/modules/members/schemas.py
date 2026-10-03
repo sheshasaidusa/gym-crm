@@ -7,6 +7,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.dates import DurationUnit
 from app.core.schemas import Money, MoneyIn, ORMModel
+from app.modules.finance.models import PaymentMethod
 from app.modules.members.models import DietPref, ExperienceLevel, Gender, Goal
 from app.modules.members.status import Status
 
@@ -44,6 +45,14 @@ def _empty_to_none(v):
 # --- Memberships ------------------------------------------------------------
 
 
+class InitialPayment(BaseModel):
+    """Money taken at the moment a membership is sold."""
+
+    amount: MoneyIn
+    method: PaymentMethod = PaymentMethod.CASH
+    reference: str | None = Field(None, max_length=100)
+
+
 class MembershipIn(BaseModel):
     plan_id: uuid.UUID
     start_date: date | None = None  # default: today, or the day after the current one ends
@@ -51,6 +60,7 @@ class MembershipIn(BaseModel):
     discount: MoneyIn = Decimal(0)
     joining_fee: MoneyIn | None = None  # default: plan's fee on a member's first membership
     notes: str | None = Field(None, max_length=1000)
+    payment: InitialPayment | None = None
 
 
 class FreezeIn(BaseModel):
@@ -80,6 +90,8 @@ class MembershipOut(ORMModel):
     created_at: datetime
     status: Status
     days_left: int | None
+    paid: Money
+    balance: Money
 
 
 class CurrentMembershipOut(BaseModel):

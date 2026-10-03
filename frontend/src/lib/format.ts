@@ -177,3 +177,26 @@ export function membershipTotal(price: number, discount: number, joiningFee: num
   const subtotal = Math.max(price - discount, 0) + joiningFee;
   return Math.round(subtotal * (1 + taxPct / 100) * 100) / 100;
 }
+
+/** "2026-10" -> "Oct", or "October 2026" when long. */
+export function monthLabel(key: string, long = false) {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-GB", {
+    month: long ? "long" : "short",
+    year: long ? "numeric" : undefined,
+  });
+}
+
+/** Short money for chart axes: ₹1.2L, ₹45K. */
+export function compactMoney(n: number, currency = "INR") {
+  try {
+    return new Intl.NumberFormat(currency === "INR" ? "en-IN" : undefined, {
+      style: "currency",
+      currency,
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(n);
+  } catch {
+    return String(n);
+  }
+}

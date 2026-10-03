@@ -268,21 +268,27 @@ async def record_whatsapp(
 async def run_all_gyms(
     session_factory: async_sessionmaker[AsyncSession], now: datetime | None = None
 ) -> dict[uuid.UUID, RunSummary]:
-    """Scheduler entry point: sends today's reminders for every gym whose local send hour
-    has passed. Safe to call as often as you like."""
+    """Scheduler entry point (daily jobs): once each gym's local send hour has passed, sends
+    today's membership reminders and lead follow-up alerts. Safe to call as often as you
+    like - everything is deduplicated. Returns reminder summaries per gym."""
+    from app.modules.leads.service import notify_due_follow_ups
+
     async with session_factory() as db:
-        gyms = (await db.scalars(select(Gym).where(Gym.reminders_enabled.is_(True)))).all()
-        gym_ids = [(g.id, g.timezone, g.reminder_hour) for g in gyms]
+        gyms = (await db.scalars(select(Gym))).all()
+        gym_ids = [(g.id, g.timezone, g.reminder_hour, g.reminders_enabled) for g in gyms]
 
     results: dict[uuid.UUID, RunSummary] = {}
-    for gym_id, tz, hour in gym_ids:
+    for gym_id, tz, hour, reminders_on in gym_ids:
         local_now = _local_now(tz, now)
         if local_now.hour < hour:
             continue
         async with session_factory() as db:
             try:
                 gym = await db.get_one(Gym, gym_id)
-                results[gym_id] = await send_due_emails(db, gym, local_now.date())
+                await notify_due_follow_ups(db, gym, local_now.date())
+                await db.commit()
+                if reminders_on:
+                    results[gym_id] = await send_due_emails(db, gym, local_now.date())
             except Exception:
                 log.exception("Reminder run failed for gym %s", gym_id)
                 await db.rollback()

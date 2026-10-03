@@ -164,7 +164,7 @@ export function MemberForm({ member }: { member?: Member }) {
         return;
       }
       if (resolveDraft(draft, plan, true).error) return;
-      membership = draftToBody(draft);
+      membership = draftToBody(draft, plan, true);
     }
     create.mutate(
       { ...body, membership },

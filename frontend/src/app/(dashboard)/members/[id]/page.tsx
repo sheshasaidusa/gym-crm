@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { AIPlanSection } from "@/components/ai-plans/ai-plan-section";
 import { ProgressSection } from "@/components/checkups/progress-section";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { MemberPayments } from "@/components/finance/member-payments";
 import { AddMembershipDialog, FreezeDialog } from "@/components/members/membership-dialogs";
 import { StatusBadge } from "@/components/members/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -248,7 +249,20 @@ function CurrentMembershipCard({
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Total</dt>
-            <dd>{formatMoney(current.total, currency)}</dd>
+            <dd>
+              {formatMoney(current.total, currency)}
+              {current.status !== "cancelled" && (
+                <span
+                  className={
+                    current.balance > 0
+                      ? "block text-xs text-red-600 dark:text-red-400"
+                      : "block text-xs text-emerald-600 dark:text-emerald-400"
+                  }
+                >
+                  {current.balance > 0 ? `${formatMoney(current.balance, currency)} due` : "Paid"}
+                </span>
+              )}
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Freeze days</dt>
@@ -449,6 +463,8 @@ export default function MemberPage() {
             onFreeze={setFreezing}
             onCancel={setCancelling}
           />
+
+          {canEdit && <MemberPayments member={m} />}
 
           {m.medical_notes && (
             <Card className="ring-amber-500/40">

@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.db import utcnow
 from app.core.deps import CurrentContext, DbSession, ManagerContext, OwnerContext
 from app.core.security import generate_url_token
+from app.modules.audit import service as audit
 from app.modules.gyms.models import Gym, Invite, Role, StaffMembership
 from app.modules.gyms.repository import BranchRepository, InviteRepository, StaffRepository
 from app.modules.gyms.schemas import (
@@ -36,8 +37,15 @@ async def get_gym(ctx: CurrentContext, db: DbSession) -> Gym:
 @router.patch("/gym", response_model=GymOut)
 async def update_gym(body: GymUpdate, ctx: OwnerContext, db: DbSession) -> Gym:
     gym = await db.get_one(Gym, ctx.gym_id)
-    for key, value in body.model_dump(exclude_unset=True).items():
+    values = body.model_dump(exclude_unset=True)
+    changed = audit.changes({k: getattr(gym, k) for k in values}, values)
+    for key, value in values.items():
         setattr(gym, key, value)
+    if changed:
+        fields = ", ".join(k.replace("_", " ") for k in changed)
+        audit.record(
+            db, ctx, "gym.updated", f"Changed gym settings: {fields}", gym.id, {"changes": changed}
+        )
     await db.commit()
     return gym
 
@@ -54,6 +62,7 @@ async def list_branches(ctx: CurrentContext, db: DbSession):
 @router.post("/branches", response_model=BranchOut, status_code=status.HTTP_201_CREATED)
 async def create_branch(body: BranchIn, ctx: ManagerContext, db: DbSession):
     branch = await BranchRepository(db, ctx.gym_id).create(**body.model_dump())
+    audit.record(db, ctx, "branch.created", f"Added branch {branch.name}", branch.id)
     await db.commit()
     return branch
 
@@ -63,9 +72,19 @@ async def update_branch(
     branch_id: uuid.UUID, body: BranchUpdate, ctx: ManagerContext, db: DbSession
 ):
     repo = BranchRepository(db, ctx.gym_id)
-    branch = await repo.update(
-        await repo.get_or_404(branch_id), body.model_dump(exclude_unset=True)
-    )
+    branch = await repo.get_or_404(branch_id)
+    values = body.model_dump(exclude_unset=True)
+    changed = audit.changes({k: getattr(branch, k) for k in values}, values)
+    branch = await repo.update(branch, values)
+    if changed:
+        audit.record(
+            db,
+            ctx,
+            "branch.updated",
+            f"Edited branch {branch.name}",
+            branch.id,
+            {"changes": changed},
+        )
     await db.commit()
     return branch
 
@@ -77,10 +96,15 @@ async def delete_branch(branch_id: uuid.UUID, ctx: OwnerContext, db: DbSession) 
     if await repo.count() <= 1:
         raise HTTPException(status.HTTP_409_CONFLICT, "A gym needs at least one branch")
     await repo.delete(branch)
+    audit.record(db, ctx, "branch.deleted", f"Deleted branch {branch.name}")
     await db.commit()
 
 
 # --- Staff ------------------------------------------------------------------
+
+
+def _role(role: Role | str) -> str:
+    return Role(role).value.replace("_", " ")
 
 
 def _staff_out(m: StaffMembership) -> StaffOut:
@@ -117,7 +141,21 @@ async def update_staff(staff_id: uuid.UUID, body: StaffUpdate, ctx: OwnerContext
         owners = await repo.count(repo.query().where(StaffMembership.role == Role.OWNER))
         if owners <= 1:
             raise HTTPException(status.HTTP_409_CONFLICT, "A gym needs at least one owner")
+    changed = audit.changes({k: getattr(member, k) for k in values}, values)
     await repo.update(member, values)
+    if "role" in changed:
+        old, new = changed["role"]
+        audit.record(
+            db,
+            ctx,
+            "staff.role_changed",
+            f"Changed {member.user.name}'s role from {_role(old)} to {_role(new)}",
+            member.user_id,
+        )
+    if "branch_id" in changed:
+        audit.record(
+            db, ctx, "staff.updated", f"Moved {member.user.name} to another branch", member.user_id
+        )
     await db.commit()
     return _staff_out(member)
 
@@ -128,6 +166,13 @@ async def remove_staff(staff_id: uuid.UUID, ctx: OwnerContext, db: DbSession) ->
     member = await repo.get_or_404(staff_id)
     if member.user_id == ctx.user.id:
         raise HTTPException(status.HTTP_409_CONFLICT, "You can't remove yourself")
+    audit.record(
+        db,
+        ctx,
+        "staff.removed",
+        f"Removed {member.user.name} ({_role(member.role)}) from the staff",
+        member.user_id,
+    )
     await repo.delete(member)
     await db.commit()
 
@@ -180,6 +225,9 @@ async def create_invite(body: InviteIn, ctx: ManagerContext, db: DbSession):
         expires_at=utcnow() + timedelta(days=settings.invite_token_days),
         invited_by=ctx.user.id,
     )
+    audit.record(
+        db, ctx, "staff.invited", f"Invited {invite.email} as {_role(invite.role)}", invite.id
+    )
     await db.commit()
     return _invite_out(invite)
 
@@ -187,5 +235,7 @@ async def create_invite(body: InviteIn, ctx: ManagerContext, db: DbSession):
 @router.delete("/invites/{invite_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def revoke_invite(invite_id: uuid.UUID, ctx: ManagerContext, db: DbSession) -> None:
     repo = InviteRepository(db, ctx.gym_id)
-    await repo.delete(await repo.get_or_404(invite_id))
+    invite = await repo.get_or_404(invite_id)
+    await repo.delete(invite)
+    audit.record(db, ctx, "staff.invite_revoked", f"Cancelled the invite for {invite.email}")
     await db.commit()

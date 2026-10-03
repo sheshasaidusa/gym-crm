@@ -22,5 +22,5 @@ If Render says a service name is taken, it adds a suffix to the URL. Then update
 - Uploaded progress photos are written to the container's disk and are lost on every deploy. Set
   `STORAGE_PROVIDER=s3` (works with Cloudflare R2) for real use.
 - Emails are only printed to the API log (`EMAIL_PROVIDER=console`). Set `resend` or `smtp` to send.
-- Reminders run inside the API (`SCHEDULER=inprocess`), so they only fire while it is awake.
-  For real use, use a paid plan and a Celery worker (see the README).
+- Scheduled reminders are off (`SCHEDULER=off`): they need a Celery worker and Redis, which the free
+  plan can't run. The "send now" buttons still work. For real use, see `render.production.yaml`.

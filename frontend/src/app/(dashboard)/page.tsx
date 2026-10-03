@@ -6,12 +6,9 @@ import {
   CalendarClockIcon,
   CheckCircle2Icon,
   CircleIcon,
-  FileUpIcon,
-  MagnetIcon,
   PlusIcon,
   UserCheckIcon,
   UserXIcon,
-  WalletIcon,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -19,7 +16,6 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/members/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,12 +29,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { daysLeftLabel, formatDate, initials } from "@/lib/format";
 import { useMemberCounts, useMembers, usePlans } from "@/lib/member-queries";
 import { useBranches, useCan, useMe, useStaff } from "@/lib/queries";
-
-const COMING = [
-  { icon: MagnetIcon, title: "Leads pipeline", text: "Track enquiries from first call to joining." },
-  { icon: WalletIcon, title: "Revenue & expenses", text: "Payments, dues, expenses and profit by month." },
-  { icon: FileUpIcon, title: "Import your data", text: "Bring members and payments over from spreadsheets." },
-];
 
 function Step({ done, title, href, cta }: { done: boolean; title: string; href: string; cta: string }) {
   return (
@@ -103,7 +93,7 @@ function SetupChecklist() {
   const steps = [
     { done: !!me.data?.gym.phone, title: "Add your gym's contact number", href: "/settings", cta: "Gym details" },
     { done: (plans.data?.length ?? 0) > 0, title: "Create your membership plans", href: "/plans", cta: "Plans" },
-    { done: (counts.data?.all ?? 0) > 0, title: "Add your first member", href: "/members/new", cta: "Add member" },
+    { done: (counts.data?.all ?? 0) > 0, title: "Add your members, or import them from a spreadsheet", href: "/import", cta: "Import" },
     { done: (staff.data?.length ?? 0) > 1, title: "Invite your trainers and front desk", href: "/settings?tab=staff", cta: "Invite staff" },
   ];
   const remaining = steps.filter((s) => !s.done).length;
@@ -208,24 +198,6 @@ export default function DashboardPage() {
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <RenewalsDue />
         {can.manage && <SetupChecklist />}
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Coming next</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {COMING.map((f) => (
-            <Card key={f.title} size="sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <f.icon className="size-5 text-muted-foreground" />
-                  <Badge variant="secondary">Soon</Badge>
-                </div>
-                <CardTitle className="pt-2">{f.title}</CardTitle>
-                <CardDescription>{f.text}</CardDescription>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
       </div>
     </>
   );
