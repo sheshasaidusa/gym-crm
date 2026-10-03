@@ -17,16 +17,17 @@ async def notify_staff(
     body: str | None = None,
     link: str | None = None,
     dedupe_key: str | None = None,
+    user_ids: list[uuid.UUID] | None = None,
 ) -> int:
     """Creates one notification per staff user with one of `roles`. Users who already
-    have a notification with this dedupe_key are skipped. Returns how many were created."""
-    user_ids = (
-        await db.scalars(
-            select(StaffMembership.user_id).where(
-                StaffMembership.gym_id == gym_id, StaffMembership.role.in_(roles)
-            )
-        )
-    ).all()
+    have a notification with this dedupe_key are skipped. `user_ids` narrows it to those
+    people (who must still be staff of this gym). Returns how many were created."""
+    stmt = select(StaffMembership.user_id).where(
+        StaffMembership.gym_id == gym_id, StaffMembership.role.in_(roles)
+    )
+    if user_ids is not None:
+        stmt = stmt.where(StaffMembership.user_id.in_(user_ids))
+    user_ids = list((await db.scalars(stmt)).all())
     if dedupe_key:
         already = set(
             (

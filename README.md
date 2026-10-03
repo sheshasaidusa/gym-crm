@@ -79,7 +79,100 @@ Storage settings: `STORAGE_PROVIDER=local` (`STORAGE_DIR`, default `./uploads`) 
 
 AI settings: `ANTHROPIC_API_KEY` (required to generate), `AI_MODEL` (default `claude-opus-5-5`), `AI_EFFORT` (default `medium`), `AI_MONTHLY_PLAN_LIMIT` (default 100). Roughly 3K input and 5K output tokens per plan, so about $0.10–0.15 each at Opus 5.5 prices.
 
-Next up are leads, then finance, data import and analytics. The full plan is in [`docs/plan.md`](docs/plan.md).
+**Phase 6: leads pipeline (done)**
+- **Leads:** each has a source (walk-in, phone, Instagram, Facebook, Google, referral, website), an interest, the plan they asked about, an assigned person, a next follow-up and notes. Duplicate open leads with the same phone number are blocked.
+- **Board:** a drag-and-drop Kanban board (New → Contacted → Trial booked → Trial done, plus Lost). There's also a list view, filters (mine, unassigned, source, follow-ups due) and stats (open leads, follow-ups due, 30-day new and joined, 90-day conversion rate). Moving a lead to Lost asks why; booking a trial takes an optional trial time.
+- **Lead panel:** call and WhatsApp buttons, a stage switcher, and a timeline. You can log calls, WhatsApps, visits and notes with the next follow-up in one step. Logging contact with a new lead moves it to Contacted.
+- **Convert to member:** creates the member from the lead, optionally selling the first membership, and opens the new member.
+- **Website enquiry form** (`/join/{token}`):
+  - A public form you can link from your website or Instagram. It's rate-limited and has a hidden honeypot field to catch spam bots.
+  - Repeat enquiries from the same phone are added to the existing lead.
+  - Staff get a notification for each new enquiry.
+  - Turn it on or off and issue a new link from **Leads → Website form**.
+- **Daily follow-up alerts:** each assigned staff member gets a notification for their due follow-ups. Owners and managers get one for unassigned leads. The sidebar badge counts due follow-ups.
+
+**Phase 7: finance (done)**
+- **Payments:**
+  - Record money against a membership (cash, UPI, card, bank transfer, cheque or other, with a reference) or for something else, such as PT or merchandise.
+  - Payments can be partial. Overpaying is refused.
+  - Each gym gets its own sequential receipt numbers (`RCPT-00001`). They're issued atomically, so two people taking payments at once can't get the same number.
+  - Payments are never deleted. A mistake is **voided** with a reason by a manager or owner; it stays on record and stops counting.
+- **Take payment when selling:** onboarding, renewing and converting a lead can record the payment in the same step. A smaller amount leaves the rest as due.
+- **Paid and balance** are shown on every membership. **Dues** lists every membership with money owed, oldest first, with WhatsApp "gentle reminder" and record-payment buttons.
+- **Receipts:** a clean, always-light receipt page with **Print / Save PDF** and **Send on WhatsApp**. Browser printing replaces the server-side PDF from the original plan, which would have needed GTK system libraries.
+- **Expenses:** categories (rent, salaries, utilities, equipment…), who it was paid to, payment method, and an optional bill photo or PDF (checked by its contents, stored privately).
+- **Finance overview** (owners and managers): revenue, expenses, profit and outstanding dues for the month, with month-on-month change. Also a revenue vs expenses chart (6 or 12 months) and breakdowns by payment method and expense category.
+- **Roles:** the front desk sees Payments and Dues. Expenses, the overview and voiding are for managers and owners. Trainers don't see finance.
+
+**Phase 8: data import (done)**
+- **What you can import:** plans, members, payments, check-ups and leads, from **CSV or Excel (.xlsx)**. Files can be up to 5 MB and 10,000 rows. Each type has a downloadable template.
+- **Column matching:**
+  - Columns are matched automatically from common names ("Mobile No", "Package", "Expiry Date", "Fees Paid"…).
+  - Each field shows an example value from the file.
+  - Required fields must be matched before you can continue.
+- **Messy data is understood:**
+  - dates like `05/10/2026`, `5 Oct 2026` or Excel dates (you choose day-first or month-first)
+  - amounts like `₹1,800`
+  - durations like "Quarterly" or "3 months"
+  - free text such as "F", "GPay", "fat loss" or "insta"
+- **Members:** importing a member also creates their membership (the end date is worked out from the plan if missing) and a payment with a receipt number for any amount paid.
+- **Payments and check-ups** are matched to members by phone number.
+- **Check before importing:** a dry run shows how many rows are new, already exist, or have problems, with the reason for each problem row and a preview. Nothing is saved until you confirm.
+- **Duplicates:** rows already in Gym CRM are skipped or updated. Members and leads are matched by phone, check-ups by member and date, and plans by name. Payments are never overwritten.
+- **Background run with progress:**
+  - Each row is saved on its own, so one bad row never undoes the rest.
+  - Rows that fail can be downloaded as a CSV with the reason added, ready to fix and re-import.
+  - You get a notification when the import finishes.
+- **Roles:** imports are for owners and managers.
+
+**Phase 9: analytics (done)**
+- **Analytics page** for owners and managers. It covers the last 3, 6 or 12 months and can be filtered by branch; the filter is kept in the URL so a view can be shared.
+- **Headline numbers:**
+  - active members and new members this month, each compared with last month
+  - revenue this month
+  - renewal rate: of the memberships that ended, how many renewed
+  - lead conversion
+- **Members:** active members at the end of each month, plus how many joined and how many didn't renew. Each month's renewal rate is in the tooltip.
+- **Renewals:**
+  - members whose membership ends in the next 30 days and hasn't been renewed, with what they paid last time
+  - renewal rate by month
+  - active members by plan
+- **Money:**
+  - revenue and expenses as bars per month, with profit as a line
+  - revenue by plan; payments not tied to a membership show as "Other payments"
+- **Leads:** where the period's leads are in the pipeline, average days to convert, and conversion rate by source.
+- **Progress:** each member's first and latest check-up in the period are compared, for members with at least two:
+  - how many are on track for their goal (weight down for weight loss, muscle up for muscle gain, body fat or waist down otherwise)
+  - average weight and body fat change, broken down by goal
+- **How it's computed:** figures are calculated live from the source tables, using the same rules as member status. This is fast at single-gym scale. Nightly rollup tables can replace it later without changing the API.
+- **Branch filter scope:** leads aren't tied to a branch, so they're always gym-wide. Expenses without a branch are left out when a branch is selected.
+
+**Phase 10: launch readiness (done)**
+- **Activity log** (Settings → Activity, owners only): who did what, written in the same transaction as the change itself.
+  - Covers members, memberships, payments and voids, expenses, plans, staff and roles, branches, gym and reminder settings, imports, exports, published AI plans and deleted check-ups.
+  - Edits record which fields changed. Medical notes and other sensitive values are never copied into the log.
+  - Searchable and filterable by type.
+- **CSV export** (Settings → Data, managers and owners): members, memberships, payments, expenses, plans, leads and check-ups.
+  - Member and plan exports use the import's column names, so a gym can move its data into another account.
+  - Every download is recorded in the activity log.
+- **Error monitoring:** optional Sentry on the API, the worker and the web app, set up so no personal data is sent (no bodies, cookies, query strings or link tokens).
+  - Request IDs appear on every response and log line; logs can be written as JSON.
+  - New 404 and error pages report crashes and give the user a way back.
+- **Hardening:**
+  - Sign-in is rate-limited per IP and per account. Sign-up and invite links are rate-limited too.
+  - Client IPs come only from trusted proxies.
+  - Security headers on both the app and the API.
+  - Production refuses to start with unsafe settings (weak secret, insecure cookies, SQLite, in-process scheduler).
+  - Containers run as non-root, with health checks; there's a readiness check that includes the database.
+  - Hosting providers' `postgres://` URLs are accepted as-is.
+- **Deployment:** a one-click [Render Blueprint](render.yaml) and a [deploy guide](docs/deploy.md) covering Render, Vercel, your own server, environment variables, backups and a go-live checklist.
+  - CI now also runs the migrations up and down on Postgres and builds both Docker images.
+
+The full plan is in [`docs/plan.md`](docs/plan.md). Ideas for later: WhatsApp reminders through the Business API, online payments, a member app, and QR check-in.
+
+## Deploy
+
+See **[docs/deploy.md](docs/deploy.md)**. In short: an R2 bucket for uploads; the backend on Render via **New → Blueprint** ([render.yaml](render.yaml)); `frontend/` on Vercel with `BACKEND_URL` pointing at the API; then set `FRONTEND_URL` on Render to the Vercel address.
 
 ## Background jobs & email
 

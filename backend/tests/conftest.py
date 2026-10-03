@@ -16,6 +16,13 @@ from app.core.db import Base, get_db, get_sessionmaker
 from app.main import app
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    from app.core.ratelimit import RateLimiter
+
+    RateLimiter.reset_all()
+
+
 @pytest.fixture
 async def sessions() -> AsyncIterator[async_sessionmaker]:
     engine = create_async_engine(

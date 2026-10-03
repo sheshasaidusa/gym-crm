@@ -15,6 +15,7 @@ from app.core.deps import (
     require_roles,
 )
 from app.core.schemas import Page
+from app.modules.audit import service as audit
 from app.modules.auth.models import User
 from app.modules.gyms.models import Gym, Role
 from app.modules.members.models import Member, Membership
@@ -185,6 +186,11 @@ async def update_settings(body: ReminderSettingsUpdate, ctx: OwnerContext, db: D
             else:
                 stored[kind.value] = template.model_dump()
         gym.reminder_templates = stored  # reassign so SQLAlchemy sees the JSON change
+    changed = [k for k, v in body.model_dump().items() if v is not None]
+    if changed:
+        audit.record(
+            db, ctx, "reminders.updated", f"Changed reminder settings: {', '.join(changed)}"
+        )
     await db.commit()
     return _settings_out(gym)
 

@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.core.deps import CurrentContext, DbSession, TenantContext, require_roles
 from app.core.schemas import Page
 from app.core.security import generate_url_token
+from app.modules.audit import service as audit
 from app.modules.auth.models import User
 from app.modules.gyms.models import Role
 from app.modules.members import service
@@ -161,8 +162,13 @@ async def create_member(body: MemberIn, ctx: DeskContext, db: DbSession):
         member.branch_id = ctx.branch_id
     db.add(member)
     await db.flush()
+    summary = f"Added member {member.name}"
     if body.membership:
-        await service.add_membership(db, ctx.gym_id, member, body.membership, today, ctx.user.id)
+        ms = await service.add_membership(
+            db, ctx.gym_id, member, body.membership, today, ctx.user.id
+        )
+        summary += f" on {ms.plan_name}"
+    audit.record(db, ctx, "member.created", summary, member.id)
     await db.commit()
     return await service.member_out(db, await load_member(db, ctx.gym_id, member.id), today)
 
@@ -188,8 +194,19 @@ async def update_member(member_id: uuid.UUID, body: MemberUpdate, ctx: DeskConte
     if "phone" in values:
         await service.ensure_unique_phone(db, ctx.gym_id, values["phone"], exclude_id=member.id)
     await service.validate_refs(db, ctx.gym_id, values.get("branch_id"), values.get("trainer_id"))
+    changed = audit.changes({k: getattr(member, k) for k in values}, values)
     for key, value in values.items():
         setattr(member, key, value)
+    if changed:
+        # Field names only: medical notes and the like don't belong in a log.
+        audit.record(
+            db,
+            ctx,
+            "member.updated",
+            f"Updated {member.name}: {', '.join(k.replace('_', ' ') for k in changed)}",
+            member.id,
+            {"fields": sorted(changed)},
+        )
     try:
         await db.commit()
     except IntegrityError as exc:
@@ -212,6 +229,7 @@ async def delete_member(member_id: uuid.UUID, ctx: ManagerContext, db: DbSession
         )
     ).all()
     await db.delete(member)
+    audit.record(db, ctx, "member.deleted", f"Deleted member {member.name} ({member.phone})")
     await db.commit()
     for key in photo_keys:  # rows cascade in the database; stored files need deleting here
         await get_storage().delete(key)
@@ -222,6 +240,7 @@ async def regenerate_preview_link(member_id: uuid.UUID, ctx: DeskContext, db: Db
     """Issues a new preview link; the old one stops working."""
     member = await load_member(db, ctx.gym_id, member_id)
     member.preview_token = generate_url_token()
+    audit.record(db, ctx, "member.link_reset", f"Reset {member.name}'s preview link", member.id)
     await db.commit()
     today = await service.gym_today(db, ctx.gym_id)
     return await service.member_out(db, await load_member(db, ctx.gym_id, member_id), today)
@@ -238,17 +257,36 @@ async def regenerate_preview_link(member_id: uuid.UUID, ctx: DeskContext, db: Db
 async def add_membership(member_id: uuid.UUID, body: MembershipIn, ctx: DeskContext, db: DbSession):
     member = await load_member(db, ctx.gym_id, member_id)
     today = await service.gym_today(db, ctx.gym_id)
-    await service.add_membership(db, ctx.gym_id, member, body, today, ctx.user.id)
+    ms = await service.add_membership(db, ctx.gym_id, member, body, today, ctx.user.id)
+    audit.record(
+        db,
+        ctx,
+        "membership.created",
+        f"Added {ms.plan_name} for {member.name} ({ms.start_date:%d %b %Y} to "
+        f"{ms.end_date:%d %b %Y})",
+        ms.id,
+        {"member_id": member.id, "total": ms.total},
+    )
     await db.commit()
     return await service.member_out(db, await load_member(db, ctx.gym_id, member_id), today)
 
 
 async def _membership_action(
-    membership_id: uuid.UUID, ctx: TenantContext, db: DbSession, action
+    membership_id: uuid.UUID,
+    ctx: TenantContext,
+    db: DbSession,
+    action,
+    event: tuple[str, str],  # ("frozen", "Froze")
 ) -> MemberOut:
     m = await load_membership(db, ctx.gym_id, membership_id)
     today = await service.gym_today(db, ctx.gym_id)
     action(m, today)
+    name = await db.scalar(select(Member.name).where(Member.id == m.member_id))
+    key, label = event
+    summary = f"{label} {name}'s {m.plan_name} membership"
+    if key == "frozen":
+        summary += f" ({m.freeze_start:%d %b} to {m.freeze_end:%d %b})"
+    audit.record(db, ctx, f"membership.{key}", summary, m.id, {"member_id": m.member_id})
     await db.commit()
     return await service.member_out(db, await load_member(db, ctx.gym_id, m.member_id), today)
 
@@ -258,15 +296,23 @@ async def freeze_membership(
     membership_id: uuid.UUID, body: FreezeIn, ctx: DeskContext, db: DbSession
 ):
     return await _membership_action(
-        membership_id, ctx, db, lambda m, today: service.freeze(m, body, today)
+        membership_id,
+        ctx,
+        db,
+        lambda m, today: service.freeze(m, body, today),
+        ("frozen", "Froze"),
     )
 
 
 @router.post("/memberships/{membership_id}/unfreeze", response_model=MemberOut)
 async def unfreeze_membership(membership_id: uuid.UUID, ctx: DeskContext, db: DbSession):
-    return await _membership_action(membership_id, ctx, db, service.unfreeze)
+    return await _membership_action(
+        membership_id, ctx, db, service.unfreeze, ("unfrozen", "Unfroze")
+    )
 
 
 @router.post("/memberships/{membership_id}/cancel", response_model=MemberOut)
 async def cancel_membership(membership_id: uuid.UUID, ctx: ManagerContext, db: DbSession):
-    return await _membership_action(membership_id, ctx, db, lambda m, _today: service.cancel(m))
+    return await _membership_action(
+        membership_id, ctx, db, lambda m, _today: service.cancel(m), ("cancelled", "Cancelled")
+    )

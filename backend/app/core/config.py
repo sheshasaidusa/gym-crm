@@ -1,7 +1,8 @@
+import logging
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -52,18 +53,33 @@ class Settings(BaseSettings):
     ai_effort: Literal["low", "medium", "high"] = "medium"
     ai_monthly_plan_limit: int = 100  # per gym
 
+    # Error monitoring. Leave SENTRY_DSN unset to disable. No personal data is sent.
+    sentry_dsn: str | None = None
+    sentry_traces_sample_rate: float = 0.0
+    # The deployed version (git commit), shown in Sentry. Render sets RENDER_GIT_COMMIT.
+    release: str | None = Field(None, validation_alias=AliasChoices("RELEASE", "RENDER_GIT_COMMIT"))
+    log_level: str = "INFO"
+    log_json: bool = False  # one JSON object per line, for log collectors
+
+    # How many proxies in front of the API append to X-Forwarded-For (used for rate limits).
+    # 1 = just the Next.js server; 2 = a load balancer in front of Next.js (Render, most PaaS).
+    trusted_proxy_hops: int = 1
+
     cookie_secure: bool = False
     cors_origins: list[str] = ["http://localhost:3000"]
     frontend_url: str = "http://localhost:3000"
 
     @field_validator("database_url")
     @classmethod
-    def _use_async_driver(cls, v: str) -> str:
-        # Hosts such as Render hand out plain postgres:// or postgresql:// URLs.
+    def _async_driver(cls, url: str) -> str:
+        """Hosts hand out postgres://... URLs; the app needs the asyncpg driver, which
+        spells the SSL option `ssl` rather than libpq's `sslmode`."""
         for prefix in ("postgres://", "postgresql://"):
-            if v.startswith(prefix):
-                return "postgresql+asyncpg://" + v[len(prefix) :]
-        return v
+            if url.startswith(prefix):
+                url = "postgresql+asyncpg://" + url[len(prefix) :]
+        if url.startswith("postgresql+asyncpg://"):
+            url = url.replace("sslmode=", "ssl=")
+        return url
 
     @property
     def is_sqlite(self) -> bool:
@@ -73,11 +89,38 @@ class Settings(BaseSettings):
 _DEV_SECRET = Settings.model_fields["jwt_secret"].default
 
 
+def check_production(s: Settings) -> list[str]:
+    """Refuses to start production with settings that would leak sessions or lose data.
+    Returns warnings for things that are allowed but probably unintended."""
+    if s.environment != "production":
+        return []
+    problems = []
+    if s.jwt_secret == _DEV_SECRET or len(s.jwt_secret) < 32:
+        problems.append("set a strong JWT_SECRET (32+ characters)")
+    if not s.cookie_secure:
+        problems.append("set COOKIE_SECURE=true (production must be served over HTTPS)")
+    if s.is_sqlite:
+        problems.append("use Postgres for DATABASE_URL (SQLite is for local development)")
+    if s.scheduler == "inprocess":
+        problems.append('set SCHEDULER=celery (and run the worker) or "off"')
+    if problems:
+        raise RuntimeError("Production settings need fixing: " + "; ".join(problems))
+    warnings = []
+    if s.storage_provider == "local":
+        warnings.append(
+            "STORAGE_PROVIDER=local: uploads are lost on redeploy unless STORAGE_DIR is a "
+            "persistent disk. Use S3 or R2."
+        )
+    if s.email_provider == "console":
+        warnings.append("EMAIL_PROVIDER=console: reminder emails are only printed to the log.")
+    return warnings
+
+
 @lru_cache
 def get_settings() -> Settings:
     s = Settings()
-    if s.environment == "production" and (s.jwt_secret == _DEV_SECRET or len(s.jwt_secret) < 32):
-        raise RuntimeError("Set a strong JWT_SECRET (32+ chars) in production")
+    for warning in check_production(s):
+        logging.getLogger("gym_crm").warning(warning)
     return s
 
 

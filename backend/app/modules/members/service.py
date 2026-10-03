@@ -148,6 +148,23 @@ async def add_membership(
     )
     member.memberships.append(membership)
     await db.flush()
+    if body.payment is not None:
+        from app.modules.finance.schemas import PaymentIn
+        from app.modules.finance.service import record_payment
+
+        await record_payment(
+            db,
+            gym_id,
+            member,
+            PaymentIn(
+                membership_id=membership.id,
+                amount=body.payment.amount,
+                method=body.payment.method,
+                reference=body.payment.reference,
+            ),
+            created_by,
+            today,
+        )
     return membership
 
 
@@ -215,12 +232,14 @@ def days_left(m: Membership, today: date) -> int | None:
     return (m.end_date - today).days
 
 
-def membership_out(m: Membership, today: date) -> MembershipOut:
+def membership_out(m: Membership, today: date, paid: Decimal = Decimal(0)) -> MembershipOut:
     return MembershipOut.model_validate(
         {
             **{c: getattr(m, c) for c in MembershipOut.model_fields if hasattr(m, c)},
             "status": membership_status(m, today),
             "days_left": days_left(m, today),
+            "paid": round_money(paid),
+            "balance": round_money(m.total - paid) if m.cancelled_at is None else Decimal(0),
         }
     )
 
@@ -275,6 +294,9 @@ async def member_out(db: AsyncSession, member: Member, today: date) -> MemberOut
     last_checkup_on = await db.scalar(
         select(func.max(CheckUp.recorded_on)).where(CheckUp.member_id == member.id)
     )
+    from app.modules.finance.service import paid_by_membership
+
+    paid = await paid_by_membership(db, [m.id for m in member.memberships])
     current = pick_current(member.memberships, today)
     base = list_item(member, current, trainer_name, today)
     return MemberOut(
@@ -292,7 +314,9 @@ async def member_out(db: AsyncSession, member: Member, today: date) -> MemberOut
         notes=member.notes,
         preview_enabled=member.preview_enabled,
         preview_url=f"{settings.frontend_url}/p/{member.preview_token}",
-        memberships=[membership_out(m, today) for m in member.memberships],
+        memberships=[
+            membership_out(m, today, paid.get(m.id, Decimal(0))) for m in member.memberships
+        ],
         last_checkup_on=last_checkup_on,
         created_at=member.created_at,
     )

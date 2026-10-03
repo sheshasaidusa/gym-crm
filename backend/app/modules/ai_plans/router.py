@@ -14,6 +14,7 @@ from app.core.deps import CurrentContext, DbSession, TenantContext, require_role
 from app.modules.ai_plans import generator
 from app.modules.ai_plans.content import PlanContent
 from app.modules.ai_plans.models import AIPlan, PlanStatus
+from app.modules.audit import service as audit
 from app.modules.auth.models import User
 from app.modules.checkups.models import CheckUp
 from app.modules.gyms.models import Gym, Role
@@ -325,6 +326,10 @@ async def publish_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession):
     p.status = PlanStatus.PUBLISHED
     p.published_at = utcnow()
     p.published_by = ctx.user.id
+    name = await db.scalar(select(Member.name).where(Member.id == p.member_id))
+    audit.record(
+        db, ctx, "ai_plan.published", f"Published version {p.version} of {name}'s plan", p.id
+    )
     await db.commit()
     return await _out(db, await _plan(db, ctx.gym_id, plan_id))
 
@@ -335,6 +340,10 @@ async def unpublish_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession):
     if p.status != PlanStatus.PUBLISHED:
         raise HTTPException(status.HTTP_409_CONFLICT, "This plan isn't published")
     p.status = PlanStatus.DRAFT
+    name = await db.scalar(select(Member.name).where(Member.id == p.member_id))
+    audit.record(
+        db, ctx, "ai_plan.unpublished", f"Unpublished {name}'s plan (version {p.version})", p.id
+    )
     await db.commit()
     return await _out(db, await _plan(db, ctx.gym_id, plan_id))
 

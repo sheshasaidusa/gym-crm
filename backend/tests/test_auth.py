@@ -107,3 +107,36 @@ async def test_refresh_after_removal_from_gym(client: AsyncClient, owner: Accoun
     forged_scope = pyjwt.encode(payload, settings.jwt_secret, algorithm="HS256")
     res = await client.post("/api/auth/refresh", json={"refresh_token": forged_scope})
     assert res.status_code == 401
+
+
+async def test_login_is_rate_limited_per_account(client: AsyncClient, owner):
+    bad = {"email": "owner@a.com", "password": "wrong-password"}
+    for _ in range(10):
+        assert (await client.post("/api/auth/login", json=bad)).status_code == 401
+    res = await client.post("/api/auth/login", json=bad)
+    assert res.status_code == 429 and "15 minutes" in res.json()["detail"]
+    assert int(res.headers["retry-after"]) > 0
+    # Even the right password waits; other accounts are unaffected.
+    good = {"email": "OWNER@a.com", "password": "supersecret1"}
+    assert (await client.post("/api/auth/login", json=good)).status_code == 429
+    other = {"email": "nobody@a.com", "password": "x" * 10}
+    assert (await client.post("/api/auth/login", json=other)).status_code == 401
+
+
+def test_client_ip_only_trusts_our_proxies(monkeypatch):
+    from starlette.requests import Request
+
+    from app.core import ratelimit
+
+    def req(xff):
+        headers = [(b"x-forwarded-for", xff.encode())] if xff else []
+        return Request({"type": "http", "headers": headers, "client": ("10.0.0.9", 1)})
+
+    monkeypatch.setattr(ratelimit.settings, "trusted_proxy_hops", 1)
+    # The client made up "1.1.1.1"; our proxy appended the real address.
+    assert ratelimit.client_ip(req("1.1.1.1, 203.0.113.7")) == "203.0.113.7"
+    monkeypatch.setattr(ratelimit.settings, "trusted_proxy_hops", 2)
+    assert ratelimit.client_ip(req("1.1.1.1, 203.0.113.7, 10.1.1.1")) == "203.0.113.7"
+    monkeypatch.setattr(ratelimit.settings, "trusted_proxy_hops", 0)
+    assert ratelimit.client_ip(req("1.1.1.1")) == "10.0.0.9"
+    assert ratelimit.client_ip(req(None)) == "10.0.0.9"

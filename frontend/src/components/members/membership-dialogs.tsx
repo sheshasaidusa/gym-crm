@@ -78,7 +78,7 @@ export function AddMembershipDialog({
     const plan = plans.data?.find((p) => p.id === draft.plan_id);
     if (!plan) return setPlanError("Choose a plan");
     if (resolveDraft(draft, plan, isFirst).error) return;
-    add.mutate(draftToBody(draft), { onSuccess: () => onOpenChange(false) });
+    add.mutate(draftToBody(draft, plan, isFirst), { onSuccess: () => onOpenChange(false) });
   };
 
   return (

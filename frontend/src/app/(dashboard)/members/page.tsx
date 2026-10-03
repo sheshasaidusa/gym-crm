@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { useDebounced } from "@/hooks/use-debounced";
 import { StatusBadge } from "@/components/members/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { SimpleSelect } from "@/components/simple-select";
@@ -52,15 +53,6 @@ const SORTS = [
   { value: "name", label: "Name A–Z" },
   { value: "ending", label: "Ending soonest" },
 ];
-
-function useDebounced<T>(value: T, ms: number) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return debounced;
-}
 
 function MembersView() {
   const router = useRouter();

@@ -1,10 +1,11 @@
 import uuid
 
 import jwt
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 
 from app.core.deps import REFRESH_COOKIE, CurrentContext, DbSession
+from app.core.ratelimit import RateLimiter
 from app.core.security import decode_token
 from app.modules.auth import service
 from app.modules.auth.models import User
@@ -22,15 +23,29 @@ from app.modules.gyms.models import Gym
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Brakes on password guessing: per IP, and per account so rotating IPs doesn't help.
+login_ip_limiter = RateLimiter(20, 60)
+login_account_limiter = RateLimiter(
+    10, 15 * 60, "Too many sign-in attempts for this account. Try again in 15 minutes."
+)
+signup_limiter = RateLimiter(10, 60 * 60, "Too many sign-ups from here. Try again later.")
+invite_limiter = RateLimiter(20, 60)
 
-@router.post("/signup", response_model=AuthOut, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/signup",
+    response_model=AuthOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(signup_limiter)],
+)
 async def signup(body: SignupIn, response: Response, db: DbSession):
     user, gym = await service.signup(db, body)
     return await service.issue_session(db, response, user, gym.id)
 
 
-@router.post("/login", response_model=AuthOut)
+@router.post("/login", response_model=AuthOut, dependencies=[Depends(login_ip_limiter)])
 async def login(body: LoginIn, response: Response, db: DbSession):
+    login_account_limiter.check(body.email.lower())
     user, gym_id = await service.authenticate(db, body.email, body.password, body.gym_id)
     return await service.issue_session(db, response, user, gym_id)
 
@@ -71,7 +86,9 @@ async def switch_gym(body: SwitchGymIn, ctx: CurrentContext, response: Response,
     return await service.issue_session(db, response, ctx.user, body.gym_id)
 
 
-@router.get("/invites/{token}", response_model=InvitePreviewOut)
+@router.get(
+    "/invites/{token}", response_model=InvitePreviewOut, dependencies=[Depends(invite_limiter)]
+)
 async def preview_invite(token: str, db: DbSession):
     invite = await service.get_valid_invite(db, token)
     gym = await db.get_one(Gym, invite.gym_id)
@@ -81,7 +98,9 @@ async def preview_invite(token: str, db: DbSession):
     )
 
 
-@router.post("/invites/{token}/accept", response_model=AuthOut)
+@router.post(
+    "/invites/{token}/accept", response_model=AuthOut, dependencies=[Depends(invite_limiter)]
+)
 async def accept_invite(token: str, body: AcceptInviteIn, response: Response, db: DbSession):
     invite = await service.get_valid_invite(db, token)
     gym_id = invite.gym_id

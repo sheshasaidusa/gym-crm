@@ -1,5 +1,6 @@
 # Render Blueprint: Dashboard -> New -> Blueprint -> pick this repo.
-# Creates a Postgres database, the API and the web app. See docs/deploy-render.md.
+# Free-plan demo: a Postgres database, the API and the web app. See docs/deploy-render.md.
+# The paid, production setup (worker, Redis, R2 uploads) is render.production.yaml.
 #
 # The service names below set the public URLs (gym-crm-web.onrender.com, ...). If Render adds
 # a suffix because a name is taken, update FRONTEND_URL and BACKEND_URL to match.
@@ -18,7 +19,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free # sleeps after 15 min idle; the first request then takes about a minute
-    healthCheckPath: /api/health
+    healthCheckPath: /api/health/ready
     envVars:
       - key: PORT
         value: "8000"
@@ -36,8 +37,15 @@ services:
         value: https://gym-crm-web.onrender.com
       - key: CORS_ORIGINS
         value: '["https://gym-crm-web.onrender.com"]'
+      # Reminders need a worker, which the free plan can't run, so scheduling is off here.
+      # The app refuses to start in production with SCHEDULER=inprocess.
       - key: SCHEDULER
-        value: inprocess
+        value: "off"
+      # The web app and Render's load balancer both append to X-Forwarded-For (rate limits).
+      - key: TRUSTED_PROXY_HOPS
+        value: "2"
+      - key: LOG_JSON
+        value: "true"
       - key: EMAIL_PROVIDER
         value: console # emails are only written to the log; use resend or smtp for real ones
       - key: ANTHROPIC_API_KEY

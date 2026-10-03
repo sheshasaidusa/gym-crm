@@ -14,6 +14,10 @@ from sqlalchemy.pool import NullPool
 
 from app import models  # noqa: F401  (registers all tables)
 from app.core.config import settings
+from app.core.monitoring import configure_logging, init_sentry
+
+configure_logging()
+init_sentry("worker")
 
 celery_app = Celery("gym_crm", broker=settings.redis_url, backend=settings.redis_url)
 celery_app.conf.update(

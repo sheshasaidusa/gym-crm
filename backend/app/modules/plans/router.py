@@ -4,6 +4,7 @@ from fastapi import APIRouter, status
 from sqlalchemy import func, select
 
 from app.core.deps import CurrentContext, DbSession, ManagerContext
+from app.modules.audit import service as audit
 from app.modules.members.models import Membership
 from app.modules.members.service import PlanRepository, conflict, gym_today
 from app.modules.plans.models import Plan
@@ -47,6 +48,7 @@ async def list_plans(ctx: CurrentContext, db: DbSession, include_archived: bool 
 @router.post("", response_model=PlanOut, status_code=status.HTTP_201_CREATED)
 async def create_plan(body: PlanIn, ctx: ManagerContext, db: DbSession):
     plan = await PlanRepository(db, ctx.gym_id).create(**body.model_dump())
+    audit.record(db, ctx, "plan.created", f"Created plan {plan.name}", plan.id)
     await db.commit()
     return _out(plan, {})
 
@@ -62,7 +64,24 @@ async def update_plan(plan_id: uuid.UUID, body: PlanUpdate, ctx: ManagerContext,
     """Changes apply to future memberships only; existing ones keep their copied terms."""
     repo = PlanRepository(db, ctx.gym_id)
     values = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
-    plan = await repo.update(await repo.get_or_404(plan_id), values)
+    plan = await repo.get_or_404(plan_id)
+    changed = audit.changes({k: getattr(plan, k) for k in values}, values)
+    plan = await repo.update(plan, values)
+    if changed:
+        if set(changed) == {"is_active"}:
+            action, verb = (
+                ("plan.restored", "Reactivated")
+                if plan.is_active
+                else (
+                    "plan.archived",
+                    "Archived",
+                )
+            )
+            audit.record(db, ctx, action, f"{verb} plan {plan.name}", plan.id)
+        else:
+            audit.record(
+                db, ctx, "plan.updated", f"Edited plan {plan.name}", plan.id, {"changes": changed}
+            )
     await db.commit()
     return _out(plan, await _active_counts(db, ctx.gym_id))
 
@@ -75,4 +94,5 @@ async def delete_plan(plan_id: uuid.UUID, ctx: ManagerContext, db: DbSession) ->
     if used:
         raise conflict("This plan has been sold before, so it can only be archived")
     await repo.delete(plan)
+    audit.record(db, ctx, "plan.deleted", f"Deleted plan {plan.name}")
     await db.commit()

@@ -1,0 +1,84 @@
+# Paid, production-grade Blueprint (API + worker + Redis on Render, web on Vercel).
+# To use it, rename this file to render.yaml. The free demo setup is render.yaml. See docs/deploy.md.
+# Render Blueprint for the backend: Dashboard → New → Blueprint → pick this repo.
+# Creates Postgres, Redis (Key Value), the API and the background worker. The web app
+# (frontend/) is deployed on Vercel; to host it on Render instead, see docs/deploy.md.
+# Values marked `sync: false` are asked for when the Blueprint is created.
+
+databases:
+  - name: gym-crm-db
+    plan: basic-256mb
+    databaseName: gym_crm
+    postgresMajorVersion: "16"
+
+services:
+  - type: keyvalue
+    name: gym-crm-redis
+    plan: starter
+    ipAllowList: [] # private network only
+    maxmemoryPolicy: noeviction # job queue: never drop tasks
+
+  - type: web
+    name: gym-crm-api
+    runtime: docker
+    plan: starter
+    rootDir: backend
+    healthCheckPath: /api/health/ready
+    envVars:
+      - fromGroup: gym-crm-backend
+      - key: DATABASE_URL
+        fromDatabase: { name: gym-crm-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: gym-crm-redis, property: connectionString }
+
+  - type: worker
+    name: gym-crm-worker
+    runtime: docker
+    plan: starter
+    rootDir: backend
+    # Worker with the beat scheduler embedded. Keep exactly one instance of this service.
+    dockerCommand: celery -A app.worker worker --beat --loglevel=info
+    envVars:
+      - fromGroup: gym-crm-backend
+      - key: DATABASE_URL
+        fromDatabase: { name: gym-crm-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: gym-crm-redis, property: connectionString }
+
+envVarGroups:
+  - name: gym-crm-backend
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: SCHEDULER
+        value: celery
+      - key: LOG_JSON
+        value: "true"
+      # Vercel's edge and its proxy to Render both append to X-Forwarded-For.
+      - key: TRUSTED_PROXY_HOPS
+        value: "2"
+      # The web app's public address, e.g. https://gym-crm.vercel.app (used in links and
+      # emails). Put a placeholder first; set the real one once Vercel has deployed.
+      - key: FRONTEND_URL
+        sync: false
+      # "console" logs reminder emails instead of sending them. Switch to resend (with
+      # RESEND_API_KEY and EMAIL_FROM_ADDRESS) once you have a verified email domain.
+      - key: EMAIL_PROVIDER
+        value: console
+      # Uploads (progress photos, bills, import files) in a private Cloudflare R2 bucket.
+      - key: STORAGE_PROVIDER
+        value: s3
+      - key: S3_REGION
+        value: auto
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ENDPOINT_URL # https://<account id>.r2.cloudflarestorage.com
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false

@@ -70,6 +70,7 @@
   --chart-1: oklch(0.87 0 0);
   /* Single-series data colour (validated against card surfaces; see dataviz palette slot 1). */
   --series-1: #2a78d6;
+  --series-2: #eb6834;
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
@@ -106,6 +107,7 @@
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --series-1: #3987e5;
+  --series-2: #d95926;
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
