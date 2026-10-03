@@ -3,6 +3,7 @@
 #
 # The service names below set the public URLs (gym-crm-web.onrender.com, ...). If Render adds
 # a suffix because a name is taken, update FRONTEND_URL and BACKEND_URL to match.
+# (This deployment: the API got the suffix, so BACKEND_URL below uses gym-crm-api-ale7.)
 
 databases:
   - name: gym-crm-db
@@ -51,4 +52,4 @@ services:
     envVars:
       # Baked in at build time: the web app proxies /api/* to this address.
       - key: BACKEND_URL
-        value: https://gym-crm-api.onrender.com
+        value: https://gym-crm-api-ale7.onrender.com
