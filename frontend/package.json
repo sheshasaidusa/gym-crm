@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "gen:api": "cd ../backend && uv run python scripts/export_openapi.py ../frontend/openapi.json && cd ../frontend && openapi-typescript openapi.json -o src/lib/api/schema.d.ts"
+    "gen:api": "cd ../backend && uv run python scripts/export_openapi.py ../frontend/openapi.json && cd ../frontend && openapi-typescript openapi.json -o src/lib/api/schema.d.ts",
+    "test:blueprint": "node --no-warnings scripts/blueprint-parity/parity.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
