@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Dunamis", template: "%s · Dunamis" },
+  title: { default: "dunamis", template: "%s · dunamis" },
   description: "Members, plans, leads and finances for your gym in one place.",
 };
 

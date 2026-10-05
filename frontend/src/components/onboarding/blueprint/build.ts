@@ -88,8 +88,13 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
   const maxX = (xmax - ymin) * C;
   const minY = (xmin + ymin) * 0.5 - topU;
   const maxY = (xmax + ymax) * 0.5;
-  const ox = 420 - ((minX + maxX) / 2) * sc;
-  const oy = 450 - ((minY + maxY) / 2) * sc;
+  // The detailed drawing centres the building itself (the car park hangs off to the side);
+  // the plain drawing centres the whole site, as the original design did.
+  const cMinX = detail ? (-1.8 - ymax) * C : minX;
+  const cMaxX = detail ? (W + 1.6 - ymin) * C : maxX;
+  const cMaxY = detail ? (W + 1.6 + ymax) * 0.5 : maxY;
+  const ox = 420 - ((cMinX + cMaxX) / 2) * sc;
+  const oy = 450 - ((minY + cMaxY) / 2) * sc;
   const n1 = (v: number) => v.toFixed(1);
   const P = (x: number, y: number, z: number): [number, number] => [
     ox + (x - y) * C * sc,

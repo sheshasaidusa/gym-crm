@@ -1,4 +1,4 @@
-# Dunamis
+# dunamis
 
 Multi-gym SaaS CRM: members, customizable plans, weekly check-ups, AI workout/diet plans with
 member preview links, expiry reminders, leads, finance, analytics and data import.
@@ -118,7 +118,7 @@ AI settings: `ANTHROPIC_API_KEY` (required to generate), `AI_MODEL` (default `cl
 - **Members:** importing a member also creates their membership (the end date is worked out from the plan if missing) and a payment with a receipt number for any amount paid.
 - **Payments and check-ups** are matched to members by phone number.
 - **Check before importing:** a dry run shows how many rows are new, already exist, or have problems, with the reason for each problem row and a preview. Nothing is saved until you confirm.
-- **Duplicates:** rows already in Dunamis are skipped or updated. Members and leads are matched by phone, check-ups by member and date, and plans by name. Payments are never overwritten.
+- **Duplicates:** rows already in dunamis are skipped or updated. Members and leads are matched by phone, check-ups by member and date, and plans by name. Payments are never overwritten.
 - **Background run with progress:**
   - Each row is saved on its own, so one bad row never undoes the rest.
   - Rows that fail can be downloaded as a CSV with the reason added, ready to fix and re-import.

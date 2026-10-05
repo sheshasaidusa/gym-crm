@@ -1,4 +1,4 @@
-# Dunamis — Product Plan & Tech Stack
+# dunamis — Product Plan & Tech Stack
 
 ## Context
 We are building a gym-management CRM from scratch; the `gym-crm` folder is empty. It is a **multi-gym SaaS**: any gym owner signs up and gets an isolated workspace. In it they can:

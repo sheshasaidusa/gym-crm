@@ -140,7 +140,7 @@ export function BlueprintSvg({ layers, structure, assembling, k, tracer, pulse }
   return (
     <svg
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-      className="absolute inset-0 size-full"
+      className="absolute inset-0 size-full overflow-visible"
       aria-hidden="true"
       focusable="false"
     >

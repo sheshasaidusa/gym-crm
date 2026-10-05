@@ -1,4 +1,4 @@
-# Deploying Dunamis
+# Deploying dunamis
 
 The app has five parts:
 

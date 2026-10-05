@@ -1,6 +1,5 @@
 "use client";
 
-import { DumbbellIcon } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -218,12 +217,7 @@ function Wizard({ me, review, onSignedUp }: { me: Me | null; review: boolean; on
     <div className="flex min-h-svh flex-col lg:flex-row">
       <div className="flex min-w-0 flex-col px-6 pt-6 sm:px-10 sm:pt-10 lg:w-[clamp(32rem,48vw,43rem)] lg:flex-none lg:px-14">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 font-semibold">
-            <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <DumbbellIcon className="size-4" />
-            </span>
-            Dunamis
-          </div>
+          <div className="font-semibold">dunamis</div>
           <span className="text-sm text-muted-foreground">
             {step === "done" ? "Setup complete" : review ? "Reviewing setup" : `Step ${n} of 4`}
           </span>
