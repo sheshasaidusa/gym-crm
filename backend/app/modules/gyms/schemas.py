@@ -1,9 +1,13 @@
+import logging
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, ValidationError, field_validator
 
 from app.modules.gyms.models import Role
+from app.modules.gyms.profile import GymProfile
+
+log = logging.getLogger(__name__)
 
 
 class ORMModel(BaseModel):
@@ -20,6 +24,20 @@ class GymOut(ORMModel):
     phone: str | None
     reminder_offsets: list[int]
     checkup_interval_days: int
+    profile: GymProfile | None = None
+    onboarding_completed_at: datetime | None = None
+
+    @field_validator("profile", mode="before")
+    @classmethod
+    def _tolerant_profile(cls, v: object) -> object:
+        # Gym data comes back on every login, so a stale profile must never break it.
+        if v is None:
+            return None
+        try:
+            return GymProfile.model_validate(v)
+        except ValidationError:
+            log.warning("Ignoring invalid stored gym profile")
+            return None
 
 
 class GymUpdate(BaseModel):

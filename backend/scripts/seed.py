@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy import select  # noqa: E402
 
 from app.core.dates import DurationUnit, membership_end, today_in  # noqa: E402
-from app.core.db import SessionLocal  # noqa: E402
+from app.core.db import SessionLocal, utcnow  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.models import Branch, Gym, Member, Membership, Plan, StaffMembership, User  # noqa: E402
 from app.modules.gyms.models import Role  # noqa: E402
@@ -48,7 +48,9 @@ async def main() -> None:
             print("Demo gym already exists.")
             return
 
-        gym = Gym(name="Iron Temple Fitness", phone="+91 98765 43210")
+        gym = Gym(
+            name="Iron Temple Fitness", phone="+91 98765 43210", onboarding_completed_at=utcnow()
+        )
         db.add(gym)
         await db.flush()
         main_branch = Branch(gym_id=gym.id, name="Main branch", address="12 MG Road")

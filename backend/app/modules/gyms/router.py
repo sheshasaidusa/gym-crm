@@ -10,6 +10,7 @@ from app.core.deps import CurrentContext, DbSession, ManagerContext, OwnerContex
 from app.core.security import generate_url_token
 from app.modules.audit import service as audit
 from app.modules.gyms.models import Gym, Invite, Role, StaffMembership
+from app.modules.gyms.profile import GymProfile, merge_profile
 from app.modules.gyms.repository import BranchRepository, InviteRepository, StaffRepository
 from app.modules.gyms.schemas import (
     BranchIn,
@@ -47,6 +48,26 @@ async def update_gym(body: GymUpdate, ctx: OwnerContext, db: DbSession) -> Gym:
             db, ctx, "gym.updated", f"Changed gym settings: {fields}", gym.id, {"changes": changed}
         )
     await db.commit()
+    return gym
+
+
+@router.patch("/gym/profile", response_model=GymOut)
+async def update_gym_profile(body: GymProfile, ctx: OwnerContext, db: DbSession) -> Gym:
+    """Saves onboarding answers. Merges into what is stored, so each step can save alone.
+    Not audited: the wizard saves after every step and the final result is audited on completion."""
+    gym = await db.get_one(Gym, ctx.gym_id)
+    gym.profile = merge_profile(gym.profile, body)
+    await db.commit()
+    return gym
+
+
+@router.post("/gym/onboarding/complete", response_model=GymOut)
+async def complete_onboarding(ctx: OwnerContext, db: DbSession) -> Gym:
+    gym = await db.get_one(Gym, ctx.gym_id)
+    if gym.onboarding_completed_at is None:
+        gym.onboarding_completed_at = utcnow()
+        audit.record(db, ctx, "gym.onboarded", "Finished gym setup", gym.id)
+        await db.commit()
     return gym
 
 

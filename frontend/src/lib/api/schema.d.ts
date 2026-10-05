@@ -198,6 +198,44 @@ export interface paths {
         patch: operations["update_gym_api_gym_patch"];
         trace?: never;
     };
+    "/api/gym/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Gym Profile
+         * @description Saves onboarding answers. Merges into what is stored, so each step can save alone.
+         *     Not audited: the wizard saves after every step and the final result is audited on completion.
+         */
+        patch: operations["update_gym_profile_api_gym_profile_patch"];
+        trace?: never;
+    };
+    "/api/gym/onboarding/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Onboarding */
+        post: operations["complete_onboarding_api_gym_onboarding_complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/branches": {
         parameters: {
             query?: never;
@@ -2102,6 +2140,32 @@ export interface components {
             reminder_offsets: number[];
             /** Checkup Interval Days */
             checkup_interval_days: number;
+            profile?: components["schemas"]["GymProfile"] | null;
+            /** Onboarding Completed At */
+            onboarding_completed_at?: string | null;
+        };
+        /** GymProfile */
+        GymProfile: {
+            /** City */
+            city?: string | null;
+            /** Size */
+            size?: ("small" | "medium" | "large") | null;
+            /** Floors */
+            floors?: number | null;
+            /** Staff Count */
+            staff_count?: number | null;
+            /** Zones */
+            zones?: ("cardio" | "weights" | "machines" | "functional" | "studio")[] | null;
+            /** Facilities */
+            facilities?: ("lockers" | "showers" | "parking")[] | null;
+            /** Hours */
+            hours?: ("standard" | "early" | "24_7") | null;
+            /** Trainers */
+            trainers?: components["schemas"]["TrainerDraft"][] | null;
+            /** Last Step */
+            last_step?: number | null;
+            /** Skipped Steps */
+            skipped_steps?: (2 | 3 | 4)[] | null;
         };
         /** GymUpdate */
         GymUpdate: {
@@ -3449,6 +3513,22 @@ export interface components {
             /** Body */
             body: string;
         };
+        /** TrainerDraft */
+        TrainerDraft: {
+            /** Name */
+            name: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Speciality
+             * @default general
+             * @enum {string}
+             */
+            speciality: "weights" | "cardio" | "machines" | "functional" | "studio" | "general";
+        };
         /** Upcoming */
         Upcoming: {
             /** Expiring 30 Days */
@@ -3878,6 +3958,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_gym_profile_api_gym_profile_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GymProfile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GymOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_onboarding_api_gym_onboarding_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GymOut"];
                 };
             };
         };
