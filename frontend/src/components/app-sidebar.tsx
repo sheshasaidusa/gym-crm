@@ -162,7 +162,7 @@ export function AppSidebar() {
                       {me.data.gym.name}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      Gym CRM
+                      Dunamis
                     </span>
                   </>
                 ) : (

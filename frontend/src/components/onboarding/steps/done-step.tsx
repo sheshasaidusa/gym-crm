@@ -108,7 +108,7 @@ export function DoneStep({ draft, ownerName, results, retrying, onRetry, onRevie
                         nativeButton={false}
                         render={
                           <a
-                            href={whatsappUrl("", `Hi ${m.name}, join ${draft.gymName.trim() || "our gym"} on Gym CRM: ${url}`)}
+                            href={whatsappUrl("", `Hi ${m.name}, join ${draft.gymName.trim() || "our gym"} on Dunamis: ${url}`)}
                             target="_blank"
                             rel="noreferrer"
                           />

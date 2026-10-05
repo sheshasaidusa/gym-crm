@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <DumbbellIcon className="size-4" />
           </div>
-          Gym CRM
+          Dunamis
         </div>
         {children}
       </div>

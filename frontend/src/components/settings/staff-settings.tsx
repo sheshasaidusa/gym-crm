@@ -120,7 +120,7 @@ function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
                 nativeButton={false}
                 render={
                   <a
-                    href={`https://wa.me/?text=${encodeURIComponent(`Join our gym team on Gym CRM: ${created.url}`)}`}
+                    href={`https://wa.me/?text=${encodeURIComponent(`Join our gym team on Dunamis: ${created.url}`)}`}
                     target="_blank"
                     rel="noreferrer"
                   />

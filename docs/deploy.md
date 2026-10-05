@@ -1,4 +1,4 @@
-# Deploying Gym CRM
+# Deploying Dunamis
 
 The app has five parts:
 
