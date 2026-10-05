@@ -33,8 +33,8 @@ function onError(error: Error) {
 
 // --- Session ----------------------------------------------------------------
 
-export function useMe() {
-  return useQuery({ queryKey: keys.me, queryFn: () => unwrap(api.GET("/api/auth/me")) });
+export function useMe(enabled = true) {
+  return useQuery({ queryKey: keys.me, queryFn: () => unwrap(api.GET("/api/auth/me")), enabled });
 }
 
 export function useCan() {
@@ -120,8 +120,8 @@ export function useDeleteBranch() {
 
 // --- Staff & invites --------------------------------------------------------
 
-export function useStaff() {
-  return useQuery({ queryKey: keys.staff, queryFn: () => unwrap(api.GET("/api/staff")) });
+export function useStaff(enabled = true) {
+  return useQuery({ queryKey: keys.staff, queryFn: () => unwrap(api.GET("/api/staff")), enabled });
 }
 
 export function useUpdateStaff() {

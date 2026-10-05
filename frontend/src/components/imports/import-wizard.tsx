@@ -330,7 +330,7 @@ function MapStep({
           </div>
           {canUpdate && (
             <div className="space-y-2">
-              <Label>If a row is already in Gym CRM</Label>
+              <Label>If a row is already in dunamis</Label>
               <ChipSelect
                 options={[
                   { value: "skip", label: "Skip it" },
@@ -573,7 +573,7 @@ function RunStep({ jobId, onDone }: { jobId: string; onDone: () => void }) {
           <>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle2Icon className="size-5 text-primary" />
-              Done. The imported rows are already live in Gym CRM.
+              Done. The imported rows are already live in dunamis.
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat label="Added" value={job.created} />

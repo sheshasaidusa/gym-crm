@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Gym CRM API",
+    "title": "dunamis API",
     "version": "0.1.0"
   },
   "paths": {
@@ -410,6 +410,69 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/profile": {
+      "patch": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Update Gym Profile",
+        "description": "Saves onboarding answers. Merges into what is stored, so each step can save alone.\nNot audited: the wizard saves after every step and the final result is audited on completion.",
+        "operationId": "update_gym_profile_api_gym_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GymProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/onboarding/complete": {
+      "post": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Complete Onboarding",
+        "operationId": "complete_onboarding_api_gym_onboarding_complete_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymOut"
                 }
               }
             }
@@ -7083,6 +7146,28 @@
           "checkup_interval_days": {
             "type": "integer",
             "title": "Checkup Interval Days"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GymProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "onboarding_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onboarding Completed At"
           }
         },
         "type": "object",
@@ -7098,6 +7183,169 @@
           "checkup_interval_days"
         ],
         "title": "GymOut"
+      },
+      "GymProfile": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "small",
+                  "medium",
+                  "large"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "floors": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floors"
+          },
+          "staff_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 99.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Staff Count"
+          },
+          "zones": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "cardio",
+                    "weights",
+                    "machines",
+                    "functional",
+                    "studio"
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zones"
+          },
+          "facilities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "lockers",
+                    "showers",
+                    "parking"
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facilities"
+          },
+          "hours": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "early",
+                  "24_7"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hours"
+          },
+          "trainers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TrainerDraft"
+                },
+                "type": "array",
+                "maxItems": 12
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainers"
+          },
+          "last_step": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Step"
+          },
+          "skipped_steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    2,
+                    3,
+                    4
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skipped Steps"
+          }
+        },
+        "type": "object",
+        "title": "GymProfile"
       },
       "GymUpdate": {
         "properties": {
@@ -11702,6 +11950,50 @@
           "body"
         ],
         "title": "Template"
+      },
+      "TrainerDraft": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "manager",
+              "trainer",
+              "front_desk"
+            ],
+            "title": "Role",
+            "default": "trainer"
+          },
+          "speciality": {
+            "type": "string",
+            "enum": [
+              "weights",
+              "cardio",
+              "machines",
+              "functional",
+              "studio",
+              "general"
+            ],
+            "title": "Speciality",
+            "default": "general"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email"
+        ],
+        "title": "TrainerDraft"
       },
       "Upcoming": {
         "properties": {

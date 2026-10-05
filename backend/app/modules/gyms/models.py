@@ -56,6 +56,10 @@ class Gym(IdMixin, TimestampMixin, Base):
     lead_form_token: Mapped[str | None] = mapped_column(String(64), unique=True)
     # Last receipt number issued (RCPT-0001, RCPT-0002, ...). Incremented atomically.
     receipt_counter: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # What the owner said about the space and equipment during onboarding (see profile.py).
+    profile: Mapped[dict | None] = mapped_column(JSON)
+    # Set when the owner finishes (or leaves) the onboarding wizard. Null = still to do.
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
 class Branch(IdMixin, TenantMixin, TimestampMixin, Base):

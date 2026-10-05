@@ -4,7 +4,6 @@ import {
   BarChart3Icon,
   ChevronsUpDownIcon,
   ClipboardListIcon,
-  DumbbellIcon,
   FileUpIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
@@ -152,17 +151,20 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/" />}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <DumbbellIcon className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              <span
+                aria-hidden
+                className="hidden size-4 items-center justify-center text-sm font-semibold group-data-[collapsible=icon]:flex"
+              >
+                {me.data?.gym.name.charAt(0).toUpperCase()}
+              </span>
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 {me.data ? (
                   <>
                     <span className="truncate font-medium">
                       {me.data.gym.name}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      Gym CRM
+                      dunamis
                     </span>
                   </>
                 ) : (

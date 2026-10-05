@@ -122,6 +122,122 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Onboarding blueprint: a sheet of drafting paper that keeps its look in light and dark mode. */
+:root {
+  --blueprint-paper: #0658a2;
+  --blueprint-tint: #0b66ab;
+  --blueprint-edge: #044a85;
+  --blueprint-line: #eef7fa;
+  --blueprint-line-dim: rgb(238 247 250 / 0.62);
+  --blueprint-grid: rgb(255 255 255 / 0.07);
+  --blueprint-grid-major: rgb(255 255 255 / 0.13);
+  --bp-ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+.dark {
+  --blueprint-paper: #05467f;
+  --blueprint-tint: #0a5390;
+  --blueprint-edge: #033562;
+}
+
+@keyframes bp-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes bp-settle {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bp-tracer {
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+@keyframes bp-pulse {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
+@keyframes bp-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes bp-grid-drift {
+  to {
+    background-position:
+      24px 24px,
+      24px 24px,
+      60px 60px,
+      60px 60px;
+  }
+}
+
+.bp-layer {
+  animation: bp-settle 420ms var(--bp-ease) both;
+  animation-delay: var(--bp-delay, 0ms);
+}
+.bp-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: bp-draw 650ms var(--bp-ease) both;
+  animation-delay: var(--bp-delay, 0ms);
+}
+.bp-tracer {
+  stroke-dasharray: 0.05 0.95;
+  animation: bp-tracer 7s linear infinite;
+  animation-delay: var(--bp-delay, 0ms);
+}
+.bp-pulse {
+  stroke-dasharray: 0.18 0.82;
+  animation: bp-pulse 1100ms var(--bp-ease) both;
+}
+.bp-out {
+  animation: bp-out 380ms ease-out both;
+}
+.bp-grid {
+  background-image:
+    linear-gradient(var(--blueprint-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--blueprint-grid) 1px, transparent 1px),
+    linear-gradient(var(--blueprint-grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--blueprint-grid-major) 1px, transparent 1px);
+  background-size:
+    12px 12px,
+    12px 12px,
+    60px 60px,
+    60px 60px;
+  animation: bp-grid-drift 60s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bp-layer,
+  .bp-draw,
+  .bp-grid {
+    animation: none;
+  }
+  .bp-tracer,
+  .bp-pulse,
+  .bp-out {
+    display: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
