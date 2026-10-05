@@ -44,7 +44,15 @@ const script: Step[] = [
 function Demo() {
   const params = useSearchParams();
   const fixed = params.get("static");
-  const [input, setInput] = useState<BlueprintInput>(fixed ? FULL : EMPTY);
+  const [input, setInput] = useState<BlueprintInput>(
+    fixed === "bare"
+      ? { ...EMPTY, gymName: "Iron Temple", size: "large", floors: 2, staff: 3 }
+      : fixed === "facilities"
+        ? { ...EMPTY, gymName: "Iron Temple", size: "medium", floors: 1, staff: 2, zones: ["cardio", "weights"], facilities: ["lockers", "showers"], trainers: [{ name: "Aarav", speciality: "weights" }, { name: "Riya", speciality: "general", role: "front_desk" }] }
+        : fixed
+          ? FULL
+          : EMPTY,
+  );
   const [label, setLabel] = useState("Waiting for the owner...");
   const [pulse, setPulse] = useState<{ feature: Feature; nonce: number }>();
   const [finished, setFinished] = useState(!!fixed);

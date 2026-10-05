@@ -11964,6 +11964,16 @@
             "format": "email",
             "title": "Email"
           },
+          "role": {
+            "type": "string",
+            "enum": [
+              "manager",
+              "trainer",
+              "front_desk"
+            ],
+            "title": "Role",
+            "default": "trainer"
+          },
           "speciality": {
             "type": "string",
             "enum": [

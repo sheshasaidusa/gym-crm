@@ -5,7 +5,10 @@ export type Facility = "lockers" | "showers" | "parking";
 export type Hours = "standard" | "early" | "24_7";
 export type Speciality = Zone | "general";
 
-export type BlueprintTrainer = { name: string; speciality: Speciality };
+export type TeamRole = "manager" | "trainer" | "front_desk";
+
+/** Someone the owner invites. Trainers stand in their speciality's zone; everyone else at reception. */
+export type BlueprintTrainer = { name: string; speciality: Speciality; role?: TeamRole };
 
 /** Everything the drawing depends on. Unanswered questions are null / empty. */
 export type BlueprintInput = {
@@ -26,6 +29,7 @@ export type Feature =
   | "sign"
   | "shell"
   | "stairs"
+  | "equipment"
   | "trees"
   | "reception"
   | "cells"

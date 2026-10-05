@@ -13,6 +13,8 @@ Zone = Literal["cardio", "weights", "machines", "functional", "studio"]
 Facility = Literal["lockers", "showers", "parking"]
 Hours = Literal["standard", "early", "24_7"]
 Speciality = Literal["weights", "cardio", "machines", "functional", "studio", "general"]
+# Roles the owner can invite during onboarding (owners are added later from Settings).
+TeamRole = Literal["manager", "trainer", "front_desk"]
 
 # Canonical order, so the same selection always gives the same drawing.
 ZONE_ORDER: tuple[str, ...] = ("cardio", "weights", "machines", "functional", "studio")
@@ -28,6 +30,8 @@ def _canonical(values: list[str] | None, order: tuple[str, ...]) -> list[str] | 
 class TrainerDraft(BaseModel):
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
     email: EmailStr
+    role: TeamRole = "trainer"
+    # Only meaningful for trainers; other roles are drawn at reception.
     speciality: Speciality = "general"
 
     @field_validator("email")

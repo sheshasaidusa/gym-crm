@@ -18,7 +18,8 @@ const subsets = (items) => items.reduce((acc, it) => acc.concat(acc.map((s) => [
 const toRef = (i) => ({
   gymName: i.gymName, city: i.city, size: i.size, floors: i.floors, staff: i.staff,
   zones: [...i.zones], facilities: [...i.facilities], hours: i.hours === "24_7" ? "24" : i.hours,
-  trainers: i.trainers.map((t) => ({ name: t.name, spec: t.speciality })),
+  // People who aren't trainers stand at reception, which the prototype does for "general".
+  trainers: i.trainers.map((t) => ({ name: t.name, spec: t.role && t.role !== "trainer" ? "general" : t.speciality })),
 });
 
 // The prototype draws the clock inside the front-wall path; we draw it as its own layer so it can
@@ -55,11 +56,11 @@ function compare(input, label) {
 }
 
 // Layer sanity that holds for any input.
-function invariants(input, label) {
+function invariants(input, label, options = {}) {
   const frozen = structuredClone(input);
-  const a = buildBlueprint(input);
+  const a = buildBlueprint(input, options);
   assert.deepEqual(input, frozen, `${label}: input was mutated`);
-  assert.deepEqual(buildBlueprint(input), a, `${label}: not deterministic`);
+  assert.deepEqual(buildBlueprint(input, options), a, `${label}: not deterministic`);
   const ids = new Set();
   for (const l of a) {
     assert.ok(!ids.has(l.id), `${label}: duplicate id ${l.id}`);
@@ -75,7 +76,12 @@ function invariants(input, label) {
 
 const base = { gymName: "", city: "", size: null, floors: null, staff: null, zones: [], facilities: [], hours: null, trainers: [] };
 let count = 0;
-const run = (input, label) => { compare(input, label); invariants(input, label); count++; };
+const run = (input, label) => {
+  compare(input, label);
+  invariants(input, label);
+  invariants(input, label + " (detail)", { detail: true, signMaxChars: 22 });
+  count++;
+};
 
 // 1. Exhaustive over the structural choices.
 for (const size of [null, "small", "medium", "large"])
@@ -96,7 +102,7 @@ for (let n = 0; n < 5000; n++) {
     size: pick([null, "small", "medium", "large"]), floors: pick([null, 1, 2, 3]),
     staff: pick([null, 1, 2, 3, 6, 40]), zones: ZONES.filter(() => rnd() < 0.5),
     facilities: FACILITIES.filter(() => rnd() < 0.5), hours: pick([null, "standard", "early", "24_7"]),
-    trainers: Array.from({ length: Math.floor(rnd() * 9) }, () => ({ name: pick(TRAINER_NAMES), speciality: pick(SPECS) })),
+    trainers: Array.from({ length: Math.floor(rnd() * 9) }, () => ({ name: pick(TRAINER_NAMES), speciality: pick(SPECS), ...(rnd() < 0.3 ? { role: pick(["trainer", "manager", "front_desk"]) } : {}) })),
   };
   run(input, `random #${n}`);
 }
@@ -114,4 +120,4 @@ for (let i = 0; i < 200; i++) buildBlueprint(heavy);
 const per = (performance.now() - t0) / 200;
 assert.ok(per < 5, `build took ${per.toFixed(2)} ms`);
 
-console.log(`blueprint parity OK: ${count} states match the prototype; build ${per.toFixed(2)} ms (heaviest state)`);
+console.log(`blueprint parity OK: ${count} states match the prototype (detailed drawing checked too); build ${per.toFixed(2)} ms (heaviest state)`);

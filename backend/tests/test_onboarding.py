@@ -74,8 +74,20 @@ async def test_trainers_are_normalised(client: AsyncClient, owner: Account):
     )
     assert res.status_code == 200, res.text
     assert res.json()["profile"]["trainers"] == [
-        {"name": "Aarav", "email": "aarav@gym.com", "speciality": "weights"}
+        {"name": "Aarav", "email": "aarav@gym.com", "role": "trainer", "speciality": "weights"}
     ]
+    desk = await client.patch(
+        PROFILE,
+        json={"trainers": [{"name": "Riya", "email": "riya@gym.com", "role": "front_desk"}]},
+        headers=owner.headers,
+    )
+    assert desk.json()["profile"]["trainers"][0]["role"] == "front_desk"
+    owner_role = await client.patch(
+        PROFILE,
+        json={"trainers": [{"name": "Sam", "email": "sam@gym.com", "role": "owner"}]},
+        headers=owner.headers,
+    )
+    assert owner_role.status_code == 422
 
 
 async def test_profile_validation(client: AsyncClient, owner: Account):

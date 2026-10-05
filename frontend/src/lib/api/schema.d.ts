@@ -3523,6 +3523,12 @@ export interface components {
              */
             email: string;
             /**
+             * Role
+             * @default trainer
+             * @enum {string}
+             */
+            role: "manager" | "trainer" | "front_desk";
+            /**
              * Speciality
              * @default general
              * @enum {string}

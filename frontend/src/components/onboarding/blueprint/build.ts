@@ -41,6 +41,9 @@ type Style = {
   feature?: Feature;
 };
 
+/** In the detailed drawing these keep a firm line; everything inside the building is drawn lighter. */
+const STRUCTURE = new Set<Feature>(["shell", "sign", "site", "dims"]);
+
 const STAGE: Record<Feature, Layer["stage"]> = {
   site: 1,
   sign: 1,
@@ -60,6 +63,7 @@ const STAGE: Record<Feature, Layer["stage"]> = {
   trainers: 4,
   dims: 5,
   stairs: 2,
+  equipment: 3,
 };
 
 export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}): Layer[] {
@@ -174,6 +178,26 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
     );
   };
 
+  /** A standing person (detailed drawing): head, shoulders, arms and legs, filled so it hides what's behind. */
+  const person = (x: number, y: number, z: number) => {
+    const [fx, fy] = P(x, y, z);
+    const u = sc;
+    const pt = (dx: number, dy: number) => n1(fx + dx * u) + " " + n1(fy - dy * u);
+    return (
+      "M" + pt(-0.14, 0.86) + "L" + pt(-0.13, 0.03) + "L" + pt(-0.03, 0.03) + "L" + pt(-0.01, 0.74) +
+      "L" + pt(0.01, 0.74) + "L" + pt(0.03, 0.03) + "L" + pt(0.13, 0.03) + "L" + pt(0.14, 0.86) + "Z" +
+      "M" + pt(-0.15, 0.84) + "L" + pt(-0.2, 1.3) + "Q" + pt(-0.2, 1.41) + " " + pt(-0.09, 1.42) +
+      "L" + pt(0.09, 1.42) + "Q" + pt(0.2, 1.41) + " " + pt(0.2, 1.3) + "L" + pt(0.15, 0.84) + "Z" +
+      "M" + pt(-0.19, 1.34) + "L" + pt(-0.26, 0.9) + "L" + pt(-0.2, 0.88) + "L" + pt(-0.15, 1.18) + "Z" +
+      "M" + pt(0.19, 1.34) + "L" + pt(0.26, 0.9) + "L" + pt(0.2, 0.88) + "L" + pt(0.15, 1.18) + "Z" +
+      "M" + pt(0, 1.42) + "L" + pt(0, 1.48) +
+      circ(fx, fy - 1.6 * u, 0.13 * u)
+    );
+  };
+  const human = (x: number, y: number, z: number) => (detail ? person(x, y, z) : figure(x, y, z));
+  /** A thin upright (frame tube) from z0, h tall. */
+  const post = (x: number, y: number, z0: number, h: number, s = 0.08) => box(x - s / 2, y - s / 2, z0, s, s, h);
+
   const layers: Layer[] = [];
   const ids = new Set<string>();
   const add = (id: string, feature: Feature, d: string, o: Style = {}, text: Layer["text"] = null) => {
@@ -186,14 +210,14 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
       stage: STAGE[o.feature ?? feature],
       d,
       fill: o.fill ?? "paper",
-      width: (o.w ?? 1.25) * (detail ? 1.35 : 1),
+      width: (o.w ?? 1.25) * (detail ? (STRUCTURE.has(o.feature ?? feature) ? 1.05 : 0.66) : 1),
       dash: o.dash ?? null,
       opacity: o.op ?? 1,
       text,
     });
   };
   const solidSize = !!size;
-  const sw = detail ? { w: 1.5 } : {};
+  const sw = {};
   const sz: Style = solidSize ? { fill: "tint", ...sw } : { fill: "tint", dash: "5 5", op: 0.7, ...sw };
   // Wall thickness; the plain drawing keeps the original thin walls.
   const t = detail ? 0.32 : 0.2;
@@ -331,23 +355,194 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
     },
   };
 
+  // Detailed equipment. Each piece is a few filled boxes and tubes, painted back to front.
+  const S = (feature: Feature): Style => ({ feature });
+  const L = (feature: Feature): Style => ({ feature, fill: "none" });
+  type Piece = (k: number, z: number, x: number, y: number, id: string, ft: Feature) => void;
+  const treadmill: Piece = (k, z, x, y, id, ft) => {
+    put(k, x + y + 0.1, `${id}:deck`, box(x, y, z, 0.85, 1.9, 0.16), S(ft));
+    put(k, x + y + 0.15, `${id}:belt`, seg([x + 0.13, y + 0.4, z + 0.17], [x + 0.13, y + 1.85, z + 0.17]) + seg([x + 0.72, y + 0.4, z + 0.17], [x + 0.72, y + 1.85, z + 0.17]), L(ft));
+    put(k, x + y + 0.2, `${id}:frame`, post(x + 0.07, y + 0.22, z + 0.16, 1.0) + post(x + 0.78, y + 0.22, z + 0.16, 1.0), S(ft));
+    put(k, x + y + 0.3, `${id}:console`, box(x + 0.02, y + 0.06, z + 1.12, 0.81, 0.3, 0.14) + seg([x + 0.07, y + 0.25, z + 0.98], [x + 0.07, y + 0.8, z + 0.95]) + seg([x + 0.78, y + 0.25, z + 0.98], [x + 0.78, y + 0.8, z + 0.95]), S(ft));
+  };
+  const bike: Piece = (k, z, x, y, id, ft) => {
+    put(k, x + y + 0.1, `${id}:base`, box(x + 0.1, y + 0.1, z, 0.3, 1.05, 0.06), S(ft));
+    put(k, x + y + 0.2, `${id}:wheel`, ringX(x + 0.25, y + 0.32, z + 0.38, 0.24) + ringX(x + 0.25, y + 0.32, z + 0.38, 0.08), S(ft));
+    put(k, x + y + 0.3, `${id}:frame`, seg([x + 0.25, y + 0.32, z + 0.38], [x + 0.25, y + 0.85, z + 0.9]) + seg([x + 0.25, y + 0.32, z + 0.38], [x + 0.25, y + 0.2, z + 1.05]) + seg([x + 0.05, y + 0.18, z + 1.08], [x + 0.45, y + 0.18, z + 1.08]), L(ft));
+    put(k, x + y + 0.4, `${id}:seat`, box(x + 0.15, y + 0.75, z + 0.9, 0.2, 0.3, 0.06), S(ft));
+  };
+  const flatBench = (k: number, z: number, x: number, y: number, id: string, ft: Feature, len = 1.15) => {
+    put(k, x + y + 0.2, `${id}:legs`, post(x + 0.18, y + 0.15, z, 0.38) + post(x + 0.18, y + len - 0.15, z, 0.38), S(ft));
+    put(k, x + y + 0.3, `${id}:pad`, box(x, y, z + 0.38, 0.36, len, 0.1), S(ft));
+  };
+  const dumbbellRack = (k: number, z: number, x: number, y: number, len: number, id: string, ft: Feature) => {
+    let bells = "";
+    for (let cx = x + 0.15; cx < x + len - 0.08; cx += 0.28) {
+      bells += ringY(cx, y + 0.08, z + 0.62, 0.09) + seg([cx, y + 0.08, z + 0.62], [cx, y + 0.42, z + 0.62]) + ringY(cx, y + 0.42, z + 0.62, 0.09);
+    }
+    put(k, x + y + 0.2, `${id}:frame`, box(x, y, z, len, 0.5, 0.5), S(ft));
+    put(k, x + y + 0.3, `${id}:bells`, bells, S(ft));
+  };
+  const powerRack: Piece = (k, z, x, y, id, ft) => {
+    put(k, x + y + 0.1, `${id}:backPosts`, post(x + 0.05, y + 0.05, z, 2.2) + post(x + 1.25, y + 0.05, z, 2.2), S(ft));
+    put(k, x + y + 0.15, `${id}:top`, seg([x + 0.05, y + 0.05, z + 2.2], [x + 1.25, y + 0.05, z + 2.2]) + seg([x + 0.05, y + 1.15, z + 2.2], [x + 1.25, y + 1.15, z + 2.2]) + seg([x + 0.05, y + 0.05, z + 2.2], [x + 0.05, y + 1.15, z + 2.2]) + seg([x + 1.25, y + 0.05, z + 2.2], [x + 1.25, y + 1.15, z + 2.2]), L(ft));
+    flatBench(k, z, x + 0.47, y + 0.35, `${id}:bench`, ft, 1.25);
+    put(k, x + y + 1.3, `${id}:bar`, seg([x - 0.35, y + 0.6, z + 1.35], [x + 1.65, y + 0.6, z + 1.35]), S(ft));
+    put(k, x + y + 1.4, `${id}:plates`, ringX(x - 0.18, y + 0.6, z + 1.35, 0.36) + ringX(x - 0.08, y + 0.6, z + 1.35, 0.28) + ringX(x + 1.38, y + 0.6, z + 1.35, 0.28) + ringX(x + 1.48, y + 0.6, z + 1.35, 0.36), S(ft));
+    put(k, x + y + 2.5, `${id}:frontPosts`, post(x + 0.05, y + 1.15, z, 2.2) + post(x + 1.25, y + 1.15, z, 2.2), S(ft));
+  };
+  const stackLines = (x: number, y: number, z: number, w: number, z0: number, z1: number) => {
+    let d = "";
+    for (let zz = z0; zz < z1; zz += 0.13) d += seg([x, y, z + zz], [x + w, y, z + zz]);
+    return d;
+  };
+  const chestPress: Piece = (k, z, x, y, id, ft) => {
+    put(k, x + y + 0.05, `${id}:base`, box(x + 0.05, y, z, 0.8, 1.2, 0.05), S(ft));
+    put(k, x + y + 0.1, `${id}:stack`, box(x + 0.15, y, z, 0.6, 0.3, 1.8) + stackLines(x + 0.2, y + 0.3, z, 0.5, 0.3, 1.2), S(ft));
+    put(k, x + y + 0.2, `${id}:arms`, seg([x + 0.06, y + 0.3, z + 1.6], [x + 0.06, y + 0.95, z + 1.0]) + seg([x + 0.84, y + 0.3, z + 1.6], [x + 0.84, y + 0.95, z + 1.0]) + seg([x + 0.06, y + 0.95, z + 1.0], [x + 0.22, y + 0.95, z + 1.0]) + seg([x + 0.84, y + 0.95, z + 1.0], [x + 0.68, y + 0.95, z + 1.0]), L(ft));
+    put(k, x + y + 0.3, `${id}:back`, box(x + 0.25, y + 0.55, z + 0.5, 0.4, 0.1, 0.7), S(ft));
+    put(k, x + y + 0.4, `${id}:seat`, post(x + 0.45, y + 0.85, z, 0.42) + box(x + 0.25, y + 0.65, z + 0.42, 0.4, 0.4, 0.08), S(ft));
+  };
+  const latPulldown: Piece = (k, z, x, y, id, ft) => {
+    put(k, x + y + 0.05, `${id}:base`, box(x + 0.1, y, z, 0.8, 1.25, 0.05), S(ft));
+    put(k, x + y + 0.1, `${id}:stack`, box(x + 0.3, y + 0.05, z, 0.4, 0.25, 1.5) + stackLines(x + 0.34, y + 0.3, z, 0.32, 0.25, 1.1), S(ft));
+    put(k, x + y + 0.15, `${id}:frame`, post(x + 0.15, y + 0.15, z, 2.3) + post(x + 0.85, y + 0.15, z, 2.3) + box(x + 0.1, y + 0.1, z + 2.25, 0.8, 0.1, 0.08), S(ft));
+    put(k, x + y + 0.2, `${id}:bar`, seg([x + 0.5, y + 0.15, z + 2.25], [x + 0.5, y + 0.75, z + 1.9]) + seg([x - 0.02, y + 0.75, z + 1.9], [x + 1.02, y + 0.75, z + 1.9]) + seg([x - 0.02, y + 0.75, z + 1.9], [x - 0.08, y + 0.75, z + 1.75]) + seg([x + 1.02, y + 0.75, z + 1.9], [x + 1.08, y + 0.75, z + 1.75]), L(ft));
+    put(k, x + y + 0.3, `${id}:knee`, box(x + 0.3, y + 0.85, z + 0.62, 0.4, 0.12, 0.1), S(ft));
+    put(k, x + y + 0.4, `${id}:seat`, post(x + 0.5, y + 1.1, z, 0.42) + box(x + 0.32, y + 0.95, z + 0.42, 0.36, 0.3, 0.08), S(ft));
+  };
+  const legPress: Piece = (k, z, x, y, id, ft) => {
+    put(k, x + y + 0.05, `${id}:base`, box(x + 0.05, y, z, 0.8, 1.85, 0.1), S(ft));
+    put(k, x + y + 0.1, `${id}:rails`, seg([x + 0.2, y + 1.3, z + 0.5], [x + 0.2, y + 0.15, z + 1.45]) + seg([x + 0.7, y + 1.3, z + 0.5], [x + 0.7, y + 0.15, z + 1.45]), L(ft));
+    put(k, x + y + 0.2, `${id}:sled`, poly([[x + 0.12, y + 0.28, z + 0.95], [x + 0.78, y + 0.28, z + 0.95], [x + 0.78, y + 0.55, z + 1.55], [x + 0.12, y + 0.55, z + 1.55]]) + ringX(x + 0.06, y + 0.42, z + 1.25, 0.2) + ringX(x + 0.84, y + 0.42, z + 1.25, 0.2), S(ft));
+    put(k, x + y + 0.3, `${id}:seat`, box(x + 0.2, y + 1.3, z + 0.1, 0.5, 0.45, 0.32) + poly([[x + 0.2, y + 1.72, z + 0.42], [x + 0.7, y + 1.72, z + 0.42], [x + 0.7, y + 1.9, z + 1.1], [x + 0.2, y + 1.9, z + 1.1]]), S(ft));
+  };
+  const crossover = (k: number, z: number, x: number, y: number, w: number, id: string, ft: Feature) => {
+    put(k, x + y + 0.1, `${id}:stacks`, box(x, y, z, 0.45, 0.35, 2.2) + stackLines(x + 0.05, y + 0.35, z, 0.35, 0.3, 1.3) + box(x + w - 0.45, y, z, 0.45, 0.35, 2.2) + stackLines(x + w - 0.4, y + 0.35, z, 0.35, 0.3, 1.3), S(ft));
+    put(k, x + y + 0.15, `${id}:beam`, box(x, y, z + 2.2, w, 0.35, 0.1), S(ft));
+    put(k, x + y + 0.2, `${id}:cables`, seg([x + 0.22, y + 0.35, z + 2.05], [x + 0.6, y + 1.05, z + 1.25]) + seg([x + w - 0.22, y + 0.35, z + 2.05], [x + w - 0.6, y + 1.05, z + 1.25]) + ringY(x + 0.6, y + 1.05, z + 1.2, 0.05) + ringY(x + w - 0.6, y + 1.05, z + 1.2, 0.05), L(ft));
+  };
+  const lockerBank = (k: number, z: number, x: number, y: number, w: number, id: string, ft: Feature) => {
+    let doors = "";
+    for (let xx = x + 0.42; xx < x + w - 0.05; xx += 0.42) doors += seg([xx, y + 0.5, z], [xx, y + 0.5, z + 1.9]);
+    for (let xx = x + 0.3; xx < x + w; xx += 0.42) doors += seg([xx, y + 0.5, z + 1.0], [xx, y + 0.5, z + 1.12]);
+    doors += seg([x, y + 0.5, z + 0.95], [x + w, y + 0.5, z + 0.95]);
+    put(k, x + y + 0.1, `${id}:bank`, box(x, y, z, w, 0.5, 1.9) + doors, S(ft));
+    put(k, x + y + 1.0, `${id}:bench`, post(x + 0.4, y + 1.05, z, 0.38) + post(x + w - 0.4, y + 1.05, z, 0.38) + box(x + 0.25, y + 0.9, z + 0.38, w - 0.5, 0.32, 0.08), S(ft));
+  };
+  const showerRow = (k: number, z: number, x: number, y: number, w: number, d: number, id: string, ft: Feature) => {
+    // Cubicles drawn as glass outlines so the room behind stays readable.
+    const n = Math.max(2, Math.min(3, Math.floor(w / 0.85)));
+    const cw2 = w / n;
+    const h = 1.9;
+    let frame = poly([[x, y, z], [x + w, y, z], [x + w, y, z + h], [x, y, z + h]]);
+    for (let i = 0; i <= n; i++) frame += poly([[x + i * cw2, y, z], [x + i * cw2, y + d, z], [x + i * cw2, y + d, z + h], [x + i * cw2, y, z + h]]);
+    let fixtures = "";
+    for (let i = 0; i < n; i++) {
+      const hx = x + (i + 0.5) * cw2;
+      fixtures += seg([hx, y, z + 1.8], [hx, y + 0.28, z + 1.72]) + ringH(hx, y + 0.3, z + 1.7, 0.08) +
+        poly([[x + i * cw2 + 0.08, y + 0.08, z + 0.02], [x + (i + 1) * cw2 - 0.08, y + 0.08, z + 0.02], [x + (i + 1) * cw2 - 0.08, y + d - 0.08, z + 0.02], [x + i * cw2 + 0.08, y + d - 0.08, z + 0.02]]) +
+        ringH(hx, y + d / 2, z + 0.03, 0.06);
+    }
+    put(k, x + y + 0.1, `${id}:fixtures`, fixtures, L(ft));
+    put(k, x + y + 0.2, `${id}:glass`, frame, { feature: ft, fill: "none", op: 0.75 });
+    put(k, x + y + d, `${id}:doors`, seg([x, y + d, z + h], [x + w, y + d, z + h]), { feature: ft, fill: "none", dash: "4 4", op: 0.7 });
+  };
+
+  const zoneDetail: Record<Zone, (c: Cell) => void> = {
+    cardio: (c) => {
+      const id = `cardio@${c.k}.${c.slot}`;
+      const n = Math.max(1, Math.min(3, Math.floor((cw - 0.3) / 1.15)));
+      const y = c.y + Math.max(0.2, (cd - 1.9) / 2);
+      const x0 = c.x + (cw - (n * 1.15 - 0.3)) / 2;
+      for (let i = 0; i < n; i++) treadmill(c.k, c.z, x0 + i * 1.15, y, `${id}:tread${i}`, "cardio");
+      if (cw - n * 1.15 > 0.6) bike(c.k, c.z, x0 + n * 1.15, y + 0.4, `${id}:bike`, "cardio");
+    },
+    weights: (c) => {
+      const id = `weights@${c.k}.${c.slot}`;
+      powerRack(c.k, c.z, c.x + 0.45, c.y + 0.25, `${id}:rack`, "weights");
+      const len = Math.min(1.7, cw - 2.2);
+      if (len >= 0.8) dumbbellRack(c.k, c.z, c.x + 2.0, c.y + 0.3, len, `${id}:dumbbells`, "weights");
+      if (len >= 0.8 && cd > 2.6) flatBench(c.k, c.z, c.x + 2.2, c.y + 1.2, `${id}:bench2`, "weights", Math.min(1.15, cd - 1.4));
+    },
+    machines: (c) => {
+      const id = `machines@${c.k}.${c.slot}`;
+      const w = Math.min(cw - 0.4, 2.6);
+      crossover(c.k, c.z, c.x + (cw - w) / 2, c.y + 0.2, w, `${id}:cross`, "machines");
+      if (cd > 2.8) chestPress(c.k, c.z, c.x + (cw - 0.9) / 2, c.y + 1.5, `${id}:press`, "machines");
+    },
+    functional: zoneDraw.functional,
+    studio: zoneDraw.studio,
+  };
+
+  // Machines that fill the rest of the floor so a gym never looks empty. Picked by position,
+  // so the same cell always gets the same machines.
+  const FILLERS: [Piece, number][][] = [
+    [[chestPress, 0.9], [latPulldown, 1.0]],
+    [[legPress, 0.9], [chestPress, 0.9]],
+    [[latPulldown, 1.0], [legPress, 0.9]],
+  ];
+  const fillCell = (c: Cell, n: number) => {
+    const id = `equip@${c.k}.${c.slot}`;
+    if (n % 4 === 3) {
+      const len = Math.min(1.9, cw - 0.6);
+      dumbbellRack(c.k, c.z, c.x + (cw - len) / 2, c.y + 0.25, len, `${id}:dumbbells`, "equipment");
+      flatBench(c.k, c.z, c.x + cw / 2 - 0.55, c.y + 1.05, `${id}:bench1`, "equipment", Math.min(1.15, cd - 1.3));
+      flatBench(c.k, c.z, c.x + cw / 2 + 0.2, c.y + 1.05, `${id}:bench2`, "equipment", Math.min(1.15, cd - 1.3));
+      return;
+    }
+    const pair = FILLERS[n % FILLERS.length];
+    const total = pair[0][1] + pair[1][1] + 0.35;
+    const fit = total <= cw - 0.3 ? pair : pair.slice(0, 1);
+    let x = c.x + (cw - (fit.length === 2 ? total : fit[0][1])) / 2;
+    fit.forEach(([piece, w], i) => {
+      piece(c.k, c.z, x, c.y + 0.25, `${id}:m${i}`, "equipment");
+      x += w + 0.35;
+    });
+  };
+
+  // Lockers and showers take over ground-floor cells (replacing default machines) in the detailed drawing.
+  const facilityCell: Partial<Record<"lockers" | "showers", Cell>> = {};
+  const furnished = detail && (size !== null || input.floors !== null);
+  if (detail) {
+    const free = slots(0).filter((i) => !used[0][i]);
+    const prefer = (want: number[]) => want.find((i) => free.includes(i)) ?? free[0];
+    for (const fac of ["lockers", "showers"] as const) {
+      if (!input.facilities.includes(fac)) continue;
+      const slot = prefer(fac === "lockers" ? [0, 3, 1, 4, 2] : [3, 0, 4, 1, 2]);
+      if (slot === undefined) continue;
+      facilityCell[fac] = cellAt(0, slot);
+      used[0][slot] = fac;
+      free.splice(free.indexOf(slot), 1);
+    }
+  }
+
   for (let k = 0; k < F; k++) {
     for (const i of slots(k)) {
       if (used[k][i]) continue;
+      if (furnished) {
+        fillCell(cellAt(k, i), k * 6 + i);
+        continue;
+      }
       const c = cellAt(k, i);
       put(k, -100, `cell@${k}.${i}`, poly([[c.x + 0.15, c.y + 0.15, c.z + 0.01], [c.x + cw - 0.15, c.y + 0.15, c.z + 0.01], [c.x + cw - 0.15, c.y + cd - 0.15, c.z + 0.01], [c.x + 0.15, c.y + cd - 0.15, c.z + 0.01]]), { fill: "none", dash: "3 5", w: 0.75, op: 0.6, feature: "cells" });
     }
   }
-  for (const id of sel) zoneDraw[id](where[id] as Cell);
+  for (const id of sel) (detail ? zoneDetail : zoneDraw)[id](where[id] as Cell);
 
-  if (input.facilities.includes("lockers")) {
+  const lockerCell = facilityCell.lockers;
+  const showerCell = facilityCell.showers;
+  if (lockerCell) lockerBank(0, 0, lockerCell.x + 0.25, lockerCell.y + 0.25, cw - 0.5, "lockers", "lockers");
+  if (showerCell) showerRow(0, 0, showerCell.x + 0.25, showerCell.y + 0.25, cw - 0.5, Math.min(1.3, cd - 0.5), "showers", "showers");
+
+  if (input.facilities.includes("lockers") && !lockerCell) {
     const y0 = 0.6;
     const y1 = D / 2 - 0.15;
     let d = box(0.3, y0, 0, 0.55, y1 - y0, 1.9);
     for (let yy = y0 + 0.5; yy < y1 - 0.1; yy += 0.5) d += seg([0.85, yy, 0], [0.85, yy, 1.9]);
     put(0, 0.6 + (y0 + y1) / 2, "lockers", d, { feature: "lockers" });
   }
-  if (input.facilities.includes("showers")) {
+  if (input.facilities.includes("showers") && !showerCell) {
     for (let i = 0; i < 2; i++) {
       const sy = D / 2 + 0.15 + i * 1.0;
       if (sy + 0.9 > D - 0.2) break;
@@ -360,7 +555,7 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
     for (let i = 0; i < n; i++) {
       const fx = desk.x + 0.6 + i * 0.75;
       const fy = desk.y + 0.45;
-      put(0, fx + fy, `staff:${i}`, figure(fx, fy, 0), { feature: "reception" });
+      put(0, fx + fy, `staff:${i}`, human(fx, fy, 0), { feature: "reception" });
     }
     put(0, desk.x + desk.y + 1.6, "desk", box(desk.x + 0.3, desk.y + 0.95, 0, cw - 0.6, 0.5, 1.0), { feature: "reception" });
     put(0, desk.x + desk.y + 1.7, "monitor", box(desk.x + 0.7, desk.y + 0.98, 1.0, 0.45, 0.06, 0.4), { feature: "reception" });
@@ -371,12 +566,13 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
   const perCell: Record<string, number> = {};
   input.trainers.slice(0, 6).forEach((t, i) => {
     const spec: Speciality = t.speciality;
-    const c = (spec !== "general" ? where[spec] : undefined) ?? desk;
+    const atDesk = t.role !== undefined && t.role !== "trainer";
+    const c = (spec !== "general" && !atDesk ? where[spec] : undefined) ?? desk;
     const ck = c.k + ":" + c.x + ":" + c.y;
     const j = (perCell[ck] = (perCell[ck] ?? -1) + 1);
     const tx = c.x + 0.45 + (j % 3) * 0.8;
     const ty = c.y + cd - 0.3 - Math.floor(j / 3) * 0.6;
-    put(c.k, tx + ty + 0.5, `trainer:${i}`, figure(tx, ty, c.z), { feature: "trainers" });
+    put(c.k, tx + ty + 0.5, `trainer:${i}`, human(tx, ty, c.z), { feature: "trainers" });
     const [hx, hy] = P(tx, ty, c.z + 1.95);
     const label = t.name.length > 14 ? t.name.slice(0, 13) + "…" : t.name;
     const tw = label.length * 7.4 + 6;
@@ -407,7 +603,7 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
     }
     let left = box(0, 0, z0, t, D, wallH);
     for (let y = 1.3; y + 1.2 <= D - 0.6; y += 1.9) {
-      if (k === 0 && (input.facilities.includes("lockers") || input.facilities.includes("showers"))) break;
+      if (k === 0 && ((input.facilities.includes("lockers") && !lockerCell) || (input.facilities.includes("showers") && !showerCell))) break;
       left += poly([[t, y, z0 + 0.9], [t, y + 1.2, z0 + 0.9], [t, y + 1.2, z0 + 2.0], [t, y, z0 + 2.0]]) + seg([t, y + 0.6, z0 + 0.9], [t, y + 0.6, z0 + 2.0]);
     }
     add(`left@${k}`, "shell", left, sz);
@@ -461,12 +657,13 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
         add("storefront", "shell", front, { fill: "none", w: 0.7, op: 0.5 });
       }
       if (k < F - 1) {
-        // Stair run along the open front up to the next floor, drawn over the room behind it.
-        const steps = 12;
-        const ya = D - 1.0;
-        const yb = D - 0.2;
-        const xs = 1.4;
-        const xe = W - 0.9;
+        // A straight stair along the open front, rising over the first two bays so the reception
+        // corner stays clear. Treads only, with a light stringer and handrail.
+        const steps = 11;
+        const ya = D - 0.95;
+        const yb = D - 0.25;
+        const xs = 1.5;
+        const xe = Math.min(1.3 + 2 * cw, W - 1.2);
         const dx = (xe - xs) / steps;
         const dz = gap / steps;
         let st = "";
@@ -476,12 +673,9 @@ export function buildBlueprint(input: BlueprintInput, options: BuildOptions = {}
           st += poly([[xf, ya, z0 + top], [xf + dx, ya, z0 + top], [xf + dx, yb, z0 + top], [xf, yb, z0 + top]]);
         }
         add(`stairs@${k}`, "stairs", st, { fill: "tint", w: 1 });
-        const side: V3[] = [[xs, yb, z0]];
-        for (let i = 0; i < steps; i++) side.push([xs + i * dx, yb, z0 + (i + 1) * dz], [xs + (i + 1) * dx, yb, z0 + (i + 1) * dz]);
-        side.push([xe, yb, z0]);
-        let rails = seg([xs, yb, z0 + 1.0], [xe, yb, z0 + gap + 1.0]);
-        for (let i = 0; i < steps; i += 3) rails += seg([xs + i * dx, yb, z0 + (i + 1) * dz], [xs + i * dx, yb, z0 + (i + 1) * dz + 1.0]);
-        add(`stringer@${k}`, "stairs", poly(side) + rails, { fill: "none", w: 0.9 });
+        let rails = seg([xs, yb, z0], [xe, yb, z0 + gap]) + seg([xs, yb, z0 + 1.0], [xe, yb, z0 + gap + 1.0]);
+        for (let i = 0; i <= steps; i += 2) rails += seg([xs + i * dx, yb, z0 + i * dz], [xs + i * dx, yb, z0 + i * dz + 1.0]);
+        add(`stringer@${k}`, "stairs", rails, { fill: "none", w: 0.9 });
       }
       // Columns tie the floors together; drawn last so they stand in front of the room.
       for (const [cx, cy] of [[W - 0.3, 0], [0, D - 0.3], [W - 0.3, D - 0.3]]) {

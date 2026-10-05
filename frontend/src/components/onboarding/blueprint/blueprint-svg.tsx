@@ -11,7 +11,7 @@ const FILL = { paper: "var(--blueprint-paper)", tint: "var(--blueprint-tint)", n
 /** Order in which parts of the gym appear when the whole drawing is built at once. */
 const FEATURE_RANK: Record<Feature, number> = {
   site: 0, sign: 1, shell: 2, stairs: 2, trees: 3, reception: 4, cells: 5, cardio: 6, weights: 7,
-  machines: 8, functional: 9, studio: 10, lockers: 11, showers: 12, parking: 13, clock: 14,
+  machines: 8, equipment: 8, functional: 9, studio: 10, lockers: 11, showers: 12, parking: 13, clock: 14,
   trainers: 15, dims: 16,
 };
 
