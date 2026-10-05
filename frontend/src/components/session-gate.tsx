@@ -1,6 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -25,8 +26,14 @@ function useIsClient() {
 export function SessionGate({ children }: { children: React.ReactNode }) {
   const isClient = useIsClient();
   const me = useMe();
+  const router = useRouter();
+  // New owners finish setting up their gym before they see the dashboard.
+  const needsOnboarding = me.data?.role === "owner" && !me.data.gym.onboarding_completed_at;
+  useEffect(() => {
+    if (needsOnboarding) router.replace("/onboarding");
+  }, [needsOnboarding, router]);
 
-  if (!isClient || me.isPending) {
+  if (!isClient || me.isPending || needsOnboarding) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <Spinner className="size-6 text-muted-foreground" />

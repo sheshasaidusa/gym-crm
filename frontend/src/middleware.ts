@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PREFIXES = ["/blueprint-demo", "/login", "/signup", "/invite", "/p/", "/join/"];
+const PUBLIC_PREFIXES = ["/onboarding", "/login", "/signup", "/invite", "/p/", "/join/"];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

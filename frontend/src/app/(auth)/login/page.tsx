@@ -78,7 +78,7 @@ function LoginForm() {
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               New here?{" "}
-              <Link href="/signup" className="text-foreground underline underline-offset-4">
+              <Link href="/onboarding" className="text-foreground underline underline-offset-4">
                 Create your gym
               </Link>
             </p>
