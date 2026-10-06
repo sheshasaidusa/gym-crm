@@ -146,14 +146,14 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/" />}>
+            <SidebarMenuButton size="lg" className="h-8 p-0 hover:bg-transparent" render={<Link href="/" />}>
               <span
                 aria-hidden
                 className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-primary-raised"
               >
                 {me.data?.gym.name.charAt(0).toUpperCase()}
               </span>
-              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+              <div className="grid flex-1 text-left text-sm leading-tight transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">
                 {me.data ? (
                   <>
                     <span className="truncate font-medium">
@@ -183,7 +183,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={isActive(item.href)}
-                      className="px-2.5 text-muted-foreground data-active:text-sidebar-accent-foreground [&_svg]:text-muted-foreground data-active:[&_svg]:text-sidebar-accent-foreground"
+                      className="text-muted-foreground data-active:text-sidebar-accent-foreground [&_svg]:text-muted-foreground data-active:[&_svg]:text-sidebar-accent-foreground"
                       tooltip={item.title}
                       render={<Link href={item.href} />}
                     >
