@@ -2,7 +2,6 @@
 
 import {
   BarChart3Icon,
-  ChevronsUpDownIcon,
   ClipboardListIcon,
   FileUpIcon,
   HeartPulseIcon,
@@ -20,6 +19,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +32,6 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -123,9 +122,6 @@ function initials(name: string) {
 export function AppSidebar() {
   const pathname = usePathname();
   const me = useMe();
-  const logout = useLogout();
-  const switchGym = useSwitchGym();
-
   const role = me.data?.role;
   const due = useDueReminders(undefined, !!role && role !== "trainer");
   // Reminders nobody has sent yet (by email or WhatsApp).
@@ -146,14 +142,14 @@ export function AppSidebar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border bg-sidebar-accent">
+    <Sidebar collapsible="icon" className="z-40">
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/" />}>
               <span
                 aria-hidden
-                className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground group-data-[collapsible=icon]:size-8"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-primary-raised"
               >
                 {me.data?.gym.name.charAt(0).toUpperCase()}
               </span>
@@ -178,7 +174,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         {NAV.map((group) => (
-          <SidebarGroup key={group.label} className="border-b border-sidebar-border py-3 last:border-b-0">
+          <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items
@@ -187,6 +183,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={isActive(item.href)}
+                      className="px-2.5 text-muted-foreground data-active:text-sidebar-accent-foreground [&_svg]:text-muted-foreground data-active:[&_svg]:text-sidebar-accent-foreground"
                       tooltip={item.title}
                       render={<Link href={item.href} />}
                     >
@@ -194,7 +191,7 @@ export function AppSidebar() {
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                     {badgeFor(item.href) && (
-                      <SidebarMenuBadge className="bg-red-500/15 text-red-600 dark:text-red-400">
+                      <SidebarMenuBadge className="rounded-full bg-primary text-primary-foreground">
                         {badgeFor(item.href)}
                       </SidebarMenuBadge>
                     )}
@@ -205,90 +202,73 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-                <Avatar className="size-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg">
-                    {me.data ? initials(me.data.user.name) : ""}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {me.data?.user.name}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {me.data ? ROLE_LABELS[me.data.role] : ""}
-                  </span>
-                </div>
-                <ChevronsUpDownIcon className="ml-auto size-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                align="start"
-                className="min-w-56"
-              >
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    {me.data?.user.email}
-                  </DropdownMenuLabel>
-                </DropdownMenuGroup>
-                {me.data && me.data.gyms.length > 1 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">
-                        Switch gym
-                      </DropdownMenuLabel>
-                      {me.data.gyms.map((g) => (
-                        <DropdownMenuItem
-                          key={g.gym_id}
-                          disabled={g.gym_id === me.data.gym.id}
-                          onClick={() => switchGym.mutate(g.gym_id)}
-                        >
-                          <span className="flex-1 truncate">{g.gym_name}</span>
-                          {g.gym_id === me.data.gym.id && <CheckIcon />}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuGroup>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logout.mutate()}>
-                  <LogOutIcon />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
 }
 
-/** "Gym / Page" for the top bar, named from the same nav list as the sidebar. */
-export function TopBarCrumb() {
-  const pathname = usePathname();
+/** Account menu for the top bar: a round avatar that opens profile, gym switching and log out. */
+export function NavUser() {
   const me = useMe();
-  const page = NAV.flatMap((g) => g.items)
-    .filter((i) => (i.href === "/" ? pathname === "/" : pathname.startsWith(i.href)))
-    .at(-1);
+  const logout = useLogout();
+  const switchGym = useSwitchGym();
   return (
-    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[13px]">
-      <span className="truncate text-muted-foreground">{me.data?.gym.name ?? "dunamis"}</span>
-      {page && (
-        <>
-          <span aria-hidden className="text-muted-foreground/50">/</span>
-          <span className="flex items-center gap-1.5 truncate text-foreground">
-            <page.icon className="size-3.5 shrink-0" />
-            {page.title}
-          </span>
-        </>
-      )}
-    </nav>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="outline" size="icon-sm" className="size-9 rounded-full p-0" aria-label="Account" />}
+      >
+        <Avatar className="h-8 w-8 rounded-full">
+          <AvatarFallback className="rounded-full">{me.data ? initials(me.data.user.name) : ""}</AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-56 rounded-lg">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="p-0 font-normal">
+            <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarFallback className="rounded-lg">{me.data ? initials(me.data.user.name) : ""}</AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium text-foreground">{me.data?.user.name}</span>
+                <span className="truncate text-xs">
+                  {me.data ? `${ROLE_LABELS[me.data.role]} · ${me.data.user.email}` : ""}
+                </span>
+              </div>
+            </div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        {me.data && me.data.gyms.length > 1 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Switch gym</DropdownMenuLabel>
+              {me.data.gyms.map((g) => (
+                <DropdownMenuItem
+                  key={g.gym_id}
+                  disabled={g.gym_id === me.data.gym.id}
+                  onClick={() => switchGym.mutate(g.gym_id)}
+                >
+                  <span className="flex-1 truncate">{g.gym_name}</span>
+                  {g.gym_id === me.data.gym.id && <CheckIcon />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => logout.mutate()}>
+          <LogOutIcon />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
+}
+
+/** Current page title for the top-bar breadcrumb, from the same nav list as the sidebar. */
+export function usePageTitle() {
+  const pathname = usePathname();
+  return NAV.flatMap((g) => g.items)
+    .filter((i) => (i.href === "/" ? pathname === "/" : pathname.startsWith(i.href)))
+    .at(-1)?.title;
 }

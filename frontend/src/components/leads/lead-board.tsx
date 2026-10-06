@@ -34,16 +34,16 @@ function LeadCard({ lead, onOpen, overlay }: { lead: Lead; onOpen?: () => void; 
   return (
     <div
       className={cn(
-        "grid gap-1.5 rounded-lg border bg-card p-2.5 text-left text-sm shadow-xs",
-        overlay && "rotate-2 shadow-lg",
+        "grid gap-2 rounded-2xl border bg-background p-4 text-left text-sm transition-[transform,opacity,box-shadow,border-color] duration-200",
+        overlay && "scale-[0.98] rotate-1 border-primary/25 shadow-xl",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <button type="button" onClick={onOpen} className="min-w-0 text-left font-medium hover:underline">
+        <button type="button" onClick={onOpen} className="min-w-0 text-left text-sm leading-6 font-medium text-card-foreground hover:underline">
           {lead.name}
         </button>
         {lead.assigned_to && (
-          <Avatar className="size-6" title={`Assigned to ${lead.assigned_to.name}`}>
+          <Avatar className="size-6 border bg-background" title={`Assigned to ${lead.assigned_to.name}`}>
             <AvatarFallback className="text-[10px]">{initials(lead.assigned_to.name)}</AvatarFallback>
           </Avatar>
         )}
@@ -92,13 +92,13 @@ function Column({
       ref={setNodeRef}
       aria-label={STAGE_LABELS[stage]}
       className={cn(
-        "flex w-64 shrink-0 flex-col gap-2 rounded-xl bg-muted/50 p-2 transition-colors sm:w-72",
-        isOver && "bg-muted ring-2 ring-ring/40",
+        "flex w-64 shrink-0 snap-start flex-col gap-2 rounded-2xl border border-transparent bg-card p-2 shadow-raised-control transition-[background-color,border-color,box-shadow] sm:w-72",
+        isOver && "border-primary/50 bg-primary/5 shadow-sm",
         stage === "lost" && "opacity-80",
       )}
     >
-      <header className="flex items-center justify-between px-1">
-        <h3 className="text-sm font-medium">{STAGE_LABELS[stage]}</h3>
+      <header className="flex h-9 items-center justify-between px-2">
+        <h3 className="text-xs font-medium text-foreground">{STAGE_LABELS[stage]}</h3>
         <span className="text-xs text-muted-foreground tabular-nums">{leads.length}</span>
       </header>
       <div className="grid min-h-24 content-start gap-2">
@@ -106,7 +106,7 @@ function Column({
           <DraggableCard key={lead.id} lead={lead} onOpen={() => onOpen(lead.id)} />
         ))}
         {leads.length === 0 && (
-          <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
+          <p className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-primary/45 bg-primary/5 text-[11px] font-medium text-primary">
             Drop leads here
           </p>
         )}

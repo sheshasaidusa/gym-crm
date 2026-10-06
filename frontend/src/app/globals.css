@@ -1,3 +1,4 @@
+/* Theme adapted from gray-ui-csm by Jason-uxui (MIT), primary recoloured blue. */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -5,11 +6,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -24,9 +23,21 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-tab-foreground: var(--tab-foreground);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-inverse-foreground: var(--inverse-foreground);
+  --color-inverse: var(--inverse);
+  --color-foreground-secondary: var(--foreground-secondary);
   --color-destructive: var(--destructive);
+  --color-destructive-surface: var(--destructive-surface);
+  --color-status-approved: var(--status-approved);
+  --color-status-changes-requested: var(--status-changes-requested);
+  --color-status-in-review-foreground: var(--status-in-review-foreground);
+  --color-status-in-review-surface: var(--status-in-review-surface);
+  --color-status-on-solid: var(--status-on-solid);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -39,6 +50,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -46,81 +59,189 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --inset-shadow-surface: var(--shadow-inset-surface);
+  --shadow-primary-raised: var(--effect-primary-raised);
+  --shadow-raised-control: var(--effect-raised-control);
 }
 
-/* Palette modelled on a Linear-style CRM: neutral greys, one violet accent. */
 :root {
-  --background: #ffffff;
-  --foreground: #161616;
-  --card: #fbfbfb;
-  --card-foreground: #161616;
-  --popover: #ffffff;
-  --popover-foreground: #161616;
-  --primary: #4124fb;
-  --primary-foreground: #f9fbff;
-  --secondary: #f3f3f3;
-  --secondary-foreground: #161616;
-  --muted: #f3f3f3;
-  --muted-foreground: #6b6b6b;
-  --accent: #efefef;
-  --accent-foreground: #161616;
-  --destructive: #dc2626;
-  --border: #e8e8e8;
-  --input: #dcdcdc;
-  --ring: #8a8a8a;
-  --chart-1: oklch(0.87 0 0);
-  /* Single-series data colour (validated against card surfaces; see dataviz palette slot 1). */
+  --background: #f7f7f7;
+  --foreground: #18181b;
+  --foreground-secondary: #3f3f46;
+  --card: #f2f2f2;
+  --card-foreground: #18181b;
+  --popover: #f2f2f2;
+  --popover-foreground: #18181b;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f2f2;
+  --secondary-foreground: #3f3f46;
+  --muted: #f7f7f7;
+  --muted-foreground: #71717a;
+  /* Figma Sidebar / MediaAsset muted pair differs from the app-wide muted pair. */
+  --inbox-avatar-background: #f4f4f5;
+  --inbox-avatar-foreground: #71717a;
+  --accent: #01d4f3;
+  --accent-foreground: #18181b;
+  --inverse: #09090b;
+  --inverse-foreground: #fafafa;
+  --destructive: #b91c1c;
+  --destructive-surface: #fef2f2;
+  --status-in-review-surface: #eff6ff;
+  --status-in-review-foreground: #2563eb;
+  --status-approved: #15803d;
+  --status-changes-requested: #b45309;
+  --status-on-solid: #fafafa;
+  --status-success: var(--status-approved);
+  --status-warning: var(--status-changes-requested);
+  /* Project Theme / status — Figma merge handoff, 23 Sep 2026. */
+  --status-open-background: #dff2fe;
+  --status-open-foreground: #00598a;
+  --status-open-border: #b8e6fe;
+  --status-pending-background: #fef3c7;
+  --status-pending-foreground: #92400e;
+  --status-pending-border: #fde68a;
+  --status-resolved-background: #dcfce7;
+  --status-resolved-foreground: #166534;
+  --status-resolved-border: #bbf7d0;
+  --status-closed-background: #f4f4f5;
+  --status-closed-foreground: #52525b;
+  --status-closed-border: #e4e4e7;
+  --status-merge-background: #fef9c3;
+  --status-merge-foreground: #a16207;
+  --status-merge-border: #fef08a;
+  --border: #e3e3e3;
+  --input: #414141;
+  /* Project-owned input border; ring remains sourced from MonoGray Global. */
+  --input-border: #e4e4e7;
+  --ring: #18181b;
+  /* MonoGray Global: Tabs Bottom Line semantic colors. */
+  --tab-foreground: #09090b;
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.707 0.165 254.624);
+  --chart-3: oklch(0.623 0.214 259.815);
+  --chart-4: oklch(0.546 0.245 262.881);
+  --chart-5: oklch(0.488 0.243 264.376);
+  --radius: 0.625rem;
+  /* Single-series data colours (validated against card surfaces; see dataviz palette slot 1). */
   --series-1: #2a78d6;
   --series-2: #eb6834;
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.5rem;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #6b6b6b;
-  --sidebar-primary: #ececec;
-  --sidebar-primary-foreground: #161616;
-  --sidebar-accent: #f1f1f1;
-  --sidebar-accent-foreground: #161616;
-  --sidebar-border: #e8e8e8;
-  --sidebar-ring: #8a8a8a;
+  --sidebar: #f6f6f6;
+  --sidebar-foreground: #71717a;
+  --sidebar-primary: #18181b;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #fff;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e3e3e3;
+  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --motion-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-inset-surface:
+    0 0 0 2px color-mix(in oklch, white 50%, transparent) inset,
+    0 4px 4px 0 color-mix(in oklch, white 12%, transparent) inset;
+  --effect-control-outline: #fff;
+  --effect-control-highlight: #000;
+  --effect-control-inner-stroke: #000;
+  --effect-raised-control:
+    0 0 0 1px color-mix(in srgb, var(--effect-control-outline) 40%, transparent),
+    inset 0 1px 1px
+      color-mix(in srgb, var(--effect-control-highlight) 10%, transparent),
+    inset 0 0 1px 1px
+      color-mix(in srgb, var(--effect-control-inner-stroke) 6%, transparent);
+  --effect-primary-raised:
+    inset 0 0 12px rgb(255 255 255 / 30%), inset 0 0 2px #1e3a8a;
+  --effect-brand-mark-gradient: linear-gradient(
+    177.6deg,
+    transparent 2%,
+    rgb(255 255 255 / 12%) 98.17%
+  );
 }
 
 .dark {
-  --background: #161616;
-  --foreground: #f9fbff;
-  --card: #1b1d20;
-  --card-foreground: #f9fbff;
-  --popover: #161616;
-  --popover-foreground: #f9fbff;
-  --primary: #4124fb;
-  --primary-foreground: #f9fbff;
-  --secondary: #1e1e1e;
-  --secondary-foreground: #f9fbff;
-  --muted: #2a2a2a;
+  --background: #18181b;
+  --foreground: #feffff;
+  --foreground-secondary: #d4d4d8;
+  --card: #1f1f23;
+  --card-foreground: #feffff;
+  --popover: #1f1f23;
+  --popover-foreground: #feffff;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #222226;
+  --secondary-foreground: #d4d4d8;
+  --muted: #1f1f23;
   --muted-foreground: #7f7f7f;
-  --accent: #2a2a2a;
-  --accent-foreground: #f9fbff;
-  --destructive: #f97373;
-  --border: #232323;
-  --input: #393939;
-  --ring: #676767;
-  --chart-1: oklch(0.87 0 0);
+  --inbox-avatar-background: #27272a;
+  --inbox-avatar-foreground: #a1a1aa;
+  --accent: #01d4f3;
+  --accent-foreground: #feffff;
+  --inverse: #fff;
+  --inverse-foreground: #09090b;
+  --destructive: #fca5a5;
+  --destructive-surface: #450909;
+  --status-in-review-surface: #172a4d;
+  --status-in-review-foreground: #93c5fd;
+  --status-approved: #86efac;
+  --status-changes-requested: #fdd34d;
+  --status-on-solid: #09090b;
+  --status-success: var(--status-approved);
+  --status-warning: var(--status-changes-requested);
+  --status-open-background: #082f49;
+  --status-open-foreground: #7dd3fc;
+  --status-open-border: #075985;
+  --status-pending-background: #382b12;
+  --status-pending-foreground: #fcd34d;
+  --status-pending-border: #78551b;
+  --status-resolved-background: #123524;
+  --status-resolved-foreground: #86efac;
+  --status-resolved-border: #226344;
+  --status-closed-background: #27272a;
+  --status-closed-foreground: #d4d4d8;
+  --status-closed-border: #52525b;
+  --status-merge-background: #342c12;
+  --status-merge-foreground: #fde047;
+  --status-merge-border: #786322;
+  --border: #323234;
+  --input: #646a7a;
+  --input-border: #27272a;
+  --ring: #d4d4d8;
+  --tab-foreground: #fff;
   --series-1: #3987e5;
   --series-2: #d95926;
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: #171717;
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.707 0.165 254.624);
+  --chart-3: oklch(0.623 0.214 259.815);
+  --chart-4: oklch(0.546 0.245 262.881);
+  --chart-5: oklch(0.488 0.243 264.376);
+  --sidebar: #18181b;
   --sidebar-foreground: #7f7f7f;
-  --sidebar-primary: #2a2a2a;
-  --sidebar-primary-foreground: #f9fbff;
-  --sidebar-accent: #1e1e1e;
-  --sidebar-accent-foreground: #f9fbff;
-  --sidebar-border: #232323;
-  --sidebar-ring: #676767;
+  --sidebar-primary: #fff;
+  --sidebar-primary-foreground: #09090b;
+  --sidebar-accent: #27272a;
+  --sidebar-accent-foreground: #fff;
+  --sidebar-border: #323234;
+  --sidebar-ring: oklch(0.552 0.016 285.938);
+  --shadow-inset-surface: 0 2px 4px 0 color-mix(in oklch, white 5%, transparent)
+    inset;
+  --effect-control-outline: #000;
+  --effect-control-highlight: #fff;
+  --effect-control-inner-stroke: #fff;
+  --effect-primary-raised:
+    inset 0 0 12px rgb(255 255 255 / 25%), inset 0 0 2px rgb(0 0 0 / 60%);
+}
+
+@layer components {
+  .brand-mark-gradient {
+    background-image: var(--effect-brand-mark-gradient);
+  }
+
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Onboarding blueprint: a sheet of drafting paper that keeps its look in light and dark mode. */
@@ -243,9 +364,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
