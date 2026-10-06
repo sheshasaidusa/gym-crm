@@ -108,7 +108,7 @@ export function BranchesSettings() {
   };
 
   return (
-    <Card>
+    <Card variant="flat">
       <CardHeader>
         <CardTitle>Branches</CardTitle>
         <CardDescription>Every gym has at least one branch.</CardDescription>

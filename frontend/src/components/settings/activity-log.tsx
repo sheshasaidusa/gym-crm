@@ -50,7 +50,7 @@ export function ActivityLog() {
   const pages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
 
   return (
-    <Card>
+    <Card variant="flat">
       <CardHeader>
         <CardTitle>Activity</CardTitle>
         <CardDescription>

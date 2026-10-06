@@ -210,8 +210,8 @@ export function StaffSettings() {
   ];
 
   return (
-    <div className="grid gap-6">
-      <Card>
+    <div className="grid gap-8 [&>*+*]:border-t [&>*+*]:border-border/70 [&>*+*]:pt-8">
+      <Card variant="flat">
         <CardHeader>
           <CardTitle>Staff</CardTitle>
           <CardDescription>People who can log in to this gym.</CardDescription>
@@ -297,7 +297,7 @@ export function StaffSettings() {
       </Card>
 
       {can.manage && (invites.data?.length ?? 0) > 0 && (
-        <Card>
+        <Card variant="flat">
           <CardHeader>
             <CardTitle>Pending invites</CardTitle>
             <CardDescription>Links that haven&apos;t been accepted yet.</CardDescription>

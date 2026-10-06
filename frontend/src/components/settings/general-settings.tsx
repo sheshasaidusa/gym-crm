@@ -91,7 +91,7 @@ export function GeneralSettings() {
       onSubmit={form.handleSubmit((v) => update.mutate({ ...v, phone: v.phone || null }))}
       noValidate
     >
-      <Card>
+      <Card variant="flat">
         <CardHeader>
           <CardTitle>Gym details</CardTitle>
           <CardDescription>

@@ -32,14 +32,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -49,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -168,20 +161,18 @@ function CurrentMembershipCard({
 
   if (!current) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Membership</CardTitle>
-          <CardDescription>{member.name} doesn&apos;t have a membership yet.</CardDescription>
-        </CardHeader>
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-dashed border-border p-5">
+        <div>
+          <p className="font-medium">No membership yet</p>
+          <p className="text-sm text-muted-foreground">{member.name} doesn&apos;t have a membership.</p>
+        </div>
         {canSell && (
-          <CardContent>
-            <Button onClick={onRenew}>
-              <CalendarPlusIcon />
-              Add membership
-            </Button>
-          </CardContent>
+          <Button onClick={onRenew}>
+            <CalendarPlusIcon />
+            Add membership
+          </Button>
         )}
-      </Card>
+      </div>
     );
   }
 
@@ -191,14 +182,16 @@ function CurrentMembershipCard({
   const pct = Math.round((elapsed / totalDays) * 100);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardDescription>Current membership</CardDescription>
-        <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
-          {current.plan_name}
-          <StatusBadge status={current.status} />
-        </CardTitle>
-        <CardAction className="flex gap-1">
+    <section aria-label="Current membership" className="overflow-hidden rounded-2xl border border-border/70 bg-background">
+      <div className="flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
+        <div className="grid gap-1">
+          <span className="text-xs tracking-wide text-muted-foreground uppercase">Current membership</span>
+          <span className="flex flex-wrap items-center gap-2 text-lg font-medium">
+            {current.plan_name}
+            <StatusBadge status={current.status} />
+          </span>
+        </div>
+        <div className="flex gap-1">
           {canSell && (
             <Button size="sm" variant="outline" onClick={onRenew}>
               <RefreshCwIcon />
@@ -212,10 +205,9 @@ function CurrentMembershipCard({
               onCancel={() => onCancel(current)}
             />
           )}
-        </CardAction>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        <div className="grid gap-1.5">
+        </div>
+      </div>
+      <div className="grid gap-1.5 px-4 pb-4 sm:px-5">
           <div className="flex justify-between text-sm">
             <span>{formatDate(current.start_date)}</span>
             <span className="font-medium">
@@ -241,14 +233,14 @@ function CurrentMembershipCard({
               style={{ width: `${pct}%` }}
             />
           </div>
-        </div>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
+      </div>
+      <dl className="grid grid-cols-2 border-t border-border/70 text-sm sm:grid-cols-4 sm:divide-x sm:divide-border/70 [&>div]:p-4">
           <div>
-            <dt className="text-xs text-muted-foreground">Duration</dt>
+            <dt className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">Duration</dt>
             <dd>{shortDuration(current.duration_value, current.duration_unit)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Total</dt>
+            <dt className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">Total</dt>
             <dd>
               {formatMoney(current.total, currency)}
               {current.status !== "cancelled" && (
@@ -265,39 +257,38 @@ function CurrentMembershipCard({
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Freeze days</dt>
+            <dt className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">Freeze days</dt>
             <dd>
               {current.frozen_days} / {current.max_freeze_days} used
             </dd>
           </div>
           {current.freeze_start && current.freeze_end && (
             <div>
-              <dt className="text-xs text-muted-foreground">Frozen</dt>
+              <dt className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">Frozen</dt>
               <dd>
                 {formatDate(current.freeze_start, { year: false })} –{" "}
                 {formatDate(current.freeze_end, { year: false })}
               </dd>
             </div>
           )}
-        </dl>
-        {upcoming.map((u) => (
-          <div key={u.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
+      </dl>
+      {upcoming.map((u) => (
+          <div key={u.id} className="flex items-center justify-between border-t border-border/70 px-4 py-3 text-sm sm:px-5">
             <span>
               Renewed: <strong>{u.plan_name}</strong> from {formatDate(u.start_date)}
             </span>
             <StatusBadge status="upcoming" />
           </div>
         ))}
-      </CardContent>
-    </Card>
+    </section>
   );
 }
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 py-1.5 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children ?? "—"}</dd>
+    <div className="grid gap-1 py-3 text-sm">
+      <dt className="text-xs tracking-wide text-muted-foreground uppercase">{label}</dt>
+      <dd>{children ?? "—"}</dd>
     </div>
   );
 }
@@ -455,8 +446,8 @@ export default function MemberPage() {
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
-        <div className="grid gap-6">
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+        <div className="grid min-w-0 gap-6">
           <CurrentMembershipCard
             member={m}
             onRenew={() => setRenewOpen(true)}
@@ -464,29 +455,48 @@ export default function MemberPage() {
             onCancel={setCancelling}
           />
 
-          {canEdit && <MemberPayments member={m} />}
-
           {m.medical_notes && (
-            <Card className="ring-amber-500/40">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <HeartPulseIcon className="size-4 text-amber-600" />
-                  Medical notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm whitespace-pre-line">{m.medical_notes}</CardContent>
-            </Card>
+            <div className="flex gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+              <HeartPulseIcon className="mt-0.5 size-4 shrink-0 text-amber-600" />
+              <div className="grid gap-1">
+                <span className="font-medium">Medical notes</span>
+                <p className="whitespace-pre-line text-muted-foreground">{m.medical_notes}</p>
+              </div>
+            </div>
           )}
 
-          <AIPlanSection member={m} />
-
-          <ProgressSection member={m} />
-
-          {m.memberships.length > 0 && (
-            <Card className="pb-0">
-              <CardHeader>
-                <CardTitle>Membership history</CardTitle>
-              </CardHeader>
+          <Tabs defaultValue={canEdit ? "payments" : "plan"} className="gap-5">
+            <TabsList variant="line" className="w-full justify-start overflow-x-auto border-b border-border">
+              {canEdit && (
+                <TabsTrigger value="payments" className="flex-none px-4">
+                  Payments
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="plan" className="flex-none px-4">
+                AI plan
+              </TabsTrigger>
+              <TabsTrigger value="progress" className="flex-none px-4">
+                Progress
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex-none px-4">
+                History
+                <span className="text-xs text-muted-foreground tabular-nums">{m.memberships.length}</span>
+              </TabsTrigger>
+            </TabsList>
+            {canEdit && (
+              <TabsContent value="payments">
+                <MemberPayments member={m} />
+              </TabsContent>
+            )}
+            <TabsContent value="plan">
+              <AIPlanSection member={m} />
+            </TabsContent>
+            <TabsContent value="progress">
+              <ProgressSection member={m} />
+            </TabsContent>
+            <TabsContent value="history">
+              {m.memberships.length > 0 ? (
+                <div className="overflow-hidden rounded-2xl border border-border/70 bg-background">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -529,17 +539,22 @@ export default function MemberPage() {
                   ))}
                 </TableBody>
               </Table>
-            </Card>
-          )}
+                </div>
+              ) : (
+                <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  No memberships yet.
+                </p>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
 
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="divide-y">
+        <aside
+          aria-label="Member details"
+          className="border-t border-border/70 pt-6 lg:sticky lg:top-20 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
+        >
+          <h2 className="pb-1 font-medium">Member details</h2>
+          <dl className="divide-y divide-border/70">
                 <Detail label="Goal">{m.goal ? GOAL_LABELS[m.goal] : null}</Detail>
                 <Detail label="Diet">{m.diet_pref ? DIET_LABELS[m.diet_pref] : null}</Detail>
                 <Detail label="Experience">
@@ -548,15 +563,6 @@ export default function MemberPage() {
                 <Detail label="Age">{age != null ? `${age} yrs` : null}</Detail>
                 <Detail label="Gender">{m.gender ? GENDER_LABELS[m.gender] : null}</Detail>
                 <Detail label="Height">{m.height_cm ? `${m.height_cm} cm` : null}</Detail>
-              </dl>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="divide-y">
                 <Detail label="Trainer">{m.trainer?.name ?? null}</Detail>
                 {(branches.data?.length ?? 0) > 1 && <Detail label="Branch">{branch?.name ?? null}</Detail>}
                 <Detail label="Joined">{formatDate(m.joined_on)}</Detail>
@@ -571,7 +577,7 @@ export default function MemberPage() {
                   ) : null}
                 </Detail>
                 <Detail label="Address">{m.address}</Detail>
-              </dl>
+          </dl>
               {m.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-3">
                   {m.tags.map((t) => (
@@ -582,9 +588,7 @@ export default function MemberPage() {
                 </div>
               )}
               {m.notes && <p className="pt-3 text-sm whitespace-pre-line text-muted-foreground">{m.notes}</p>}
-            </CardContent>
-          </Card>
-        </div>
+        </aside>
       </div>
 
       <AddMembershipDialog member={m} open={renewOpen} onOpenChange={setRenewOpen} />

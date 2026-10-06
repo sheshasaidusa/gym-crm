@@ -18,8 +18,8 @@ const EXPORTS = [
 
 export function DataSettings() {
   return (
-    <div className="grid gap-4">
-      <Card>
+    <div className="grid gap-8 [&>*+*]:border-t [&>*+*]:border-border/70 [&>*+*]:pt-8">
+      <Card variant="flat">
         <CardHeader>
           <CardTitle>Export your data</CardTitle>
           <CardDescription>
@@ -50,7 +50,7 @@ export function DataSettings() {
         </CardContent>
       </Card>
 
-      <Card size="sm">
+      <Card size="sm" variant="flat">
         <CardHeader>
           <CardTitle>Bring data in</CardTitle>
           <CardDescription>Import members, plans, payments, check-ups and leads from spreadsheets.</CardDescription>
