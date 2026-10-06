@@ -204,7 +204,7 @@ export function DueList() {
             </div>
             <DatePicker
               aria-label="Pick a day"
-              className="h-8 w-40"
+              className="w-40"
               value={day}
               onChange={setDay}
             />
