@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -121,7 +122,7 @@ function ExpenseDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor="exp-date">Date</FieldLabel>
-              <Input id="exp-date" type="date" max={todayIso()} value={draft.spent_on} onChange={(e) => setDraft({ ...draft, spent_on: e.target.value })} />
+              <DatePicker id="exp-date" max={todayIso()} value={draft.spent_on} onChange={(v) => setDraft({ ...draft, spent_on: v })} />
             </Field>
             <Field>
               <FieldLabel htmlFor="exp-method">Paid by</FieldLabel>

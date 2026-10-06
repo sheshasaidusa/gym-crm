@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useRecordPayment, useVoidPayment, type Payment, type PaymentMethod } from "@/lib/finance-queries";
@@ -125,7 +126,7 @@ export function RecordPaymentDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor="pay-date">Date</FieldLabel>
-              <Input id="pay-date" type="date" max={todayIso()} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
+              <DatePicker id="pay-date" max={todayIso()} value={paidOn} onChange={setPaidOn} />
             </Field>
           </div>
           <Field>

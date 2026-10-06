@@ -27,7 +27,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -201,7 +202,17 @@ export function MemberForm({ member }: { member?: Member }) {
                   {...form.register("phone")}
                 />
                 <TextField label="Email (optional)" type="email" autoComplete="off" error={errors.email} {...form.register("email")} />
-                <TextField label="Date of birth" type="date" max={todayIso()} error={errors.dob} {...form.register("dob")} />
+                <Field data-invalid={!!errors.dob}>
+                  <FieldLabel htmlFor="dob">Date of birth</FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="dob"
+                    render={({ field }) => (
+                      <DatePicker id="dob" max={todayIso()} value={field.value ?? ""} onChange={field.onChange} aria-invalid={!!errors.dob} />
+                    )}
+                  />
+                  <FieldError errors={[errors.dob]} />
+                </Field>
               </div>
               <Field>
                 <FieldLabel>Gender</FieldLabel>
@@ -361,7 +372,17 @@ export function MemberForm({ member }: { member?: Member }) {
                   />
                 </Field>
               )}
-              <TextField label="Joined on" type="date" error={errors.joined_on} {...form.register("joined_on")} />
+              <Field data-invalid={!!errors.joined_on}>
+                <FieldLabel htmlFor="joined_on">Joined on</FieldLabel>
+                <Controller
+                  control={form.control}
+                  name="joined_on"
+                  render={({ field }) => (
+                    <DatePicker id="joined_on" value={field.value ?? ""} onChange={field.onChange} aria-invalid={!!errors.joined_on} />
+                  )}
+                />
+                <FieldError errors={[errors.joined_on]} />
+              </Field>
               <Field>
                 <FieldLabel htmlFor="tags">Tags</FieldLabel>
                 <Controller

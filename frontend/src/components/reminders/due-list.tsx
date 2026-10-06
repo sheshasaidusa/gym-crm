@@ -27,7 +27,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { addDays, formatDate, initials, todayIso } from "@/lib/format";
@@ -202,12 +202,11 @@ export function DueList() {
                 </button>
               ))}
             </div>
-            <Input
-              type="date"
+            <DatePicker
               aria-label="Pick a day"
-              className="h-8 w-36"
+              className="h-8 w-40"
               value={day}
-              onChange={(e) => e.target.value && setDay(e.target.value)}
+              onChange={setDay}
             />
             {can.manage && isToday && items.length > 0 && (
               <Button size="sm" onClick={() => run.mutate()} disabled={run.isPending}>

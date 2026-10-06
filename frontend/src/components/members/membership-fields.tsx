@@ -3,6 +3,7 @@
 import { SimpleSelect } from "@/components/simple-select";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   durationLabel,
@@ -143,11 +144,10 @@ export function MembershipFields({
       <div className="grid grid-cols-2 gap-4">
         <Field>
           <FieldLabel htmlFor="start_date">Starts on</FieldLabel>
-          <Input
+          <DatePicker
             id="start_date"
-            type="date"
             value={value.start_date}
-            onChange={(e) => set({ start_date: e.target.value })}
+            onChange={(v) => set({ start_date: v })}
           />
         </Field>
         <Field>
