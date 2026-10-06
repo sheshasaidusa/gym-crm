@@ -16,14 +16,6 @@ import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { CheckupDialog } from "@/components/checkups/checkup-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -34,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   useDeleteCheckup,
   useDeletePhoto,
@@ -87,8 +80,8 @@ function trend(checkups: CheckUp[], key: MetricKey) {
 function StatTile({ label, unit, t }: { label: string; unit: string; t: NonNullable<ReturnType<typeof trend>> }) {
   const Icon = t.change == null || Math.abs(t.change) < 0.05 ? MinusIcon : t.change > 0 ? ArrowUpIcon : ArrowDownIcon;
   return (
-    <div className="rounded-lg border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div className="p-4">
+      <div className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">{label}</div>
       <div className="text-2xl font-semibold tracking-tight tabular-nums">
         {fmt(t.latest)}
         {unit && <span className="ml-0.5 text-sm font-normal text-muted-foreground">{unit}</span>}
@@ -167,6 +160,8 @@ function MetricChart({ label, unit, t, metric }: { label: string; unit: string; 
   );
 }
 
+const COLUMNS: MetricKey[] = ["weight_kg", "body_fat_pct", "waist_cm"];
+
 function CheckupRow({
   c,
   member,
@@ -184,32 +179,76 @@ function CheckupRow({
 }) {
   const upload = useUploadPhoto(member.id);
   const deletePhoto = useDeletePhoto(member.id);
-  const shown = METRICS.filter((m) => c[m.key] != null);
+  const other = METRICS.filter((m) => !COLUMNS.includes(m.key) && c[m.key] != null);
   // Lives outside the menu so it survives the menu closing while the picker is open.
   const fileInput = useRef<HTMLInputElement>(null);
+  const value = (key: MetricKey) => {
+    const m = METRICS.find((x) => x.key === key)!;
+    return c[key] != null ? `${fmt(c[key] as number)}${m.unit === "%" ? "%" : ` ${m.unit}`}` : "—";
+  };
 
   return (
-    <li className="grid gap-2 py-3">
-      <input
-        ref={fileInput}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) upload.mutate({ checkupId: c.id, file });
-          e.target.value = "";
-        }}
-      />
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="font-medium">{formatDate(c.recorded_on)}</div>
-          <div className="text-xs text-muted-foreground">
-            {c.recorded_by ? `by ${c.recorded_by.name}` : null}
+    <TableRow className="align-top">
+      <TableCell className="pl-4 whitespace-normal">
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) upload.mutate({ checkupId: c.id, file });
+            e.target.value = "";
+          }}
+        />
+        <div className="font-medium">{formatDate(c.recorded_on)}</div>
+        {c.recorded_by && <div className="text-xs text-muted-foreground">by {c.recorded_by.name}</div>}
+        {c.notes && <p className="mt-1 max-w-64 text-xs whitespace-pre-line text-muted-foreground">{c.notes}</p>}
+      </TableCell>
+      {COLUMNS.map((k) => (
+        <TableCell key={k} className="text-right tabular-nums">
+          {value(k)}
+        </TableCell>
+      ))}
+      <TableCell className="hidden text-xs whitespace-normal text-muted-foreground lg:table-cell">
+        {other.length
+          ? other.map((m) => `${m.label} ${fmt(c[m.key] as number)}${m.unit}`).join(" · ")
+          : "—"}
+      </TableCell>
+      <TableCell>
+        {c.photos.length > 0 ? (
+          <div className="flex gap-1">
+            {c.photos.map((p) => (
+              <div key={p.id} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => onOpenPhoto(p.url)}
+                  className="block overflow-hidden rounded-md border"
+                  aria-label="Open photo"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- private, auth-checked image */}
+                  <img src={p.url} alt={`Progress photo, ${formatDate(c.recorded_on)}`} className="size-9 object-cover" loading="lazy" />
+                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    aria-label="Delete photo"
+                    onClick={() => deletePhoto.mutate(p.id)}
+                    className="absolute -top-1.5 -right-1.5 hidden rounded-full bg-background p-0.5 shadow ring-1 ring-border group-hover:block focus-visible:block"
+                  >
+                    <Trash2Icon className="size-3" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-        </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="pr-2">
         {canEdit && (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Check-up actions" />}>
@@ -234,47 +273,8 @@ function CheckupRow({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </div>
-      <dl className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-        {shown.map((m) => (
-          <div key={m.key} className="flex gap-1">
-            <dt className="text-muted-foreground">{m.label}</dt>
-            <dd className="font-medium tabular-nums">
-              {fmt(c[m.key] as number)}
-              {m.unit}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {c.notes && <p className="text-sm whitespace-pre-line text-muted-foreground">{c.notes}</p>}
-      {c.photos.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {c.photos.map((p) => (
-            <div key={p.id} className="group relative">
-              <button
-                type="button"
-                onClick={() => onOpenPhoto(p.url)}
-                className="block overflow-hidden rounded-md border"
-                aria-label="Open photo"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- private, auth-checked image */}
-                <img src={p.url} alt={`Progress photo, ${formatDate(c.recorded_on)}`} className="size-20 object-cover" loading="lazy" />
-              </button>
-              {canEdit && (
-                <button
-                  type="button"
-                  aria-label="Delete photo"
-                  onClick={() => deletePhoto.mutate(p.id)}
-                  className="absolute -top-1.5 -right-1.5 hidden rounded-full bg-background p-0.5 shadow ring-1 ring-border group-hover:block focus-visible:block"
-                >
-                  <Trash2Icon className="size-3" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </li>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -304,34 +304,30 @@ export function ProgressSection({ member }: { member: Member }) {
   const canEditRow = (c: CheckUp) => can.manage || c.recorded_by?.id === me.data?.user.id;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Progress</CardTitle>
-        <CardDescription>
+    <div className="grid gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
           {daysSince == null
             ? "No check-ups yet."
             : daysSince === 0
               ? "Last check-up today."
               : `Last check-up ${daysSince} day${daysSince === 1 ? "" : "s"} ago${daysSince >= interval ? " · due now" : ""}.`}
-        </CardDescription>
-        <CardAction>
-          <Button size="sm" onClick={() => open(null)}>
-            <PlusIcon />
-            Log check-up
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="grid gap-6">
+        </p>
+        <Button size="sm" onClick={() => open(null)}>
+          <PlusIcon />
+          Log check-up
+        </Button>
+      </div>
         {checkups.isPending ? (
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
         ) : rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
             Log a first check-up to start tracking weight, body fat and measurements.
           </p>
         ) : (
           <>
             {tiles.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border/70 bg-background sm:grid-cols-4 sm:divide-x sm:divide-border/70">
                 {tiles.map((m) => (
                   <StatTile key={m.key} label={m.label} unit={m.unit} t={m.t!} />
                 ))}
@@ -344,9 +340,20 @@ export function ProgressSection({ member }: { member: Member }) {
                 ))}
               </div>
             )}
-            <div>
-              <h3 className="text-sm font-medium">History</h3>
-              <ul className="divide-y">
+            <div className="overflow-hidden rounded-2xl border border-border/70 bg-background">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-4">Check-up</TableHead>
+                    <TableHead className="text-right">Weight</TableHead>
+                    <TableHead className="text-right">Body fat</TableHead>
+                    <TableHead className="text-right">Waist</TableHead>
+                    <TableHead className="hidden lg:table-cell">Other</TableHead>
+                    <TableHead>Photos</TableHead>
+                    <TableHead className="w-10" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {rows.map((c) => (
                   <CheckupRow
                     key={c.id}
@@ -358,11 +365,11 @@ export function ProgressSection({ member }: { member: Member }) {
                     onOpenPhoto={setPhoto}
                   />
                 ))}
-              </ul>
+                </TableBody>
+              </Table>
             </div>
           </>
         )}
-      </CardContent>
 
       <CheckupDialog
         memberId={member.id}
@@ -390,6 +397,6 @@ export function ProgressSection({ member }: { member: Member }) {
           )}
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }

@@ -8,16 +8,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SimpleSelect } from "@/components/simple-select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -190,107 +182,129 @@ export function AIPlanSection({ member }: { member: Member }) {
   const configured = status.data?.configured ?? false;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <SparklesIcon className="size-4 text-muted-foreground" />
-          Workout & diet plan
-        </CardTitle>
-        <CardDescription>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <SparklesIcon className="size-4 shrink-0" />
           {published
             ? `${published.title} is live on ${member.name.split(" ")[0]}'s page.`
             : "AI-generated, reviewed by a trainer, shared on the member's page."}
-        </CardDescription>
+        </p>
         {isCoach && configured && (
-          <CardAction>
-            <Button size="sm" variant={published ? "outline" : "default"} disabled={generating} onClick={() => setGenerateOpen(true)}>
-              {generating ? <Spinner /> : <SparklesIcon />}
-              {published ? "New version" : "Generate plan"}
-            </Button>
-          </CardAction>
+          <Button size="sm" variant={published ? "outline" : "default"} disabled={generating} onClick={() => setGenerateOpen(true)}>
+            {generating ? <Spinner /> : <SparklesIcon />}
+            {published ? "New version" : "Generate plan"}
+          </Button>
         )}
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        {status.data && !configured && (
-          <Alert>
-            <AlertTitle>AI plans aren&apos;t switched on</AlertTitle>
-            <AlertDescription>
-              Add an Anthropic API key as <code>ANTHROPIC_API_KEY</code> in the server settings to
-              generate plans.
-            </AlertDescription>
-          </Alert>
-        )}
-        {plans.isPending ? (
-          <Skeleton className="h-16 w-full" />
-        ) : list.length === 0 ? (
-          configured && <p className="text-sm text-muted-foreground">No plans yet.</p>
-        ) : (
-          <ul className="divide-y">
-            {list.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center gap-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{p.title}</span>
+      </div>
+
+      {status.data && !configured && (
+        <Alert>
+          <AlertTitle>AI plans aren&apos;t switched on</AlertTitle>
+          <AlertDescription>
+            Add an Anthropic API key as <code>ANTHROPIC_API_KEY</code> in the server settings to
+            generate plans.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {plans.isPending ? (
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      ) : list.length === 0 ? (
+        configured && (
+          <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">No plans yet.</p>
+        )
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-background">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Plan</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Created</TableHead>
+                <TableHead className="hidden md:table-cell">By</TableHead>
+                <TableHead className="w-32" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="pl-4 whitespace-normal">
+                    <div className="font-medium">{p.title}</div>
+                    {(p.params || (p.status === "failed" && p.error)) && (
+                      <div className="text-xs text-muted-foreground">
+                        {p.params && `${p.params.days_per_week} days/week`}
+                        {p.status === "failed" && p.error && ` · ${p.error}`}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <span className={cn("rounded-full px-2 py-0.5 text-xs", STATUS_STYLE[p.status])}>
                       {STATUS_LABEL[p.status]}
                     </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell">
                     {new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                    {p.created_by && ` · ${p.created_by.name}`}
-                    {p.params && ` · ${p.params.days_per_week} days/week`}
-                    {p.status === "failed" && p.error && ` · ${p.error}`}
-                  </div>
-                </div>
-                {(p.status === "draft" || p.status === "published" || p.status === "archived") && (
-                  <Button
-                    size="sm"
-                    variant={p.status === "draft" ? "default" : "outline"}
-                    nativeButton={false}
-                    render={<Link href={`/members/${member.id}/plans/${p.id}`} />}
-                  >
-                    {p.status === "draft" && isCoach ? "Review" : "Open"}
-                  </Button>
-                )}
-                {isCoach && p.status !== "published" && p.status !== "generating" && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Plan actions" />}>
-                      <MoreHorizontalIcon />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem variant="destructive" onClick={() => setDeleting(p)}>
-                        <Trash2Icon />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {published && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-fit"
-            onClick={async () => {
-              await navigator.clipboard.writeText(member.preview_url);
-              toast.success("Member page link copied");
-            }}
-          >
-            <CopyIcon />
-            Copy member page link
-          </Button>
-        )}
-        {status.data && configured && (
-          <p className="text-xs text-muted-foreground">
-            {status.data.used_this_month} of {status.data.monthly_limit} AI plans used this month
-            {" · "}
-            <Badge variant="outline" className="font-normal">AI-generated, trainer-reviewed</Badge>
-          </p>
-        )}
-      </CardContent>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground md:table-cell">{p.created_by?.name ?? "—"}</TableCell>
+                  <TableCell className="pr-2">
+                    <div className="flex justify-end gap-1">
+                      {(p.status === "draft" || p.status === "published" || p.status === "archived") && (
+                        <Button
+                          size="sm"
+                          variant={p.status === "draft" ? "default" : "outline"}
+                          nativeButton={false}
+                          render={<Link href={`/members/${member.id}/plans/${p.id}`} />}
+                        >
+                          {p.status === "draft" && isCoach ? "Review" : "Open"}
+                        </Button>
+                      )}
+                      {isCoach && p.status !== "published" && p.status !== "generating" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Plan actions" />}>
+                            <MoreHorizontalIcon />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem variant="destructive" onClick={() => setDeleting(p)}>
+                              <Trash2Icon />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {(published || (status.data && configured)) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {published && (
+            <Button
+              variant="ghost"
+              size="xs"
+              className="-ml-2"
+              onClick={async () => {
+                await navigator.clipboard.writeText(member.preview_url);
+                toast.success("Member page link copied");
+              }}
+            >
+              <CopyIcon />
+              Copy member page link
+            </Button>
+          )}
+          {status.data && configured && (
+            <span>
+              {status.data.used_this_month} of {status.data.monthly_limit} AI plans used this month · AI-generated,
+              trainer-reviewed
+            </span>
+          )}
+        </div>
+      )}
 
       <GenerateDialog member={member} open={generateOpen} onOpenChange={setGenerateOpen} />
       <ConfirmDialog
@@ -302,6 +316,6 @@ export function AIPlanSection({ member }: { member: Member }) {
         pending={remove.isPending}
         onConfirm={() => deleting && remove.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
       />
-    </Card>
+    </div>
   );
 }
