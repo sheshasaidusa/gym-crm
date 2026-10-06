@@ -1,4 +1,4 @@
-Theme tokens (src/app/globals.css), UI primitives in src/components/ui (avatar, badge, breadcrumb, button, card, checkbox, collapsible, dropdown-menu, input, label, select, separator, sheet, sidebar, skeleton, switch, table, tabs, tooltip), src/components/theme-toggle.tsx and the dashboard shell are adapted from https://github.com/Jason-uxui/gray-ui-csm under this license:
+Theme tokens (src/app/globals.css), UI primitives in src/components/ui (avatar, badge, breadcrumb, button, card, checkbox, collapsible, dropdown-menu, input, label, select, separator, sheet, sidebar, skeleton, switch, table, tabs, tooltip), src/components/theme-toggle.tsx, src/components/stats and the dashboard shell are adapted from https://github.com/Jason-uxui/gray-ui-csm under this license:
 
 MIT License
 
