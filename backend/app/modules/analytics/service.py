@@ -152,7 +152,7 @@ async def build(
                     CheckUp.body_fat_pct,
                     CheckUp.muscle_mass_kg,
                     CheckUp.waist_cm,
-                    Member.goal,
+                    Member.goals,
                 )
                 .join(Member, Member.id == CheckUp.member_id)
                 .where(CheckUp.recorded_on >= period_start, CheckUp.recorded_on <= today)
@@ -326,14 +326,18 @@ def checkup_progress(rows) -> CheckupProgress:
             continue
         first, last = checks[0], checks[-1]
         n_tracked += 1
-        good = on_track(first.goal, first, last)
-        n_on_track += good
-        g = goals[first.goal]
-        g[0] += 1
-        g[1] += good
-        if (w := _change(first, last, "weight_kg")) is not None:
+        member_goals: list[Goal | None] = [Goal(x) for x in first.goals or []] or [None]
+        # Overall progress follows the first (primary) goal; each goal also gets its own row.
+        n_on_track += on_track(member_goals[0], first, last)
+        w = _change(first, last, "weight_kg")
+        for goal in member_goals:
+            g = goals[goal]
+            g[0] += 1
+            g[1] += on_track(goal, first, last)
+            if w is not None:
+                g[2].append(w)
+        if w is not None:
             weight_changes.append(w)
-            g[2].append(w)
         if (f := _change(first, last, "body_fat_pct")) is not None:
             fat_changes.append(f)
 

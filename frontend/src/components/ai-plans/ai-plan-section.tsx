@@ -80,7 +80,7 @@ function GenerateDialog({
     instructions: "",
   });
   const missing = [
-    !member.goal && "goal",
+    !member.goals.length && "a goal",
     !member.diet_pref && "diet preference",
     !member.experience_level && "experience level",
     !member.last_checkup_on && "a check-up (weight)",

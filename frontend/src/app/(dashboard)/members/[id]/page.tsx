@@ -540,7 +540,7 @@ export default function MemberPage() {
             </CardHeader>
             <CardContent>
               <dl className="divide-y">
-                <Detail label="Goal">{m.goal ? GOAL_LABELS[m.goal] : null}</Detail>
+                <Detail label="Goals">{m.goals.length ? m.goals.map((g) => GOAL_LABELS[g]).join(", ") : null}</Detail>
                 <Detail label="Diet">{m.diet_pref ? DIET_LABELS[m.diet_pref] : null}</Detail>
                 <Detail label="Experience">
                   {m.experience_level ? EXPERIENCE_LABELS[m.experience_level] : null}

@@ -1,6 +1,6 @@
 """Generates a workout + diet plan with Claude.
 
-Only what's needed to write a plan is sent: age, sex, body metrics, goal, diet, experience,
+Only what's needed to write a plan is sent: age, sex, body metrics, goals, diet, experience,
 medical notes and the trainer's instructions. Never the member's name, phone or email.
 """
 
@@ -39,7 +39,9 @@ Nutrition:
 eggs, vegan excludes all animal products).
 - Use foods that are common and affordable in the member's region (inferred from the gym's \
 time zone) and realistic for daily life.
-- Set calories and macros from the goal and current body metrics; keep a weight-loss deficit \
+- The member may have up to 3 goals, listed most important first; balance the plan across \
+them, letting the first lead when they conflict.
+- Set calories and macros from the goals and current body metrics; keep a weight-loss deficit \
 moderate (about 15-20% below maintenance). Meal calories should add up to daily_calories.
 - This is general guidance, not medical nutrition therapy; do not prescribe supplements beyond \
 basics like whey or creatine, and flag anything that needs a doctor.

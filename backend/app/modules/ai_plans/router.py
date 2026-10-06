@@ -176,7 +176,7 @@ async def member_context(db: AsyncSession, member: Member, gym: Gym) -> dict:
         "age": age,
         "sex": member.gender.value if member.gender else None,
         "height_cm": member.height_cm,
-        "goal": member.goal.value if member.goal else "general_fitness",
+        "goals": member.goals or ["general_fitness"],
         "diet_preference": member.diet_pref.value if member.diet_pref else "not specified",
         "experience_level": member.experience_level.value
         if member.experience_level

@@ -160,7 +160,7 @@ async def test_export_round_trips_into_import(
         owner,
         name="Asha Rao",
         gender="female",
-        goal="weight_loss",
+        goals=["weight_loss", "strength"],
         membership={"plan_id": plan["id"]},
     )
     for entity in ("plans", "members"):
@@ -183,10 +183,10 @@ async def test_export_round_trips_into_import(
     members = (await client.get("/api/members", headers=other_owner.headers)).json()["items"]
     (m,) = members
     detail = (await client.get(f"/api/members/{m['id']}", headers=other_owner.headers)).json()
-    assert (detail["name"], detail["gender"], detail["goal"]) == (
+    assert (detail["name"], detail["gender"], detail["goals"]) == (
         "Asha Rao",
         "female",
-        "weight_loss",
+        ["weight_loss", "strength"],
     )
     assert detail["memberships"][0]["plan_name"] == "Quarterly"
 

@@ -22,7 +22,7 @@ def test_month_helpers():
 
 
 class Row:
-    def __init__(self, member_id, weight=None, fat=None, muscle=None, waist=None, goal=None):
+    def __init__(self, member_id, weight=None, fat=None, muscle=None, waist=None, goals=()):
         self.member_id = member_id
         self.weight_kg, self.body_fat_pct, self.muscle_mass_kg, self.waist_cm = (
             weight,
@@ -30,7 +30,7 @@ class Row:
             muscle,
             waist,
         )
-        self.goal = goal
+        self.goals = list(goals)
 
 
 def test_on_track_rules():
@@ -45,11 +45,11 @@ def test_on_track_rules():
 
 def test_checkup_progress_first_vs_last():
     rows = [
-        Row("a", weight=80, goal=Goal.WEIGHT_LOSS),
-        Row("a", weight=79, goal=Goal.WEIGHT_LOSS),
-        Row("a", weight=77, goal=Goal.WEIGHT_LOSS),
-        Row("b", weight=60, fat=20, goal=Goal.MUSCLE_GAIN),
-        Row("b", weight=59, fat=21, goal=Goal.MUSCLE_GAIN),
+        Row("a", weight=80, goals=[Goal.WEIGHT_LOSS]),
+        Row("a", weight=79, goals=[Goal.WEIGHT_LOSS]),
+        Row("a", weight=77, goals=[Goal.WEIGHT_LOSS]),
+        Row("b", weight=60, fat=20, goals=[Goal.MUSCLE_GAIN]),
+        Row("b", weight=59, fat=21, goals=[Goal.MUSCLE_GAIN]),
         Row("c", weight=90),  # only one check-up
     ]
     p = checkup_progress(rows)
@@ -59,6 +59,24 @@ def test_checkup_progress_first_vs_last():
     assert [(g.goal, g.members, g.on_track) for g in p.by_goal] == [
         (Goal.WEIGHT_LOSS, 1, 1),
         (Goal.MUSCLE_GAIN, 1, 0),
+    ]
+
+
+
+def test_checkup_progress_counts_each_goal_and_uses_the_first_overall():
+    # Lost weight while aiming for weight loss first and muscle gain second.
+    rows = [
+        Row("a", weight=80, goals=[Goal.WEIGHT_LOSS, Goal.MUSCLE_GAIN]),
+        Row("a", weight=78, goals=[Goal.WEIGHT_LOSS, Goal.MUSCLE_GAIN]),
+        Row("b", waist=90),
+        Row("b", waist=88),
+    ]
+    p = checkup_progress(rows)
+    assert (p.members_tracked, p.on_track) == (2, 2)
+    assert sorted((str(g.goal), g.members, g.on_track) for g in p.by_goal) == [
+        ("None", 1, 1),
+        ("muscle_gain", 1, 0),
+        ("weight_loss", 1, 1),
     ]
 
 
@@ -98,7 +116,7 @@ async def test_analytics_end_to_end(client: AsyncClient, owner: Account, session
         owner,
         phone="9000000001",
         name="Asha",
-        goal="weight_loss",
+        goals=["weight_loss"],
         joined_on=two_back.isoformat(),
         membership={"plan_id": monthly["id"], "start_date": two_back.isoformat()},
     )
@@ -124,7 +142,7 @@ async def test_analytics_end_to_end(client: AsyncClient, owner: Account, session
         owner,
         phone="9000000003",
         name="Chitra",
-        goal="muscle_gain",
+        goals=["muscle_gain"],
         membership={"plan_id": quarterly["id"], "start_date": t.isoformat()},
     )
     await pay(client, owner, c["id"], 3000, t, c["memberships"][0]["id"])

@@ -16,7 +16,7 @@ async def test_onboard_member_with_membership(client: AsyncClient, owner: Accoun
         owner,
         phone="+91 98765-43210",
         email="ravi@example.com",
-        goal="weight_loss",
+        goals=["weight_loss", "strength", "weight_loss"],
         diet_pref="veg",
         tags=["Morning", "morning", "VIP"],
         trainer_id=staff[0]["user_id"],
@@ -24,6 +24,7 @@ async def test_onboard_member_with_membership(client: AsyncClient, owner: Accoun
     )
     assert member["phone"] == "+919876543210"
     assert member["tags"] == ["morning", "vip"]
+    assert member["goals"] == ["weight_loss", "strength"]  # duplicates dropped, order kept
     assert member["trainer"]["name"] == "Owner"
     assert member["status"] == "active"
     assert member["preview_url"].startswith("http://localhost:3000/p/")
@@ -275,3 +276,17 @@ async def test_regenerate_preview_link(client: AsyncClient, owner: Account):
     member = await make_member(client, owner)
     res = await client.post(f"/api/members/{member['id']}/preview-link", headers=owner.headers)
     assert res.json()["preview_url"] != member["preview_url"]
+
+
+async def test_more_than_three_goals_is_rejected(client: AsyncClient, owner: Account):
+    r = await client.post(
+        "/api/members",
+        json={
+            "name": "Kiran",
+            "phone": "9000011111",
+            "goals": ["weight_loss", "strength", "endurance", "flexibility"],
+        },
+        headers=owner.headers,
+    )
+    assert r.status_code == 422
+    assert "up to 3 goals" in r.text

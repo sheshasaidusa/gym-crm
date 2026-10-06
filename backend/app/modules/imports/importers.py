@@ -117,7 +117,7 @@ FIELDS: dict[ImportEntity, list[Field]] = {
             hint="Recorded as a payment",
         ),
         Field("payment_method", "Payment method", aliases=("mode", "payment mode", "paid by")),
-        Field("goal", "Goal", aliases=("fitness goal", "objective")),
+        Field("goals", "Goals", aliases=("goal", "fitness goal", "objective"), hint="Up to 3, comma separated"),
         Field("diet_pref", "Diet", aliases=("diet preference", "food preference", "veg/non-veg")),
         Field("experience_level", "Experience", aliases=("level", "fitness level")),
         Field("height_cm", "Height (cm)", aliases=("height",)),
@@ -220,7 +220,7 @@ SAMPLE_ROWS: dict[ImportEntity, list[dict[str, str]]] = {
             "membership_end": "31/10/2026",
             "amount_paid": "1800",
             "payment_method": "UPI",
-            "goal": "Weight loss",
+            "goals": "Weight loss",
             "diet_pref": "Veg",
             "notes": "Morning batch",
         },
@@ -504,6 +504,18 @@ def _money(v: object) -> Decimal | None:
     return round_money(d) if d is not None else None
 
 
+def _goals(v: object) -> list[str]:
+    """"Weight loss, strength" -> ["weight_loss", "strength"]; at most 3."""
+    s = text(v)
+    if s is None:
+        return []
+    parts = [p for p in re.split(r"[,;/|&+]|\band\b", s, flags=re.I) if p.strip()]
+    goals = list(dict.fromkeys(parse_choice(p, GOALS, "goal") for p in parts))
+    if len(goals) > 3:
+        raise ParseError("At most 3 goals")
+    return goals
+
+
 def _tags(v: object) -> list[str]:
     s = text(v)
     return (
@@ -539,7 +551,7 @@ async def prepare_member(ctx: Ctx, raw: dict[str, object]) -> Prepared:
             "membership_end": d,
             "amount_paid": _money,
             "payment_method": lambda x: parse_choice(x, METHODS, "payment method"),
-            "goal": lambda x: parse_choice(x, GOALS, "goal"),
+            "goals": _goals,
             "diet_pref": lambda x: parse_choice(x, DIETS, "diet"),
             "experience_level": lambda x: parse_choice(x, LEVELS, "experience level"),
             "height_cm": _bounded(50, 260, "Height"),
@@ -589,7 +601,7 @@ PROFILE_FIELDS = (
     "gender",
     "dob",
     "address",
-    "goal",
+    "goals",
     "diet_pref",
     "experience_level",
     "height_cm",
@@ -607,7 +619,7 @@ async def apply_member(ctx: Ctx, p: Prepared) -> str:
             return "skipped"
         member = p.existing
         for f in PROFILE_FIELDS:
-            if v.get(f) not in (None, ""):
+            if v.get(f) not in (None, "", []):
                 setattr(member, f, v[f])
         if v["tags"]:
             member.tags = list(dict.fromkeys([*(member.tags or []), *v["tags"]]))

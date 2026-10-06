@@ -102,7 +102,7 @@ export default function CheckupsPage() {
                     </Link>
                     <div className="text-xs text-muted-foreground">
                       {[
-                        d.goal ? GOAL_LABELS[d.goal as Goal] : null,
+                        d.goals.length ? d.goals.map((g) => GOAL_LABELS[g as Goal]).join(", ") : null,
                         d.trainer ? `Trainer: ${d.trainer.name}` : "No trainer",
                         d.last_weight_kg ? `Last weight ${d.last_weight_kg} kg` : null,
                       ]

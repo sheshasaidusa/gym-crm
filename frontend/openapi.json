@@ -6176,16 +6176,12 @@
               }
             ]
           },
-          "goal": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Goal"
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
           },
           "last_checkup_on": {
             "anyOf": [
@@ -6228,7 +6224,7 @@
           "member_name",
           "phone",
           "trainer",
-          "goal",
+          "goals",
           "last_checkup_on",
           "days_since",
           "last_weight_kg"
@@ -8929,15 +8925,13 @@
             ],
             "title": "Height Cm"
           },
-          "goal": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Goal"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/Goal"
+            },
+            "type": "array",
+            "title": "Goals",
+            "default": []
           },
           "diet_pref": {
             "anyOf": [
@@ -9346,15 +9340,12 @@
             ],
             "title": "Height Cm"
           },
-          "goal": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Goal"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/Goal"
+            },
+            "type": "array",
+            "title": "Goals"
           },
           "diet_pref": {
             "anyOf": [
@@ -9450,7 +9441,7 @@
           "emergency_contact_name",
           "emergency_contact_phone",
           "height_cm",
-          "goal",
+          "goals",
           "diet_pref",
           "experience_level",
           "medical_notes",
@@ -9571,15 +9562,19 @@
             ],
             "title": "Height Cm"
           },
-          "goal": {
+          "goals": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Goal"
+                "items": {
+                  "$ref": "#/components/schemas/Goal"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Goals"
           },
           "diet_pref": {
             "anyOf": [
