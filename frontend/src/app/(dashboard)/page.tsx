@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatCard } from "@/components/stats/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { daysLeftLabel, formatDate, initials } from "@/lib/format";
 import { useMemberCounts, useMembers, usePlans } from "@/lib/member-queries";
@@ -63,19 +64,16 @@ function Stat({
   hint: string;
 }) {
   return (
-    <Link href={href} className="rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-      <Card size="sm" className="h-full transition-colors hover:bg-muted/50">
-        <CardHeader>
-          <CardDescription className="flex items-center gap-2">
-            <Icon className="size-4" />
-            {label}
-          </CardDescription>
-          <div className="text-3xl font-semibold tracking-tight tabular-nums">
-            {value === undefined ? <Skeleton className="h-9 w-12" /> : value}
-          </div>
-          <p className="text-xs text-muted-foreground">{hint}</p>
-        </CardHeader>
-      </Card>
+    <Link
+      href={href}
+      className="block rounded-xl outline-none transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <StatCard
+        label={label}
+        icon={<Icon className="size-3.5" />}
+        value={value === undefined ? <span className="inline-block h-8 w-12 animate-pulse rounded-lg bg-muted" /> : <span className="tabular-nums">{value}</span>}
+        footer={<p className="text-xs text-muted-foreground">{hint}</p>}
+      />
     </Link>
   );
 }

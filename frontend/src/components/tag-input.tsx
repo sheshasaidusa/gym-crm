@@ -37,7 +37,7 @@ export function TagInput({
     <div className="grid gap-2">
       <div
         className={cn(
-          "flex min-h-8 w-full flex-wrap items-center gap-1 rounded-lg border border-input bg-transparent px-1.5 py-1 text-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30",
+          "flex min-h-9 w-full flex-wrap items-center gap-1 rounded-[12px] border border-[color:var(--input-border)] bg-muted px-1.5 py-1 shadow-raised-control text-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30",
           className,
         )}
       >

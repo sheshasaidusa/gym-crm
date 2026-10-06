@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { StatCard } from "@/components/stats/stat-card";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -49,17 +50,14 @@ function Kpi({
   hint?: string;
 }) {
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardDescription>{label}</CardDescription>
-        <div className="text-2xl font-semibold tracking-tight tabular-nums">{value}</div>
-        {change ? (
+    <StatCard
+      label={label}
+      icon={null}
+      value={<span className="tabular-nums">{value}</span>}
+      footer={
+        change ? (
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            {change.up ? (
-              <ArrowUpIcon className="size-3" aria-hidden />
-            ) : (
-              <ArrowDownIcon className="size-3" aria-hidden />
-            )}
+            {change.up ? <ArrowUpIcon className="size-3" aria-hidden /> : <ArrowDownIcon className="size-3" aria-hidden />}
             <span
               className={cn(
                 change.good === true && "text-emerald-600 dark:text-emerald-400",
@@ -71,10 +69,10 @@ function Kpi({
             vs last month
           </p>
         ) : (
-          hint && <p className="text-xs text-muted-foreground">{hint}</p>
-        )}
-      </CardHeader>
-    </Card>
+          <p className="text-xs text-muted-foreground">{hint ?? " "}</p>
+        )
+      }
+    />
   );
 }
 
