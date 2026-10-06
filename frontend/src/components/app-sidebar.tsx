@@ -147,13 +147,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="border-b border-sidebar-border bg-sidebar-accent">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/" />}>
               <span
                 aria-hidden
-                className="hidden size-4 items-center justify-center text-sm font-semibold group-data-[collapsible=icon]:flex"
+                className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground group-data-[collapsible=icon]:size-8"
               >
                 {me.data?.gym.name.charAt(0).toUpperCase()}
               </span>
@@ -178,7 +178,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         {NAV.map((group) => (
-          <SidebarGroup key={group.label}>
+          <SidebarGroup key={group.label} className="border-b border-sidebar-border py-3 last:border-b-0">
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items
@@ -205,7 +205,7 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -267,5 +267,28 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  );
+}
+
+/** "Gym / Page" for the top bar, named from the same nav list as the sidebar. */
+export function TopBarCrumb() {
+  const pathname = usePathname();
+  const me = useMe();
+  const page = NAV.flatMap((g) => g.items)
+    .filter((i) => (i.href === "/" ? pathname === "/" : pathname.startsWith(i.href)))
+    .at(-1);
+  return (
+    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[13px]">
+      <span className="truncate text-muted-foreground">{me.data?.gym.name ?? "dunamis"}</span>
+      {page && (
+        <>
+          <span aria-hidden className="text-muted-foreground/50">/</span>
+          <span className="flex items-center gap-1.5 truncate text-foreground">
+            <page.icon className="size-3.5 shrink-0" />
+            {page.title}
+          </span>
+        </>
+      )}
+    </nav>
   );
 }
