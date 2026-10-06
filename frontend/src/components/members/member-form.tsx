@@ -54,7 +54,7 @@ const TAB_FIELDS = {
   fitness: ["goal", "diet_pref", "experience_level", "height_cm", "medical_notes"],
   notes: ["notes", "tags"],
 } as const;
-const PANEL = "rounded-2xl border border-border/70 bg-background p-5 sm:p-6";
+const PANEL = "pt-2";
 
 const phoneOk = (v: string) => {
   const digits = v.replace(/\D/g, "");
@@ -200,9 +200,9 @@ export function MemberForm({ member }: { member?: Member }) {
   const trainer = staff.data?.find((s) => s.user_id === trainerId);
 
   return (
-    <form onSubmit={submit} noValidate className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="grid min-w-0 gap-6">
-        <section aria-labelledby="essentials" className={PANEL}>
+    <form onSubmit={submit} noValidate className="mt-4 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+      <div className="grid min-w-0 gap-8">
+        <section aria-labelledby="essentials">
           <h2 id="essentials" className="mb-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Essentials
           </h2>
@@ -252,7 +252,7 @@ export function MemberForm({ member }: { member?: Member }) {
           </div>
         </section>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="gap-4">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="gap-5">
           <TabsList variant="line" className="w-full justify-start overflow-x-auto border-b border-border">
             {!isEdit && (
               <TabsTrigger value="membership" className="flex-none px-4">
@@ -432,8 +432,8 @@ export function MemberForm({ member }: { member?: Member }) {
         </Tabs>
       </div>
 
-      <aside aria-label="Summary" className="flex flex-col rounded-2xl border border-border/70 bg-background lg:sticky lg:top-20">
-        <div className="flex items-center gap-3 border-b border-border/70 p-5">
+      <aside aria-label="Summary" className="flex flex-col border-t border-border/70 pt-6 lg:sticky lg:top-20 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+        <div className="flex items-center gap-3 pb-4">
           <span
             aria-hidden
             className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
@@ -445,7 +445,7 @@ export function MemberForm({ member }: { member?: Member }) {
             <p className="truncate text-xs text-muted-foreground">{phone.trim() || "No phone yet"}</p>
           </div>
         </div>
-        <dl className="divide-y divide-border/70 px-5 text-sm">
+        <dl className="divide-y divide-border/70 border-y border-border/70 text-sm">
           {!isEdit && (
             <SummaryRow label="Plan">
               {addingMembership && plan ? `${plan.name} · ${plan.duration_value} ${plan.duration_unit}` : "No membership"}
@@ -471,7 +471,7 @@ export function MemberForm({ member }: { member?: Member }) {
             </SummaryRow>
           )}
         </dl>
-        <div className="mt-auto grid gap-2 border-t border-border/70 p-5">
+        <div className="grid gap-2 pt-5">
           <Button type="submit" disabled={pending} className="w-full">
             {pending && <Spinner />}
             {isEdit ? "Save changes" : "Add member"}
