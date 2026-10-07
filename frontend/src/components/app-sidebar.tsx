@@ -143,13 +143,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="z-40">
-      <SidebarHeader>
+      <SidebarHeader className="pt-[18px] pb-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="h-8 p-0 hover:bg-transparent" render={<Link href="/" />}>
               <span
                 aria-hidden
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-primary-raised"
+                className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary text-sm font-semibold text-primary-foreground shadow-primary-raised"
               >
                 {me.data?.gym.name.charAt(0).toUpperCase()}
               </span>
@@ -172,10 +172,10 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="gap-0">
         {NAV.map((group) => (
           <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className={group === NAV[0] ? "after:top-[calc(50%-11px)]" : undefined}>{group.label}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items
                 .filter((item) => !(role && item.hideFor?.includes(role)))

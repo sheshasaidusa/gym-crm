@@ -1,17 +1,37 @@
 "use client";
 
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, SearchIcon, UsersIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CircleDotIcon,
+  ClipboardListIcon,
+  DumbbellIcon,
+  PhoneIcon,
+  PlusIcon,
+  SearchIcon,
+  UserIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { useDebounced } from "@/hooks/use-debounced";
+import { MemberQuickView } from "@/components/members/member-quick-view";
 import { StatusBadge } from "@/components/members/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { SimpleSelect } from "@/components/simple-select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyContent,
@@ -29,13 +49,83 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableSurface,
 } from "@/components/ui/table";
 import { daysLeftLabel, formatDate, initials } from "@/lib/format";
-import { useMemberCounts, useMembers, type MemberFilters } from "@/lib/member-queries";
-import { useBranches, useCan, useStaff } from "@/lib/queries";
+import { useMemberCounts, useMembers, useUpdateMember, type MemberFilters } from "@/lib/member-queries";
+import { ROLE_LABELS, useBranches, useCan, useStaff } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
+
+const UNASSIGNED = "none";
+
+/** Trainer column: shows who's assigned, and lets staff reassign right from the table. */
+function TrainerCell({
+  memberId,
+  trainer,
+  canEdit,
+}: {
+  memberId: string;
+  trainer: { id: string; name: string } | null;
+  canEdit: boolean;
+}) {
+  const staff = useStaff();
+  const update = useUpdateMember(memberId);
+  const label = (
+    <span className="flex min-w-0 items-center gap-2">
+      {trainer ? (
+        <Avatar className="size-5 shrink-0">
+          <AvatarFallback className="text-[9px]">{initials(trainer.name)}</AvatarFallback>
+        </Avatar>
+      ) : (
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-dashed text-muted-foreground">
+          <UserIcon className="size-3" />
+        </span>
+      )}
+      <span className={cn("truncate", !trainer && "text-muted-foreground")}>{trainer?.name ?? "Unassigned"}</span>
+    </span>
+  );
+  if (!canEdit) return label;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={`Trainer: ${trainer?.name ?? "unassigned"}. Change`}
+        disabled={update.isPending}
+        className="-mx-1.5 flex w-[calc(100%+0.75rem)] min-w-0 items-center rounded-lg px-1.5 py-1 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 aria-expanded:bg-muted"
+      >
+        {label}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-(--anchor-width) min-w-0">
+        <DropdownMenuRadioGroup
+          value={trainer?.id ?? UNASSIGNED}
+          onValueChange={(v) => {
+            const next = v === UNASSIGNED ? null : String(v);
+            if (next !== (trainer?.id ?? null)) update.mutate({ trainer_id: next });
+          }}
+        >
+          <DropdownMenuRadioItem value={UNASSIGNED}>Unassigned</DropdownMenuRadioItem>
+          {(staff.data ?? []).map((s) => (
+            <DropdownMenuRadioItem key={s.user_id} value={s.user_id}>
+              <span className="truncate">{s.name}</span>
+              <span className="ml-auto pr-5 text-xs text-muted-foreground">{ROLE_LABELS[s.role]}</span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function ColumnTitle({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <Icon className="size-3.5 shrink-0" />
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
 const ALL = "all";
 
 const STATUS_TABS = [
@@ -56,6 +146,7 @@ const SORTS = [
 
 function MembersView() {
   const router = useRouter();
+  const [preview, setPreview] = useState<number | null>(null);
   const pathname = usePathname();
   const params = useSearchParams();
   const can = useCan();
@@ -205,94 +296,137 @@ function MembersView() {
           )}
         </Empty>
       ) : (
-        <Card className="py-0">
-          <Table className={cn(members.isPlaceholderData && "opacity-60")}>
+        <TableSurface className="rounded-2xl border-border/70">
+          <Table className={cn("table-fixed", members.isPlaceholderData && "opacity-60")}>
+            <colgroup>
+              <col className="w-[26%]" />
+              <col className="hidden w-[13%] xl:table-column" />
+              <col className="w-[13%]" />
+              <col className="hidden w-[24%] md:table-column" />
+              <col className="hidden w-[13%] lg:table-column" />
+              <col className="hidden w-[11%] lg:table-column" />
+            </colgroup>
             <TableHeader>
-              <TableRow>
-                <TableHead className="pl-4">Member</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Plan</TableHead>
-                <TableHead className="hidden lg:table-cell">Trainer</TableHead>
-                <TableHead className="hidden lg:table-cell">Joined</TableHead>
+              <TableRow className="[&>th]:h-11 [&>th]:border-r [&>th]:border-border/70 [&>th]:px-3 [&>th]:font-normal [&>th:last-child]:border-r-0">
+                <TableHead className="pl-4">
+                  <ColumnTitle icon={UserIcon}>Member</ColumnTitle>
+                </TableHead>
+                <TableHead className="hidden xl:table-cell">
+                  <ColumnTitle icon={PhoneIcon}>Phone</ColumnTitle>
+                </TableHead>
+                <TableHead>
+                  <ColumnTitle icon={CircleDotIcon}>Status</ColumnTitle>
+                </TableHead>
+                <TableHead className="hidden md:table-cell">
+                  <ColumnTitle icon={ClipboardListIcon}>Plan</ColumnTitle>
+                </TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  <ColumnTitle icon={DumbbellIcon}>Trainer</ColumnTitle>
+                </TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  <ColumnTitle icon={CalendarIcon}>Joined</ColumnTitle>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.data?.items.map((m) => (
-                <TableRow
-                  key={m.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/members/${m.id}`)}
-                >
-                  <TableCell className="pl-4">
-                    <Link
-                      href={`/members/${m.id}`}
-                      className="flex items-center gap-3 outline-none"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Avatar className="size-8">
-                        <AvatarFallback className="text-xs">{initials(m.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="truncate font-medium">{m.name}</div>
-                        <div className="truncate text-xs text-muted-foreground">{m.phone}</div>
-                      </div>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={m.status} />
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {m.current_membership ? (
-                      <div className="min-w-0">
-                        <div className="truncate">{m.current_membership.plan_name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {m.current_membership.status === "expired"
-                            ? `Ended ${formatDate(m.current_membership.end_date)}`
-                            : m.current_membership.status === "upcoming"
-                              ? `Starts ${formatDate(m.current_membership.start_date)}`
-                              : `Ends ${formatDate(m.current_membership.end_date)} · ${daysLeftLabel(m.current_membership.days_left)}`}
+              {members.data?.items.map((m, i) => {
+                const cm = m.current_membership;
+                return (
+                  <TableRow
+                    key={m.id}
+                    className="cursor-pointer border-b border-border/70 [&>td]:h-12 [&>td]:border-r [&>td]:border-border/70 [&>td]:px-3 [&>td]:py-0 [&>td:last-child]:border-r-0"
+                    // Opens the quick view; ⌘/Ctrl-click goes straight to the full profile.
+                    onClick={(e) => (e.metaKey || e.ctrlKey ? router.push(`/members/${m.id}`) : setPreview(i))}
+                  >
+                    <TableCell className="pl-4">
+                      <Link
+                        href={`/members/${m.id}`}
+                        className="flex min-w-0 items-center gap-2.5 outline-none"
+                        onClick={(e) => {
+                          if (e.metaKey || e.ctrlKey) return e.stopPropagation();
+                          e.preventDefault();
+                        }}
+                      >
+                        <Avatar className="size-6 shrink-0">
+                          <AvatarFallback className="text-[10px]">{initials(m.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate font-medium" title={m.name}>
+                          {m.name}
+                        </span>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="hidden truncate text-muted-foreground tabular-nums xl:table-cell">{m.phone}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={m.status} />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {cm ? (
+                        <div className="flex min-w-0 items-baseline gap-2">
+                          <span className="truncate" title={cm.plan_name}>
+                            {cm.plan_name}
+                          </span>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {cm.status === "expired"
+                              ? `ended ${formatDate(cm.end_date, { year: false })}`
+                              : cm.status === "upcoming"
+                                ? `starts ${formatDate(cm.start_date, { year: false })}`
+                                : daysLeftLabel(cm.days_left)}
+                          </span>
                         </div>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground lg:table-cell">
-                    {m.trainer?.name ?? "—"}
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground lg:table-cell">
-                    {formatDate(m.joined_on)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
+                      <TrainerCell memberId={m.id} trainer={m.trainer} canEdit={can.role !== "trainer"} />
+                    </TableCell>
+                    <TableCell className="hidden truncate text-muted-foreground lg:table-cell">
+                      {formatDate(m.joined_on)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
-          <div className="flex items-center justify-between border-t px-4 py-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-between px-4 py-2 text-xs text-muted-foreground">
             <span>
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+              {total} member{total === 1 ? "" : "s"}
+              {pages > 1 && ` · showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)}`}
             </span>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Previous page"
-                disabled={page <= 1}
-                onClick={() => setParams({ page: String(page - 1) }, false)}
-              >
-                <ChevronLeftIcon />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Next page"
-                disabled={page >= pages}
-                onClick={() => setParams({ page: String(page + 1) }, false)}
-              >
-                <ChevronRightIcon />
-              </Button>
-            </div>
+            {pages > 1 && (
+              <div className="flex items-center gap-1">
+                <span className="mr-1">
+                  Page {page} of {pages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Previous page"
+                  disabled={page <= 1}
+                  onClick={() => setParams({ page: String(page - 1) }, false)}
+                >
+                  <ChevronLeftIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Next page"
+                  disabled={page >= pages}
+                  onClick={() => setParams({ page: String(page + 1) }, false)}
+                >
+                  <ChevronRightIcon />
+                </Button>
+              </div>
+            )}
           </div>
-        </Card>
+        </TableSurface>
+      )}
+      {members.data && (
+        <MemberQuickView
+          ids={members.data.items.map((m) => m.id)}
+          index={preview}
+          onIndexChange={setPreview}
+        />
       )}
     </>
   );

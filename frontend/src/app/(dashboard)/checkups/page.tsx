@@ -8,7 +8,6 @@ import { CheckupDialog } from "@/components/checkups/checkup-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -38,41 +37,41 @@ export default function CheckupsPage() {
     <>
       <PageHeader
         title="Check-ups"
-        description={`Members with a running membership who haven't had a check-up in ${interval} days.`}
-      />
+        description={
+          data
+            ? `${data.total} member${data.total === 1 ? "" : "s"} due · no check-up in the last ${interval} days · longest waiting first`
+            : `Members with a running membership who haven't had a check-up in ${interval} days.`
+        }
+      >
+        <div className="flex h-9 items-center rounded-full bg-foreground/[0.06] p-1 dark:bg-muted">
+          {(
+            [
+              { value: "mine", label: "My members" },
+              { value: "all", label: "All members" },
+            ] as const
+          ).map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={scope === o.value}
+              onClick={() => {
+                setScope(o.value);
+                setPage(1);
+              }}
+              className={cn(
+                "h-full rounded-full px-3 text-sm font-medium transition-colors",
+                scope === o.value
+                  ? "bg-white text-foreground shadow-raised-control dark:bg-input/30 dark:shadow-none"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </PageHeader>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Due for a check-up</CardTitle>
-          <CardDescription>
-            {data ? `${data.total} member${data.total === 1 ? "" : "s"}` : "Loading…"} · longest
-            waiting first
-          </CardDescription>
-          <div className="flex w-fit rounded-lg border p-0.5 pt-0.5">
-            {(
-              [
-                { value: "mine", label: "My members" },
-                { value: "all", label: "All members" },
-              ] as const
-            ).map((o) => (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => {
-                  setScope(o.value);
-                  setPage(1);
-                }}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs",
-                  scope === o.value ? "bg-muted font-medium" : "text-muted-foreground",
-                )}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </CardHeader>
-        <CardContent>
+      <div>
           {due.isPending ? (
             <Skeleton className="h-48 w-full" />
           ) : !data?.items.length ? (
@@ -133,8 +132,7 @@ export default function CheckupsPage() {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {logging && (
         <CheckupDialog

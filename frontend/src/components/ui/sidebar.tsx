@@ -392,7 +392,7 @@ function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-group"
       data-sidebar="group"
       className={cn(
-        "relative flex w-full min-w-0 flex-col p-2",
+        "relative flex w-full min-w-0 flex-col px-2 py-1",
         className
       )}
       {...props}
@@ -410,7 +410,7 @@ function SidebarGroupLabel({
     props: mergeProps<"div">(
       {
         className: cn(
-          "flex h-8 shrink-0 items-center rounded-md px-2 font-mono text-sm font-medium text-sidebar-foreground opacity-65 ring-sidebar-ring outline-hidden transition-opacity duration-200 ease-out hover:text-sidebar-accent-foreground hover:opacity-100 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+          "relative flex h-7 shrink-0 items-center rounded-md px-2 font-mono after:pointer-events-none after:absolute after:top-[calc(50%-5px)] after:left-1/2 after:h-px after:w-4 after:-translate-x-1/2 after:bg-sidebar-border after:opacity-0 after:transition-opacity after:duration-200 group-data-[collapsible=icon]:after:opacity-100 text-sm font-medium text-sidebar-foreground opacity-65 ring-sidebar-ring outline-hidden transition-[color,opacity] duration-200 ease-out hover:text-sidebar-accent-foreground hover:opacity-100 group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:text-transparent group-data-[collapsible=icon]:hover:text-transparent group-data-[collapsible=icon]:opacity-100 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
           className
         ),
       },
@@ -467,7 +467,7 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-0", className)}
+      className={cn("flex w-full min-w-0 flex-col gap-0.5", className)}
       {...props}
     />
   )
@@ -485,7 +485,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-lg px-2 py-2 text-left text-sm ring-sidebar-ring outline-hidden transition-colors group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:text-sidebar-accent-foreground focus-visible:ring-2 active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground data-active:shadow-raised-control [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate [&>span:last-child]:transition-opacity [&>span:last-child]:duration-200 group-data-[collapsible=icon]:[&>span:last-child]:opacity-0",
+  "peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-[8px] px-2 py-2 text-left text-sm ring-sidebar-ring outline-hidden transition-colors group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:text-sidebar-accent-foreground focus-visible:ring-2 active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground data-active:shadow-raised-control [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate [&>span:last-child]:transition-opacity [&>span:last-child]:duration-200 group-data-[collapsible=icon]:[&>span:last-child]:opacity-0",
   {
     variants: {
       variant: {

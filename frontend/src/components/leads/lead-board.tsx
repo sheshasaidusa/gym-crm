@@ -93,7 +93,7 @@ function Column({
       aria-label={STAGE_LABELS[stage]}
       className={cn(
         "flex w-64 shrink-0 snap-start flex-col gap-2 rounded-2xl border border-transparent bg-card p-2 shadow-raised-control transition-[background-color,border-color,box-shadow] sm:w-72",
-        isOver && "border-primary/50 bg-primary/5 shadow-sm",
+        isOver && "border-dashed border-primary/60 bg-primary/5 shadow-none",
         stage === "lost" && "opacity-80",
       )}
     >

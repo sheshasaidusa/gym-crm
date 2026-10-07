@@ -120,7 +120,7 @@ function RenewalsDue() {
   const expiring = useMembers({ status: "expiring", sort: "ending", page_size: 6 });
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Renewals due</CardTitle>
         <CardDescription>Memberships ending in the next 7 days</CardDescription>
@@ -131,11 +131,11 @@ function RenewalsDue() {
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-1 flex-col">
         {expiring.isPending ? (
           <Skeleton className="h-32 w-full" />
         ) : !expiring.data?.items.length ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="my-auto py-6 text-center text-sm text-muted-foreground">
             No memberships ending this week.
           </p>
         ) : (
@@ -193,7 +193,7 @@ export default function DashboardPage() {
         <Stat label="Starting soon" value={counts.data?.upcoming} icon={CalendarClockIcon} href="/members?status=upcoming" hint="Upcoming start dates" />
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
         <RenewalsDue />
         {can.manage && <SetupChecklist />}
       </div>

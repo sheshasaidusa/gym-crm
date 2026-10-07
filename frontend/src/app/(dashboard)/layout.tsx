@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset className="min-w-0">
-          <header className="sticky top-0 z-30 flex shrink-0 items-center justify-between gap-4 bg-background p-4">
+          <header className="sticky top-0 z-30 flex shrink-0 items-center justify-between gap-4 bg-background px-[22px] py-4">
             <div className="flex min-w-0 items-center gap-2">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 data-vertical:h-4 data-vertical:self-auto" />
@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <NavUser />
             </div>
           </header>
-          <main className="mx-auto flex w-full max-w-500 min-w-0 flex-1 flex-col gap-4 p-4 sm:p-6 lg:p-8 lg:pt-2">
+          <main className="mx-auto flex w-full max-w-500 min-w-0 flex-1 flex-col gap-4 px-[22px] py-4 sm:pb-6 lg:pt-2 lg:pb-8">
             {children}
           </main>
         </SidebarInset>

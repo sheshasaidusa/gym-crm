@@ -37,23 +37,23 @@ export function TagInput({
     <div className="grid gap-2">
       <div
         className={cn(
-          "flex min-h-9 w-full flex-wrap items-center gap-1 rounded-[12px] border border-[color:var(--input-border)] bg-muted px-1.5 py-1 shadow-raised-control text-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+          "flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-[12px] border border-[color:var(--input-border)] bg-muted px-2 py-1.5 shadow-raised-control text-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
           className,
         )}
       >
         {value.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
+            className="inline-flex h-7 items-center gap-1.5 rounded-full border bg-background pr-1.5 pl-3 text-sm"
           >
             {tag}
             <button
               type="button"
               aria-label={`Remove ${tag}`}
-              className="rounded-sm opacity-60 hover:opacity-100"
+              className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={() => onChange(value.filter((v) => v !== tag))}
             >
-              <XIcon className="size-3" />
+              <XIcon className="size-3.5" />
             </button>
           </span>
         ))}
@@ -61,7 +61,7 @@ export function TagInput({
           id={id}
           value={draft}
           placeholder={value.length ? "" : placeholder}
-          className="h-6 min-w-24 flex-1 bg-transparent px-1 outline-none placeholder:text-muted-foreground"
+          className="h-7 min-w-24 flex-1 bg-transparent px-1 outline-none placeholder:text-muted-foreground"
           onChange={(e) => {
             const v = e.target.value;
             if (v.endsWith(",")) add(v.slice(0, -1));
@@ -79,13 +79,13 @@ export function TagInput({
         />
       </div>
       {unused.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {unused.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => add(s)}
-              className="rounded-md border border-dashed px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="h-7 rounded-full border border-dashed px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               + {s}
             </button>

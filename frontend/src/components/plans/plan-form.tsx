@@ -8,14 +8,6 @@ import { TextField } from "@/components/form-fields";
 import { SimpleSelect } from "@/components/simple-select";
 import { TagInput } from "@/components/tag-input";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,15 +66,8 @@ function defaults(plan: Plan | null): FormIn {
   };
 }
 
-export function PlanDialog({
-  plan,
-  open,
-  onOpenChange,
-}: {
-  plan: Plan | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+/** Create/edit form laid out for a side panel: scrolling fields, pinned footer. */
+export function PlanForm({ plan, onDone }: { plan: Plan | null; onDone: () => void }) {
   const currency = useCurrency();
   const save = useSavePlan();
   const form = useForm<FormIn, unknown, FormOut>({
@@ -99,23 +84,13 @@ export function PlanDialog({
   const submit = form.handleSubmit((v) =>
     save.mutate(
       { id: plan?.id, ...v, description: v.description || null },
-      { onSuccess: () => onOpenChange(false) },
+      { onSuccess: onDone },
     ),
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
-        <form onSubmit={submit} noValidate className="grid gap-4">
-          <DialogHeader>
-            <DialogTitle>{plan ? "Edit plan" : "New plan"}</DialogTitle>
-            <DialogDescription>
-              {plan
-                ? "Changes apply to new sales. Existing memberships keep their terms."
-                : "Create any duration and price you like."}
-            </DialogDescription>
-          </DialogHeader>
-
+        <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 overflow-y-auto p-5">
           <FieldGroup>
             <TextField
               label="Plan name"
@@ -173,7 +148,7 @@ export function PlanDialog({
               </div>
             </Field>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4">
               <TextField
                 label={`Price (${currency})`}
                 type="number"
@@ -243,18 +218,17 @@ export function PlanDialog({
               </FieldDescription>
             )}
           </FieldGroup>
+          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-2 border-t border-border/70 p-5">
+            <Button type="button" variant="ghost" onClick={onDone}>
               Cancel
             </Button>
             <Button type="submit" disabled={save.isPending}>
               {save.isPending && <Spinner />}
-              {plan ? "Save plan" : "Create plan"}
+              {plan ? "Save changes" : "Create plan"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
   );
 }
