@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowUpRightIcon,
   CopyIcon,
   GlobeIcon,
   KanbanSquareIcon,
@@ -10,6 +11,7 @@ import {
   RefreshCwIcon,
   SearchIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
@@ -126,15 +128,35 @@ function WebsiteFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string | number | undefined; hint?: string }) {
-  return (
-    <Card size="sm">
+function Stat({
+  label,
+  value,
+  hint,
+  href,
+}: {
+  label: string;
+  value: string | number | undefined;
+  hint?: string;
+  href?: string;
+}) {
+  const card = (
+    <Card size="sm" className={cn("h-full", href && "transition-colors group-hover/stat:border-foreground/25")}>
       <CardHeader>
-        <CardDescription>{label}</CardDescription>
+        <CardDescription className="flex items-center justify-between gap-2">
+          {label}
+          {href && <ArrowUpRightIcon className="size-3.5 opacity-60 transition-opacity group-hover/stat:opacity-100" />}
+        </CardDescription>
         <CardTitle className="text-2xl tabular-nums">{value ?? "–"}</CardTitle>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       </CardHeader>
     </Card>
+  );
+  return href ? (
+    <Link href={href} className="group/stat rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40">
+      {card}
+    </Link>
+  ) : (
+    card
   );
 }
 
@@ -175,6 +197,21 @@ function LeadsView() {
   const visible = (leads.data ?? []).filter((l) => l.stage !== "converted");
   const filtering = !!(q || assigned !== ALL || source !== ALL || due);
   const rate = stats.data?.conversion_rate_90_days;
+  // Counted from all open leads, whatever filters the board has on.
+  const allOpen = useLeads({});
+  const trials = allOpen.data
+    ? (() => {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(start.getTime() + 86_400_000);
+        const at = allOpen.data.filter((l) => l.stage === "trial_booked" && l.trial_at).map((l) => new Date(l.trial_at!));
+        return {
+          upcoming: at.filter((d) => d >= start).length,
+          today: at.filter((d) => d >= start && d < tomorrow).length,
+          missed: at.filter((d) => d < start).length,
+        };
+      })()
+    : null;
 
   return (
     <>
@@ -194,7 +231,12 @@ function LeadsView() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Open leads" value={stats.data?.open} />
         <Stat label="Follow-ups due" value={stats.data?.follow_ups_due} hint="Today or overdue" />
-        <Stat label="New (30 days)" value={stats.data?.new_last_30_days} />
+        <Stat
+          label="Scheduled trials"
+          value={trials ? trials.upcoming : undefined}
+          hint={trials ? `${trials.today} today${trials.missed ? ` · ${trials.missed} past, not updated` : ""}` : undefined}
+          href="/leads/trials"
+        />
         <Stat
           label="Conversion (90 days)"
           value={rate == null ? undefined : `${Math.round(rate * 100)}%`}
