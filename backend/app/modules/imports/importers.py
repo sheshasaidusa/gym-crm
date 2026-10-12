@@ -117,7 +117,12 @@ FIELDS: dict[ImportEntity, list[Field]] = {
             hint="Recorded as a payment",
         ),
         Field("payment_method", "Payment method", aliases=("mode", "payment mode", "paid by")),
-        Field("goals", "Goals", aliases=("goal", "fitness goal", "objective"), hint="Up to 3, comma separated"),
+        Field(
+            "goals",
+            "Goals",
+            aliases=("goal", "fitness goal", "objective"),
+            hint="Up to 3, comma separated",
+        ),
         Field("diet_pref", "Diet", aliases=("diet preference", "food preference", "veg/non-veg")),
         Field("experience_level", "Experience", aliases=("level", "fitness level")),
         Field("height_cm", "Height (cm)", aliases=("height",)),
@@ -505,7 +510,7 @@ def _money(v: object) -> Decimal | None:
 
 
 def _goals(v: object) -> list[str]:
-    """"Weight loss, strength" -> ["weight_loss", "strength"]; at most 3."""
+    """ "Weight loss, strength" -> ["weight_loss", "strength"]; at most 3."""
     s = text(v)
     if s is None:
         return []

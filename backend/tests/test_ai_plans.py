@@ -107,7 +107,10 @@ async def test_generate_review_publish(client: AsyncClient, owner: Account, ai):
     # What was sent to Claude: profile and metrics, no name or contact details.
     sent_member, sent_params = ai.calls[0]
     assert sent_params["instructions"] == "Loves cycling"
-    assert sent_member["goals"] == ["weight_loss", "strength"] and sent_member["diet_preference"] == "veg"
+    assert (
+        sent_member["goals"] == ["weight_loss", "strength"]
+        and sent_member["diet_preference"] == "veg"
+    )
     assert sent_member["medical_notes"] == "Knee pain"
     assert sent_member["recent_checkups_newest_first"][0]["weight_kg"] == 82
     blob = json.dumps(sent_member)

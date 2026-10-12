@@ -62,7 +62,6 @@ def test_checkup_progress_first_vs_last():
     ]
 
 
-
 def test_checkup_progress_counts_each_goal_and_uses_the_first_overall():
     # Lost weight while aiming for weight loss first and muscle gain second.
     rows = [

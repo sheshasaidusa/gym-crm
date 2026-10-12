@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import (
@@ -13,11 +13,12 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.db import get_sessionmaker
+from app.core.db import get_sessionmaker, utcnow
 from app.core.deps import DbSession, ManagerContext
+from app.core.jobs import enqueue
 from app.core.storage import get_storage
 from app.modules.audit import service as audit
 from app.modules.imports import service
@@ -104,7 +105,27 @@ def _out(job: ImportJob) -> ImportJobOut:
     )
 
 
+# A running import commits progress as it goes; one silent this long was cut off (restart).
+STALE_AFTER = timedelta(minutes=20)
+
+
+async def _expire_stale(db: AsyncSession, gym_id: uuid.UUID) -> None:
+    await db.execute(
+        update(ImportJob)
+        .where(
+            ImportJob.gym_id == gym_id,
+            ImportJob.status == ImportStatus.RUNNING,
+            ImportJob.updated_at < utcnow() - STALE_AFTER,
+        )
+        .values(
+            status=ImportStatus.FAILED, error="The import was interrupted. Please run it again."
+        )
+    )
+    await db.commit()
+
+
 async def _job(db: DbSession, gym_id: uuid.UUID, job_id: uuid.UUID) -> ImportJob:
+    await _expire_stale(db, gym_id)
     job = await db.scalar(
         select(ImportJob)
         .where(ImportJob.gym_id == gym_id, ImportJob.id == job_id)
@@ -134,6 +155,7 @@ async def template(entity: ImportEntity, ctx: ManagerContext):
 
 @router.get("", response_model=list[ImportJobOut])
 async def list_imports(ctx: ManagerContext, db: DbSession):
+    await _expire_stale(db, ctx.gym_id)
     jobs = (
         await db.scalars(
             select(ImportJob)
@@ -251,7 +273,7 @@ async def run(
         job.id,
     )
     await db.commit()
-    background.add_task(service.run_job, sessions, job.id)
+    enqueue(background, "imports.run_job", service.run_job, sessions, job.id)
     return _out(job)
 
 

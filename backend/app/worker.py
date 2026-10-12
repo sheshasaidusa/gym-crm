@@ -6,6 +6,7 @@
 """
 
 import asyncio
+import uuid
 
 from celery import Celery
 from celery.schedules import crontab
@@ -50,3 +51,26 @@ async def _run_reminders() -> dict:
 @celery_app.task(name="reminders.run_all")
 def run_reminders() -> dict:
     return asyncio.run(_run_reminders())
+
+
+async def _run_with_sessions(fn, record_id: str) -> None:
+    engine = create_async_engine(settings.database_url, poolclass=NullPool)
+    try:
+        await fn(async_sessionmaker(engine, expire_on_commit=False), uuid.UUID(record_id))
+    finally:
+        await engine.dispose()
+
+
+# Queued by app.core.jobs.enqueue; the names must match there.
+@celery_app.task(name="imports.run_job")
+def run_import(job_id: str) -> None:
+    from app.modules.imports.service import run_job
+
+    asyncio.run(_run_with_sessions(run_job, job_id))
+
+
+@celery_app.task(name="ai_plans.generate")
+def generate_ai_plan(plan_id: str) -> None:
+    from app.modules.ai_plans.router import run_generation
+
+    asyncio.run(_run_with_sessions(run_generation, plan_id))

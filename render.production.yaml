@@ -24,6 +24,10 @@ services:
     plan: starter
     rootDir: backend
     healthCheckPath: /api/health/ready
+    # Migrate once per deploy, before any new instance starts, so several instances never
+    # race to run them. The command below then just serves.
+    preDeployCommand: alembic upgrade head
+    dockerCommand: sh -c "exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'"
     envVars:
       - fromGroup: gym-crm-backend
       - key: DATABASE_URL

@@ -14,6 +14,11 @@ class Settings(BaseSettings):
 
     # SQLite for local dev without Docker; use postgresql+asyncpg://... in production.
     database_url: str = "sqlite+aiosqlite:///./dev.db"
+    # Postgres connection pool, per API process. Keep (size + overflow) x processes under the
+    # database's connection limit; small Render plans allow roughly 100.
+    db_pool_size: int = 5
+    db_max_overflow: int = 5
+    db_pool_recycle_seconds: int = 1800
 
     jwt_secret: str = "change-me-in-production-please-use-a-long-random-string"
     jwt_algorithm: str = "HS256"

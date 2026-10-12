@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.config import settings
 from app.core.db import as_utc, get_sessionmaker, utcnow
 from app.core.deps import CurrentContext, DbSession, TenantContext, require_roles
+from app.core.jobs import enqueue
 from app.modules.ai_plans import generator
 from app.modules.ai_plans.content import PlanContent
 from app.modules.ai_plans.models import AIPlan, PlanStatus
@@ -187,7 +188,7 @@ async def member_context(db: AsyncSession, member: Member, gym: Gym) -> dict:
     }
 
 
-async def _run_generation(sessions: async_sessionmaker[AsyncSession], plan_id: uuid.UUID) -> None:
+async def run_generation(sessions: async_sessionmaker[AsyncSession], plan_id: uuid.UUID) -> None:
     async with sessions() as db:
         plan = await db.get(AIPlan, plan_id)
         if plan is None:
@@ -287,7 +288,7 @@ async def generate(
     )
     db.add(plan)
     await db.commit()
-    background.add_task(_run_generation, sessions, plan.id)
+    enqueue(background, "ai_plans.generate", run_generation, sessions, plan.id)
     return await _out(db, plan)
 
 

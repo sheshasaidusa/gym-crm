@@ -66,7 +66,12 @@ class TenantMixin:
 
 
 def _make_engine(url: str):
-    kwargs: dict = {"pool_pre_ping": True}
+    kwargs: dict = {
+        "pool_pre_ping": True,
+        "pool_size": settings.db_pool_size,
+        "max_overflow": settings.db_max_overflow,
+        "pool_recycle": settings.db_pool_recycle_seconds,
+    }
     if url.startswith("sqlite"):
         kwargs = {"connect_args": {"check_same_thread": False}}
     engine = create_async_engine(url, **kwargs)
