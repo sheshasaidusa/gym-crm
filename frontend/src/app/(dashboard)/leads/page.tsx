@@ -1,7 +1,8 @@
 "use client";
 
 import {
-  ArrowUpRightIcon,
+  ArrowRightIcon,
+  CalendarClockIcon,
   CopyIcon,
   GlobeIcon,
   KanbanSquareIcon,
@@ -133,21 +134,36 @@ function Stat({
   value,
   hint,
   href,
+  cta,
 }: {
   label: string;
   value: string | number | undefined;
   hint?: string;
   href?: string;
+  cta?: string;
 }) {
   const card = (
-    <Card size="sm" className={cn("h-full", href && "transition-colors group-hover/stat:border-foreground/25")}>
+    <Card
+      size="sm"
+      className={cn(
+        "h-full",
+        href &&
+          "border-primary/30 bg-primary/5 shadow-raised-control transition-[border-color,background-color,transform] group-hover/stat:-translate-y-px group-hover/stat:border-primary/60 group-hover/stat:bg-primary/10",
+      )}
+    >
       <CardHeader>
-        <CardDescription className="flex items-center justify-between gap-2">
+        <CardDescription className={cn("flex items-center gap-2", href && "font-medium text-primary")}>
+          {href && <CalendarClockIcon className="size-4" />}
           {label}
-          {href && <ArrowUpRightIcon className="size-3.5 opacity-60 transition-opacity group-hover/stat:opacity-100" />}
         </CardDescription>
         <CardTitle className="text-2xl tabular-nums">{value ?? "–"}</CardTitle>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        {href && (
+          <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary">
+            {cta ?? "View"}
+            <ArrowRightIcon className="size-3.5 transition-transform group-hover/stat:translate-x-0.5" />
+          </span>
+        )}
       </CardHeader>
     </Card>
   );
@@ -229,14 +245,15 @@ function LeadsView() {
       </PageHeader>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Open leads" value={stats.data?.open} />
-        <Stat label="Follow-ups due" value={stats.data?.follow_ups_due} hint="Today or overdue" />
         <Stat
           label="Scheduled trials"
           value={trials ? trials.upcoming : undefined}
           hint={trials ? `${trials.today} today${trials.missed ? ` · ${trials.missed} past, not updated` : ""}` : undefined}
           href="/leads/trials"
+          cta="View calendar"
         />
+        <Stat label="Open leads" value={stats.data?.open} />
+        <Stat label="Follow-ups due" value={stats.data?.follow_ups_due} hint="Today or overdue" />
         <Stat
           label="Conversion (90 days)"
           value={rate == null ? undefined : `${Math.round(rate * 100)}%`}

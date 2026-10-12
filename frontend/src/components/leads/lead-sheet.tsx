@@ -288,7 +288,7 @@ function LeadBody({ lead, onClose }: { lead: LeadDetail; onClose: () => void }) 
         </div>
       </SheetHeader>
 
-      <div className="grid gap-5 overflow-y-auto px-4 pb-6">
+      <div className="grid gap-5 overflow-y-auto p-4 pb-6">
         {closed ? (
           <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm">
             <span className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export function LeadSheet({ leadId, onClose }: { leadId: string | null; onClose:
   const lead = useLead(leadId);
   return (
     <Sheet open={!!leadId} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full gap-0 sm:max-w-md">
+      <SheetContent className="w-full gap-0 data-[side=right]:sm:max-w-[560px]">
         {lead.data ? (
           <LeadBody key={lead.data.id} lead={lead.data} onClose={onClose} />
         ) : lead.isError ? (

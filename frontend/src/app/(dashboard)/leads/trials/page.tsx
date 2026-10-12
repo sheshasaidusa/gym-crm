@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftIcon, CalendarClockIcon, CheckIcon, MessageCircleIcon, PhoneIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarClockIcon, CheckIcon, MessageCircleIcon, PhoneIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { SimpleSelect } from "@/components/simple-select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initials } from "@/lib/format";
 import { SOURCE_LABELS, useLeads, useMoveLead, type Lead } from "@/lib/lead-queries";
@@ -98,11 +99,70 @@ function TrialRow({ lead, missed }: { lead: Lead; missed?: boolean }) {
   );
 }
 
+/** Month grid with the number of booked trials on each day; picking a day filters the list. */
+function TrialCalendar({
+  counts,
+  selected,
+  onSelect,
+}: {
+  counts: Map<string, number>;
+  selected: Date | undefined;
+  onSelect: (d: Date | undefined) => void;
+}) {
+  const [month, setMonth] = useState(new Date());
+  const inMonth = [...counts.entries()].reduce((sum, [k, n]) => {
+    const [y, m] = k.split("-").map(Number);
+    return y === month.getFullYear() && m === month.getMonth() ? sum + n : sum;
+  }, 0);
+
+  return (
+    <div className="rounded-2xl border border-border/70 bg-background p-3">
+      <Calendar
+        mode="single"
+        month={month}
+        onMonthChange={setMonth}
+        selected={selected}
+        onSelect={(d) => onSelect(d && selected && dayKey(d) === dayKey(selected) ? undefined : d)}
+        showOutsideDays={false}
+        className="w-full p-0 [--cell-size:--spacing(10)]"
+        classNames={{ root: "w-full" }}
+        components={{
+          DayButton: (p) => {
+            const n = counts.get(dayKey(p.day.date)) ?? 0;
+            return (
+              <CalendarDayButton {...p}>
+                {p.children}
+                {n > 0 && (
+                  <span
+                    role="img"
+                    aria-label={`${n} trial${n === 1 ? "" : "s"}`}
+                    title={`${n} trial${n === 1 ? "" : "s"}`}
+                    className={cn(
+                      "absolute bottom-1.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full",
+                      p.modifiers.selected ? "bg-primary-foreground" : "bg-primary",
+                    )}
+                  />
+                )}
+              </CalendarDayButton>
+            );
+          },
+        }}
+      />
+      <p className="mt-3 border-t border-border/70 pt-3 text-center text-xs text-muted-foreground">
+        {inMonth === 0
+          ? `No trials booked in ${month.toLocaleDateString("en-GB", { month: "long" })}`
+          : `${inMonth} trial${inMonth === 1 ? "" : "s"} booked in ${month.toLocaleDateString("en-GB", { month: "long" })}`}
+      </p>
+    </div>
+  );
+}
+
 export default function TrialsPage() {
   const leads = useLeads({});
   const staff = useStaff();
   const [range, setRange] = useState<Range>("week");
   const [taker, setTaker] = useState(ANYONE);
+  const [day, setDay] = useState<Date | undefined>(undefined);
 
   const now = new Date();
   const today = startOfDay(now);
@@ -115,11 +175,19 @@ export default function TrialsPage() {
     )
     .sort((a, b) => a.trial_at!.localeCompare(b.trial_at!));
   // Booked but the time has passed: someone needs to mark it done or reschedule.
-  const missed = booked.filter((l) => new Date(l.trial_at!) < today);
-  const upcoming = booked.filter((l) => {
-    const t = new Date(l.trial_at!);
-    return t >= today && (!end || t < end);
-  });
+  // Trials per day (for the calendar), whoever is taking them is respected but not the range.
+  const counts = new Map<string, number>();
+  for (const l of booked) {
+    const k = dayKey(new Date(l.trial_at!));
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  const missed = day ? [] : booked.filter((l) => new Date(l.trial_at!) < today);
+  const upcoming = day
+    ? booked.filter((l) => dayKey(new Date(l.trial_at!)) === dayKey(day))
+    : booked.filter((l) => {
+        const t = new Date(l.trial_at!);
+        return t >= today && (!end || t < end);
+      });
 
   const groups = new Map<string, { date: Date; items: Lead[] }>();
   for (const l of upcoming) {
@@ -146,7 +214,7 @@ export default function TrialsPage() {
         description={
           leads.data
             ? `${upcoming.length} trial${upcoming.length === 1 ? "" : "s"} ${
-                range === "today" ? "today" : range === "week" ? "in the next 7 days" : "coming up"
+                day ? `on ${dayHeading(day, today)}` : range === "today" ? "today" : range === "week" ? "in the next 7 days" : "coming up"
               }${missed.length ? ` · ${missed.length} past and not updated` : ""}`
             : "Trial sessions booked from leads."
         }
@@ -162,11 +230,14 @@ export default function TrialsPage() {
             <button
               key={o.value}
               type="button"
-              aria-pressed={range === o.value}
-              onClick={() => setRange(o.value)}
+              aria-pressed={!day && range === o.value}
+              onClick={() => {
+                setRange(o.value);
+                setDay(undefined);
+              }}
               className={cn(
                 "h-full rounded-full px-3 text-sm font-medium transition-colors",
-                range === o.value
+                !day && range === o.value
                   ? "bg-white text-foreground shadow-raised-control dark:bg-input/30 dark:shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
@@ -191,7 +262,24 @@ export default function TrialsPage() {
       {leads.isPending ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
+        <div className="grid items-start gap-8 lg:grid-cols-[340px_minmax(0,1fr)]">
+        <div className="lg:sticky lg:top-20">
+          <TrialCalendar counts={counts} selected={day} onSelect={setDay} />
+        </div>
         <div className="grid gap-8">
+          {day && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Showing</span>
+              <button
+                type="button"
+                onClick={() => setDay(undefined)}
+                className="inline-flex h-7 items-center gap-1.5 rounded-full border px-3 hover:bg-muted"
+              >
+                {dayHeading(day, today)}
+                <XIcon className="size-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          )}
           {missed.length > 0 && (
             <section>
               <h2 className="mb-1 flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
@@ -210,7 +298,9 @@ export default function TrialsPage() {
           {groups.size === 0 ? (
             <div className="grid justify-items-center gap-2 rounded-2xl border border-dashed p-10 text-center">
               <CalendarClockIcon className="size-6 text-muted-foreground" />
-              <p className="font-medium">No trials {range === "today" ? "today" : range === "week" ? "this week" : "coming up"}</p>
+              <p className="font-medium">
+                No trials {day ? `on ${dayHeading(day, today)}` : range === "today" ? "today" : range === "week" ? "this week" : "coming up"}
+              </p>
               <p className="text-sm text-muted-foreground">
                 Move a lead to “Trial booked” on the Leads board and pick a date and time.
               </p>
@@ -230,6 +320,7 @@ export default function TrialsPage() {
               </section>
             ))
           )}
+        </div>
         </div>
       )}
     </>
