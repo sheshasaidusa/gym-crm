@@ -77,7 +77,7 @@ class Member(IdMixin, TenantMixin, TimestampMixin, Base):
     emergency_contact_phone: Mapped[str | None] = mapped_column(String(30))
 
     height_cm: Mapped[float | None] = mapped_column(Float)
-    goal: Mapped[Goal | None] = mapped_column(_str_enum(Goal))
+    goals: Mapped[list[str]] = mapped_column(JSON, default=list)  # Goal values, up to 3
     diet_pref: Mapped[DietPref | None] = mapped_column(_str_enum(DietPref))
     experience_level: Mapped[ExperienceLevel | None] = mapped_column(_str_enum(ExperienceLevel))
     medical_notes: Mapped[str | None] = mapped_column(Text)

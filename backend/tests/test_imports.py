@@ -192,7 +192,7 @@ async def test_members_import_end_to_end(client: AsyncClient, owner: Account):
     members = (await client.get("/api/members?q=asha", headers=owner.headers)).json()["items"]
     asha = (await client.get(f"/api/members/{members[0]['id']}", headers=owner.headers)).json()
     assert asha["phone"] == "9876543210"
-    assert asha["gender"] == "female" and asha["goal"] == "weight_loss"
+    assert asha["gender"] == "female" and asha["goals"] == ["weight_loss"]
     ms = asha["memberships"][0]
     assert (ms["start_date"], ms["end_date"], ms["paid"], ms["balance"]) == (
         "2026-09-01",

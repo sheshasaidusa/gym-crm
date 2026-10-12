@@ -334,7 +334,7 @@ async def due_checkups(
             member_name=m.name,
             phone=m.phone,
             trainer=StaffRef(id=m.trainer_id, name=tname) if m.trainer_id and tname else None,
-            goal=m.goal.value if m.goal else None,
+            goals=m.goals or [],
             last_checkup_on=last_on,
             days_since=(today - last_on).days if last_on else None,
             last_weight_kg=weights.get(m.id),

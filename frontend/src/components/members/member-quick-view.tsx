@@ -83,7 +83,9 @@ function Body({ m }: { m: Member }) {
             <div className="flex flex-wrap gap-1.5">
               <StatusBadge status={m.status} />
               {m.trainer && <Pill>{m.trainer.name}</Pill>}
-              {m.goal && <Pill>{GOAL_LABELS[m.goal]}</Pill>}
+              {m.goals.map((g) => (
+                <Pill key={g}>{GOAL_LABELS[g]}</Pill>
+              ))}
               {m.tags.map((t) => (
                 <Pill key={t}>#{t}</Pill>
               ))}

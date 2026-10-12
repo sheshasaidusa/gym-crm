@@ -1819,8 +1819,8 @@ export interface components {
             /** Phone */
             phone: string;
             trainer: components["schemas"]["StaffRef"] | null;
-            /** Goal */
-            goal: string | null;
+            /** Goals */
+            goals: string[];
             /** Last Checkup On */
             last_checkup_on: string | null;
             /** Days Since */
@@ -2636,7 +2636,11 @@ export interface components {
             emergency_contact_phone?: string | null;
             /** Height Cm */
             height_cm?: number | null;
-            goal?: components["schemas"]["Goal"] | null;
+            /**
+             * Goals
+             * @default []
+             */
+            goals: components["schemas"]["Goal"][];
             diet_pref?: components["schemas"]["DietPref"] | null;
             experience_level?: components["schemas"]["ExperienceLevel"] | null;
             /** Medical Notes */
@@ -2739,7 +2743,8 @@ export interface components {
             emergency_contact_phone: string | null;
             /** Height Cm */
             height_cm: number | null;
-            goal: components["schemas"]["Goal"] | null;
+            /** Goals */
+            goals: components["schemas"]["Goal"][];
             diet_pref: components["schemas"]["DietPref"] | null;
             experience_level: components["schemas"]["ExperienceLevel"] | null;
             /** Medical Notes */
@@ -2779,7 +2784,8 @@ export interface components {
             emergency_contact_phone?: string | null;
             /** Height Cm */
             height_cm?: number | null;
-            goal?: components["schemas"]["Goal"] | null;
+            /** Goals */
+            goals?: components["schemas"]["Goal"][] | null;
             diet_pref?: components["schemas"]["DietPref"] | null;
             experience_level?: components["schemas"]["ExperienceLevel"] | null;
             /** Medical Notes */

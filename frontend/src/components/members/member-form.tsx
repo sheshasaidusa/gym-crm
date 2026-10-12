@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { ChipSelect } from "@/components/chip-select";
+import { ChipSelect, MultiChipSelect } from "@/components/chip-select";
 import { TextField } from "@/components/form-fields";
 import {
   draftToBody,
@@ -51,7 +51,7 @@ type Tab = "membership" | "personal" | "fitness" | "notes";
 // Fields that live inside each tab, so a failed submit can jump to the right one.
 const TAB_FIELDS = {
   personal: ["email", "dob", "gender", "address", "emergency_contact_name", "emergency_contact_phone"],
-  fitness: ["goal", "diet_pref", "experience_level", "height_cm", "medical_notes"],
+  fitness: ["goals", "diet_pref", "experience_level", "height_cm", "medical_notes"],
   notes: ["notes", "tags"],
 } as const;
 const PANEL = "pt-2";
@@ -76,7 +76,7 @@ const schema = z.object({
   height_cm: z
     .string()
     .refine((v) => v === "" || (Number(v) >= 50 && Number(v) <= 260), "Between 50 and 260 cm"),
-  goal: z.string(),
+  goals: z.array(z.string()).max(3, "Pick up to 3 goals"),
   diet_pref: z.string(),
   experience_level: z.string(),
   medical_notes: z.string().max(2000),
@@ -99,7 +99,7 @@ function toValues(m?: Member): Values {
     emergency_contact_name: m?.emergency_contact_name ?? "",
     emergency_contact_phone: m?.emergency_contact_phone ?? "",
     height_cm: m?.height_cm != null ? String(m.height_cm) : "",
-    goal: m?.goal ?? "",
+    goals: m?.goals ?? [],
     diet_pref: m?.diet_pref ?? "",
     experience_level: m?.experience_level ?? "",
     medical_notes: m?.medical_notes ?? "",
@@ -124,7 +124,7 @@ function toBody(v: Values) {
     emergency_contact_name: orNull(v.emergency_contact_name),
     emergency_contact_phone: orNull(v.emergency_contact_phone),
     height_cm: v.height_cm === "" ? null : Number(v.height_cm),
-    goal: orNull(v.goal) as MemberUpdate["goal"],
+    goals: v.goals as NonNullable<MemberUpdate["goals"]>,
     diet_pref: orNull(v.diet_pref) as MemberUpdate["diet_pref"],
     experience_level: orNull(v.experience_level) as MemberUpdate["experience_level"],
     medical_notes: orNull(v.medical_notes),
@@ -195,7 +195,7 @@ export function MemberForm({ member }: { member?: Member }) {
     ...(branches.data ?? []).map((b) => ({ value: b.id, label: b.name })),
   ];
 
-  const [name, phone, trainerId, joinedOn, goal, tags] = form.watch(["name", "phone", "trainer_id", "joined_on", "goal", "tags"]);
+  const [name, phone, trainerId, joinedOn, goals, tags] = form.watch(["name", "phone", "trainer_id", "joined_on", "goals", "tags"]);
   const plan = plans.data?.find((p) => p.id === draft.plan_id);
   const trainer = staff.data?.find((s) => s.user_id === trainerId);
 
@@ -354,14 +354,15 @@ export function MemberForm({ member }: { member?: Member }) {
             <p className="mb-4 text-muted-foreground">Used by trainers and for AI workout & diet plans.</p>
             <FieldGroup>
               <Field>
-                <FieldLabel>Goal</FieldLabel>
+                <FieldLabel>Goals</FieldLabel>
                 <Controller
                   control={form.control}
-                  name="goal"
+                  name="goals"
                   render={({ field }) => (
-                    <ChipSelect options={toOptions(GOAL_LABELS)} value={field.value} onChange={field.onChange} />
+                    <MultiChipSelect options={toOptions(GOAL_LABELS)} value={field.value} onChange={field.onChange} max={3} />
                   )}
                 />
+                <FieldDescription>Up to 3, most important first.</FieldDescription>
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
@@ -458,7 +459,9 @@ export function MemberForm({ member }: { member?: Member }) {
           )}
           <SummaryRow label="Trainer">{trainer?.name ?? "Not assigned"}</SummaryRow>
           <SummaryRow label="Joined">{joinedOn ? formatDate(joinedOn) : "—"}</SummaryRow>
-          <SummaryRow label="Goal">{goal ? GOAL_LABELS[goal as keyof typeof GOAL_LABELS] : "—"}</SummaryRow>
+          <SummaryRow label="Goals">
+            {goals.length ? goals.map((g) => GOAL_LABELS[g as keyof typeof GOAL_LABELS]).join(", ") : "—"}
+          </SummaryRow>
           {tags.length > 0 && (
             <SummaryRow label="Tags">
               <span className="flex flex-wrap gap-1">

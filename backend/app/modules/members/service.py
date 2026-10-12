@@ -307,7 +307,7 @@ async def member_out(db: AsyncSession, member: Member, today: date) -> MemberOut
         emergency_contact_name=member.emergency_contact_name,
         emergency_contact_phone=member.emergency_contact_phone,
         height_cm=member.height_cm,
-        goal=member.goal,
+        goals=member.goals or [],
         diet_pref=member.diet_pref,
         experience_level=member.experience_level,
         medical_notes=member.medical_notes,

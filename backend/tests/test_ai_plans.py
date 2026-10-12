@@ -84,7 +84,7 @@ async def test_generate_review_publish(client: AsyncClient, owner: Account, ai):
         client,
         owner,
         email="ravi@x.com",
-        goal="weight_loss",
+        goals=["weight_loss", "strength"],
         diet_pref="veg",
         medical_notes="Knee pain",
     )
@@ -107,7 +107,7 @@ async def test_generate_review_publish(client: AsyncClient, owner: Account, ai):
     # What was sent to Claude: profile and metrics, no name or contact details.
     sent_member, sent_params = ai.calls[0]
     assert sent_params["instructions"] == "Loves cycling"
-    assert sent_member["goal"] == "weight_loss" and sent_member["diet_preference"] == "veg"
+    assert sent_member["goals"] == ["weight_loss", "strength"] and sent_member["diet_preference"] == "veg"
     assert sent_member["medical_notes"] == "Knee pain"
     assert sent_member["recent_checkups_newest_first"][0]["weight_kg"] == 82
     blob = json.dumps(sent_member)
@@ -298,7 +298,7 @@ def response(stop_reason="end_turn", parsed=None):
 async def test_generator_request_shape(monkeypatch):
     messages = FakeMessages(response(parsed=sample_plan()))
     fake_client(monkeypatch, messages)
-    result = await generator.generate_plan({"goal": "strength"}, {"days_per_week": 3})
+    result = await generator.generate_plan({"goals": ["strength"]}, {"days_per_week": 3})
     assert result.content.summary == "A simple full-body start."
 
     kw = messages.kwargs

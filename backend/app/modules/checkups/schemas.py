@@ -76,7 +76,7 @@ class DueCheckUp(BaseModel):
     member_name: str
     phone: str
     trainer: StaffRef | None
-    goal: str | None
+    goals: list[str]
     last_checkup_on: date | None
     days_since: int | None  # None = never checked in
     last_weight_kg: float | None

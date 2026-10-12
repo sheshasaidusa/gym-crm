@@ -609,7 +609,7 @@ export default function MemberPage() {
           <div className="lg:sticky lg:top-20">
             <h2 className="mb-4 font-medium">Member details</h2>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-5 text-sm">
-              <SideDetail label="Fitness goal">{m.goal ? GOAL_LABELS[m.goal] : null}</SideDetail>
+              <SideDetail label="Fitness goals">{m.goals.length ? m.goals.map((g) => GOAL_LABELS[g]).join(", ") : null}</SideDetail>
               <SideDetail label="Experience">{m.experience_level ? EXPERIENCE_LABELS[m.experience_level] : null}</SideDetail>
               <SideDetail label="Diet">{m.diet_pref ? DIET_LABELS[m.diet_pref] : null}</SideDetail>
               <SideDetail label="Height">{m.height_cm ? `${m.height_cm} cm` : null}</SideDetail>
