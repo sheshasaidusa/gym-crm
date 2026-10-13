@@ -8,7 +8,8 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased, selectinload
 
-from app.core.deps import CurrentContext, DbSession, TenantContext
+from app.core.deps import DbSession, TenantContext
+from app.core.permissions import Cap, ctx_with, ensure_member_visible, scope_members
 from app.core.schemas import Page
 from app.core.storage import IMAGE_TYPES, get_storage, sniff_image_type
 from app.modules.audit import service as audit
@@ -25,6 +26,9 @@ from app.modules.gyms.models import Gym, Role
 from app.modules.members.models import Member, Membership
 from app.modules.members.schemas import StaffRef
 from app.modules.members.service import gym_today
+
+ViewContext = ctx_with(Cap.MEMBERS_VIEW)  # see a member's check-ups (trainers: own members)
+RecordContext = ctx_with(Cap.CHECKUPS)  # record and edit them
 
 router = APIRouter(tags=["checkups"])
 
@@ -65,22 +69,22 @@ async def _out(db: DbSession, c: CheckUp) -> CheckUpOut:
     )
 
 
-async def _member(db: DbSession, gym_id: uuid.UUID, member_id: uuid.UUID) -> Member:
-    m = await db.scalar(select(Member).where(Member.gym_id == gym_id, Member.id == member_id))
-    if m is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
+async def _member(db: DbSession, ctx: TenantContext, member_id: uuid.UUID) -> Member:
+    m = await db.scalar(select(Member).where(Member.gym_id == ctx.gym_id, Member.id == member_id))
+    ensure_member_visible(ctx, m)
     return m
 
 
-async def _checkup(db: DbSession, gym_id: uuid.UUID, checkup_id: uuid.UUID) -> CheckUp:
+async def _checkup(db: DbSession, ctx: TenantContext, checkup_id: uuid.UUID) -> CheckUp:
     c = await db.scalar(
         select(CheckUp)
-        .where(CheckUp.gym_id == gym_id, CheckUp.id == checkup_id)
+        .where(CheckUp.gym_id == ctx.gym_id, CheckUp.id == checkup_id)
         .options(selectinload(CheckUp.photos))
         .execution_options(populate_existing=True)
     )
     if c is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Check-up not found")
+    await _member(db, ctx, c.member_id)  # out-of-scope members' check-ups don't exist
     return c
 
 
@@ -99,8 +103,8 @@ def _duplicate_date() -> HTTPException:
 
 
 @router.get("/members/{member_id}/checkups", response_model=list[CheckUpOut])
-async def list_checkups(member_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
-    await _member(db, ctx.gym_id, member_id)
+async def list_checkups(member_id: uuid.UUID, ctx: ViewContext, db: DbSession):
+    await _member(db, ctx, member_id)
     rows = (
         await db.scalars(
             select(CheckUp)
@@ -115,8 +119,8 @@ async def list_checkups(member_id: uuid.UUID, ctx: CurrentContext, db: DbSession
 @router.post(
     "/members/{member_id}/checkups", response_model=CheckUpOut, status_code=status.HTTP_201_CREATED
 )
-async def create_checkup(member_id: uuid.UUID, body: CheckUpIn, ctx: CurrentContext, db: DbSession):
-    member = await _member(db, ctx.gym_id, member_id)
+async def create_checkup(member_id: uuid.UUID, body: CheckUpIn, ctx: RecordContext, db: DbSession):
+    member = await _member(db, ctx, member_id)
     recorded_on = body.recorded_on or await gym_today(db, ctx.gym_id)
     if recorded_on > await gym_today(db, ctx.gym_id):
         raise HTTPException(
@@ -141,14 +145,14 @@ async def create_checkup(member_id: uuid.UUID, body: CheckUpIn, ctx: CurrentCont
         await db.commit()
     except IntegrityError as exc:
         raise _duplicate_date() from exc
-    return await _out(db, await _checkup(db, ctx.gym_id, checkup.id))
+    return await _out(db, await _checkup(db, ctx, checkup.id))
 
 
 @router.patch("/checkups/{checkup_id}", response_model=CheckUpOut)
 async def update_checkup(
-    checkup_id: uuid.UUID, body: CheckUpUpdate, ctx: CurrentContext, db: DbSession
+    checkup_id: uuid.UUID, body: CheckUpUpdate, ctx: RecordContext, db: DbSession
 ):
-    c = await _checkup(db, ctx.gym_id, checkup_id)
+    c = await _checkup(db, ctx, checkup_id)
     _can_modify(ctx, c)
     values = body.model_dump(exclude_unset=True)
     if values.get("recorded_on") is None:
@@ -160,12 +164,12 @@ async def update_checkup(
         await db.commit()
     except IntegrityError as exc:
         raise _duplicate_date() from exc
-    return await _out(db, await _checkup(db, ctx.gym_id, checkup_id))
+    return await _out(db, await _checkup(db, ctx, checkup_id))
 
 
 @router.delete("/checkups/{checkup_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_checkup(checkup_id: uuid.UUID, ctx: CurrentContext, db: DbSession) -> None:
-    c = await _checkup(db, ctx.gym_id, checkup_id)
+async def delete_checkup(checkup_id: uuid.UUID, ctx: RecordContext, db: DbSession) -> None:
+    c = await _checkup(db, ctx, checkup_id)
     _can_modify(ctx, c)
     keys = [p.storage_key for p in c.photos]
     await db.delete(c)
@@ -188,8 +192,8 @@ async def delete_checkup(checkup_id: uuid.UUID, ctx: CurrentContext, db: DbSessi
 @router.post(
     "/checkups/{checkup_id}/photos", response_model=CheckUpOut, status_code=status.HTTP_201_CREATED
 )
-async def upload_photo(checkup_id: uuid.UUID, file: UploadFile, ctx: CurrentContext, db: DbSession):
-    c = await _checkup(db, ctx.gym_id, checkup_id)
+async def upload_photo(checkup_id: uuid.UUID, file: UploadFile, ctx: RecordContext, db: DbSession):
+    c = await _checkup(db, ctx, checkup_id)
     _can_modify(ctx, c)
     if len(c.photos) >= MAX_PHOTOS_PER_CHECKUP:
         raise HTTPException(
@@ -218,23 +222,24 @@ async def upload_photo(checkup_id: uuid.UUID, file: UploadFile, ctx: CurrentCont
         )
     )
     await db.commit()
-    return await _out(db, await _checkup(db, ctx.gym_id, checkup_id))
+    return await _out(db, await _checkup(db, ctx, checkup_id))
 
 
-async def _photo(db: DbSession, gym_id: uuid.UUID, photo_id: uuid.UUID) -> CheckUpPhoto:
+async def _photo(db: DbSession, ctx: TenantContext, photo_id: uuid.UUID) -> CheckUpPhoto:
     p = await db.scalar(
         select(CheckUpPhoto)
-        .where(CheckUpPhoto.gym_id == gym_id, CheckUpPhoto.id == photo_id)
+        .where(CheckUpPhoto.gym_id == ctx.gym_id, CheckUpPhoto.id == photo_id)
         .options(selectinload(CheckUpPhoto.checkup))
     )
     if p is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found")
+    await _member(db, ctx, p.checkup.member_id)
     return p
 
 
 @router.get("/checkup-photos/{photo_id}", response_class=Response)
-async def get_photo(photo_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
-    p = await _photo(db, ctx.gym_id, photo_id)
+async def get_photo(photo_id: uuid.UUID, ctx: ViewContext, db: DbSession):
+    p = await _photo(db, ctx, photo_id)
     storage = get_storage()
     if url := storage.signed_url(p.storage_key):
         return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
@@ -249,14 +254,14 @@ async def get_photo(photo_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
 
 
 @router.delete("/checkup-photos/{photo_id}", response_model=CheckUpOut)
-async def delete_photo(photo_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
-    p = await _photo(db, ctx.gym_id, photo_id)
+async def delete_photo(photo_id: uuid.UUID, ctx: RecordContext, db: DbSession):
+    p = await _photo(db, ctx, photo_id)
     _can_modify(ctx, p.checkup)
     checkup_id, key = p.checkup_id, p.storage_key
     await db.delete(p)
     await db.commit()
     await get_storage().delete(key)
-    return await _out(db, await _checkup(db, ctx.gym_id, checkup_id))
+    return await _out(db, await _checkup(db, ctx, checkup_id))
 
 
 # --- Due list ---------------------------------------------------------------
@@ -264,7 +269,7 @@ async def delete_photo(photo_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
 
 @router.get("/checkups/due", response_model=Page[DueCheckUp])
 async def due_checkups(
-    ctx: CurrentContext,
+    ctx: ViewContext,
     db: DbSession,
     scope: Literal["mine", "all"] = "all",
     page: Annotated[int, Query(ge=1)] = 1,
@@ -305,6 +310,7 @@ async def due_checkups(
     )
     if scope == "mine":
         stmt = stmt.where(Member.trainer_id == ctx.user.id)
+    stmt = scope_members(stmt, ctx)  # trainers only ever see their own members
 
     total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = (

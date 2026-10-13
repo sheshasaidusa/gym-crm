@@ -88,11 +88,12 @@ class MembershipOut(ORMModel):
     duration_unit: DurationUnit
     start_date: date
     end_date: date
-    price: Money
-    discount: Money
-    joining_fee: Money
-    tax_pct: Money
-    total: Money
+    # Money fields are null for staff who can't see member finances (trainers).
+    price: Money | None
+    discount: Money | None
+    joining_fee: Money | None
+    tax_pct: Money | None
+    total: Money | None
     max_freeze_days: int
     frozen_days: int
     freeze_start: date | None
@@ -102,8 +103,8 @@ class MembershipOut(ORMModel):
     created_at: datetime
     status: Status
     days_left: int | None
-    paid: Money
-    balance: Money
+    paid: Money | None
+    balance: Money | None
 
 
 class CurrentMembershipOut(BaseModel):

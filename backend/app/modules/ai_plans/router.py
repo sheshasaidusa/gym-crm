@@ -10,15 +10,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import settings
 from app.core.db import as_utc, get_sessionmaker, utcnow
-from app.core.deps import CurrentContext, DbSession, TenantContext, require_roles
+from app.core.deps import DbSession, TenantContext
 from app.core.jobs import enqueue
+from app.core.permissions import Cap, ctx_with, ensure_member_visible
 from app.modules.ai_plans import generator
 from app.modules.ai_plans.content import PlanContent
 from app.modules.ai_plans.models import AIPlan, PlanStatus
 from app.modules.audit import service as audit
 from app.modules.auth.models import User
 from app.modules.checkups.models import CheckUp
-from app.modules.gyms.models import Gym, Role
+from app.modules.gyms.models import Gym
 from app.modules.members.models import Member
 from app.modules.members.schemas import StaffRef
 from app.modules.members.service import gym_today
@@ -26,9 +27,8 @@ from app.modules.members.service import gym_today
 log = logging.getLogger("gym_crm.ai")
 router = APIRouter(tags=["ai-plans"])
 
-CoachContext = Annotated[
-    TenantContext, Depends(require_roles(Role.OWNER, Role.MANAGER, Role.TRAINER))
-]
+CoachContext = ctx_with(Cap.WORKOUT_PLANS)  # create, edit, publish (trainers: own members)
+ViewContext = ctx_with(Cap.MEMBERS_VIEW)  # read a member's plans
 Sessions = Annotated[async_sessionmaker[AsyncSession], Depends(get_sessionmaker)]
 
 STALE_AFTER = timedelta(minutes=10)
@@ -107,21 +107,21 @@ async def _expire_stale(db: AsyncSession, gym_id: uuid.UUID) -> None:
     await db.commit()
 
 
-async def _plan(db: AsyncSession, gym_id: uuid.UUID, plan_id: uuid.UUID) -> AIPlan:
+async def _plan(db: AsyncSession, ctx: TenantContext, plan_id: uuid.UUID) -> AIPlan:
     p = await db.scalar(
         select(AIPlan)
-        .where(AIPlan.gym_id == gym_id, AIPlan.id == plan_id)
+        .where(AIPlan.gym_id == ctx.gym_id, AIPlan.id == plan_id)
         .execution_options(populate_existing=True)
     )
     if p is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Plan not found")
+    await _member(db, ctx, p.member_id)  # a plan belongs to its member's scope
     return p
 
 
-async def _member(db: AsyncSession, gym_id: uuid.UUID, member_id: uuid.UUID) -> Member:
-    m = await db.scalar(select(Member).where(Member.gym_id == gym_id, Member.id == member_id))
-    if m is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
+async def _member(db: AsyncSession, ctx: TenantContext, member_id: uuid.UUID) -> Member:
+    m = await db.scalar(select(Member).where(Member.gym_id == ctx.gym_id, Member.id == member_id))
+    ensure_member_visible(ctx, m)
     return m
 
 
@@ -217,7 +217,7 @@ async def run_generation(sessions: async_sessionmaker[AsyncSession], plan_id: uu
 
 
 @router.get("/ai/status", response_model=AIStatus)
-async def ai_status(ctx: CurrentContext, db: DbSession):
+async def ai_status(ctx: ViewContext, db: DbSession):
     return AIStatus(
         configured=generator.is_configured(),
         used_this_month=await _used_this_month(db, ctx.gym_id),
@@ -227,8 +227,8 @@ async def ai_status(ctx: CurrentContext, db: DbSession):
 
 
 @router.get("/members/{member_id}/ai-plans", response_model=list[AIPlanOut])
-async def list_plans(member_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
-    await _member(db, ctx.gym_id, member_id)
+async def list_plans(member_id: uuid.UUID, ctx: ViewContext, db: DbSession):
+    await _member(db, ctx, member_id)
     await _expire_stale(db, ctx.gym_id)
     plans = (
         await db.scalars(
@@ -252,7 +252,7 @@ async def generate(
     background: BackgroundTasks,
 ):
     """Starts generating a new plan version. Poll the plan until it's no longer 'generating'."""
-    member = await _member(db, ctx.gym_id, member_id)
+    member = await _member(db, ctx, member_id)
     if not generator.is_configured():
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -293,15 +293,15 @@ async def generate(
 
 
 @router.get("/ai-plans/{plan_id}", response_model=AIPlanOut)
-async def get_plan(plan_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
+async def get_plan(plan_id: uuid.UUID, ctx: ViewContext, db: DbSession):
     await _expire_stale(db, ctx.gym_id)
-    return await _out(db, await _plan(db, ctx.gym_id, plan_id))
+    return await _out(db, await _plan(db, ctx, plan_id))
 
 
 @router.patch("/ai-plans/{plan_id}", response_model=AIPlanOut)
 async def update_plan(plan_id: uuid.UUID, body: AIPlanUpdate, ctx: CoachContext, db: DbSession):
     """Trainer edits. Published plans can be edited too; members see changes right away."""
-    p = await _plan(db, ctx.gym_id, plan_id)
+    p = await _plan(db, ctx, plan_id)
     if p.status not in (PlanStatus.DRAFT, PlanStatus.PUBLISHED):
         raise HTTPException(status.HTTP_409_CONFLICT, f"A {p.status.value} plan can't be edited")
     if body.title is not None:
@@ -309,12 +309,12 @@ async def update_plan(plan_id: uuid.UUID, body: AIPlanUpdate, ctx: CoachContext,
     if body.content is not None:
         p.content = body.content.model_dump()
     await db.commit()
-    return await _out(db, await _plan(db, ctx.gym_id, plan_id))
+    return await _out(db, await _plan(db, ctx, plan_id))
 
 
 @router.post("/ai-plans/{plan_id}/publish", response_model=AIPlanOut)
 async def publish_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession):
-    p = await _plan(db, ctx.gym_id, plan_id)
+    p = await _plan(db, ctx, plan_id)
     if p.status not in (PlanStatus.DRAFT, PlanStatus.ARCHIVED) or not p.content:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Only a reviewed draft or older version can be published"
@@ -332,12 +332,12 @@ async def publish_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession):
         db, ctx, "ai_plan.published", f"Published version {p.version} of {name}'s plan", p.id
     )
     await db.commit()
-    return await _out(db, await _plan(db, ctx.gym_id, plan_id))
+    return await _out(db, await _plan(db, ctx, plan_id))
 
 
 @router.post("/ai-plans/{plan_id}/unpublish", response_model=AIPlanOut)
 async def unpublish_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession):
-    p = await _plan(db, ctx.gym_id, plan_id)
+    p = await _plan(db, ctx, plan_id)
     if p.status != PlanStatus.PUBLISHED:
         raise HTTPException(status.HTTP_409_CONFLICT, "This plan isn't published")
     p.status = PlanStatus.DRAFT
@@ -346,12 +346,12 @@ async def unpublish_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession):
         db, ctx, "ai_plan.unpublished", f"Unpublished {name}'s plan (version {p.version})", p.id
     )
     await db.commit()
-    return await _out(db, await _plan(db, ctx.gym_id, plan_id))
+    return await _out(db, await _plan(db, ctx, plan_id))
 
 
 @router.delete("/ai-plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession) -> None:
-    p = await _plan(db, ctx.gym_id, plan_id)
+    p = await _plan(db, ctx, plan_id)
     if p.status == PlanStatus.PUBLISHED:
         raise HTTPException(status.HTTP_409_CONFLICT, "Unpublish this plan before deleting it")
     if p.status == PlanStatus.GENERATING and as_utc(p.created_at) > utcnow() - STALE_AFTER:

@@ -89,13 +89,16 @@ async def test_history_order_update_and_delete(client: AsyncClient, owner: Accou
 async def test_only_recorder_or_manager_can_change(client: AsyncClient, owner: Account):
     coach = await invite_and_accept(client, owner, "coach@a.com", "trainer")
     coach2 = await invite_and_accept(client, owner, "coach2@a.com", "trainer")
-    member = await make_member(client, owner)
+    member = await make_member(client, owner, trainer_id=coach.user_id)
     c = await log_checkup(client, coach, member["id"], weight_kg=70)
 
+    # Another trainer can't even see this member's check-ups, let alone change them.
     res = await client.patch(
         f"/api/checkups/{c['id']}", json={"weight_kg": 50}, headers=coach2.headers
     )
-    assert res.status_code == 403
+    assert res.status_code == 404
+    res = await client.get(f"/api/members/{member['id']}/checkups", headers=coach2.headers)
+    assert res.status_code == 404
     res = await client.patch(
         f"/api/checkups/{c['id']}", json={"weight_kg": 69}, headers=coach.headers
     )

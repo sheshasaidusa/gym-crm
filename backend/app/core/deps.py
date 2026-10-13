@@ -61,7 +61,7 @@ async def get_tenant_context(request: Request, db: DbSession) -> TenantContext:
             StaffMembership.user_id == user_id, StaffMembership.gym_id == gym_id
         )
     )
-    if membership is None or not membership.user.is_active:
+    if membership is None or not membership.is_active or not membership.user.is_active:
         raise _unauthorized("No access to this gym")
     return TenantContext(
         user=membership.user, gym_id=gym_id, role=membership.role, branch_id=membership.branch_id

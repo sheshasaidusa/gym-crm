@@ -182,8 +182,18 @@ async def test_monthly_limit(client: AsyncClient, owner: Account, ai, monkeypatc
 async def test_roles(client: AsyncClient, owner: Account, ai):
     trainer = await invite_and_accept(client, owner, "coach@a.com", "trainer")
     desk = await invite_and_accept(client, owner, "desk@a.com", "front_desk")
-    member = await make_member(client, owner)
+    other_coach = await invite_and_accept(client, owner, "coach2@a.com", "trainer")
+    member = await make_member(client, owner, trainer_id=trainer.user_id)
     plan = await generate(client, trainer, member["id"])
+    # A trainer can only work on their own members' plans.
+    assert (
+        await client.get(f"/api/ai-plans/{plan['id']}", headers=other_coach.headers)
+    ).status_code == 404
+    assert (
+        await client.post(
+            f"/api/members/{member['id']}/ai-plans", json={}, headers=other_coach.headers
+        )
+    ).status_code == 404
     assert (
         await client.post(f"/api/members/{member['id']}/ai-plans", json={}, headers=desk.headers)
     ).status_code == 403

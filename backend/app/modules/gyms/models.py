@@ -26,6 +26,7 @@ class Role(enum.StrEnum):
     MANAGER = "manager"
     TRAINER = "trainer"
     FRONT_DESK = "front_desk"
+    SALES = "sales"  # works the leads pipeline; no member or money access
 
 
 role_enum = Enum(Role, native_enum=False, length=20, values_callable=lambda e: [m.value for m in e])
@@ -83,6 +84,9 @@ class StaffMembership(IdMixin, TenantMixin, TimestampMixin, Base):
     branch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("branches.id", ondelete="SET NULL")
     )
+    # Deactivated staff keep their history (audit, check-ups they recorded) but can't log in
+    # to this gym. Reactivating restores access.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
 
     user: Mapped[User] = relationship(lazy="joined")
 

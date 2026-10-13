@@ -249,11 +249,16 @@ async def test_role_permissions(client: AsyncClient, owner: Account):
     trainer = await invite_and_accept(client, owner, "coach@a.com", "trainer")
     desk = await invite_and_accept(client, owner, "desk@a.com", "front_desk")
 
-    # Front desk onboards and sells; trainers only view.
+    # Front desk onboards and sells; trainers only see the members assigned to them.
     member = await make_member(client, desk, membership={"plan_id": plan["id"]})
-    assert (
-        await client.get(f"/api/members/{member['id']}", headers=trainer.headers)
-    ).status_code == 200
+    url = f"/api/members/{member['id']}"
+    assert (await client.get(url, headers=trainer.headers)).status_code == 404
+    await client.patch(url, json={"trainer_id": trainer.user_id}, headers=desk.headers)
+    res = await client.get(url, headers=trainer.headers)
+    assert res.status_code == 200
+    # ...without the money: trainers don't see prices or balances.
+    ms = res.json()["memberships"][0]
+    assert ms["total"] is None and ms["balance"] is None
     res = await client.post(
         "/api/members", json={"name": "Nope", "phone": "9111111111"}, headers=trainer.headers
     )
