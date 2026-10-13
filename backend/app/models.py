@@ -15,6 +15,7 @@ from app.modules.members.models import Member, Membership
 from app.modules.notifications.models import Notification
 from app.modules.plans.models import Plan
 from app.modules.reminders.models import ReminderLog
+from app.modules.workouts.models import WorkoutSession
 
 __all__ = [
     "AIPlan",
@@ -40,4 +41,5 @@ __all__ = [
     "ReminderLog",
     "StaffMembership",
     "User",
+    "WorkoutSession",
 ]

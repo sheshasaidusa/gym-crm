@@ -105,7 +105,11 @@ export function TrainerDashboard({ trainerId }: { trainerId?: string }) {
           </ul>
         </BoardCard>
 
-        <BoardCard title="Progress" description="Clients with two or more check-ups in the last 90 days" loading={board.isPending}>
+        <BoardCard
+          title="Progress"
+          description={`Check-ups over 90 days · ${b?.logged_7d ?? 0} of ${b?.clients.all ?? 0} clients logged a workout this week`}
+          loading={board.isPending}
+        >
           {b && (
             <dl className="grid grid-cols-3 gap-4 text-sm">
               <div>

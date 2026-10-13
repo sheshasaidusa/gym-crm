@@ -2348,6 +2348,247 @@
         }
       }
     },
+    "/api/m/workouts": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "My Workouts",
+        "operationId": "my_workouts_api_m_workouts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutHistory"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Log Workout",
+        "operationId": "log_workout_api_m_workouts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/workouts/template": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "My Template",
+        "description": "A day of their published plan, ready to fill in. Without `day`, the day after the last\none they logged.",
+        "operationId": "my_template_api_m_workouts_template_get",
+        "parameters": [
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutTemplate"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/workouts/{session_id}": {
+      "patch": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Fix Workout",
+        "operationId": "fix_workout_api_m_workouts__session_id__patch",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Delete Workout",
+        "operationId": "delete_workout_api_m_workouts__session_id__delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/workouts": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Member Workouts",
+        "operationId": "member_workouts_api_members__member_id__workouts_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutHistory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/members/{member_id}/checkups": {
       "get": {
         "tags": [
@@ -2832,6 +3073,60 @@
         },
         "responses": {
           "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPlanOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/ai-plans/manual": {
+      "post": {
+        "tags": [
+          "ai-plans"
+        ],
+        "summary": "Create Manual Plan",
+        "description": "A draft written by hand, no AI needed: blank, or a copy of one of this member's plans.\nIt is checked when published, so it can be built up over a few sittings.",
+        "operationId": "create_manual_plan_api_members__member_id__ai_plans_manual_post",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualPlanIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -10628,6 +10923,36 @@
         ],
         "title": "LostReason"
       },
+      "ManualPlanIn": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "copy_from_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy From Plan Id"
+          }
+        },
+        "type": "object",
+        "title": "ManualPlanIn"
+      },
       "MeOut": {
         "properties": {
           "user": {
@@ -12890,6 +13215,42 @@
         ],
         "title": "PersonRef"
       },
+      "PersonalRecord": {
+        "properties": {
+          "exercise": {
+            "type": "string",
+            "title": "Exercise"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          },
+          "reps": {
+            "type": "integer",
+            "title": "Reps"
+          },
+          "performed_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Performed On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise",
+          "weight_kg",
+          "reps",
+          "performed_on"
+        ],
+        "title": "PersonalRecord"
+      },
       "PhotoOut": {
         "properties": {
           "id": {
@@ -14688,6 +15049,54 @@
         ],
         "title": "Template"
       },
+      "TemplateEntry": {
+        "properties": {
+          "exercise": {
+            "type": "string",
+            "title": "Exercise"
+          },
+          "from_plan": {
+            "type": "boolean",
+            "title": "From Plan",
+            "default": true
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSet"
+            },
+            "type": "array",
+            "title": "Sets"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise",
+          "sets"
+        ],
+        "title": "TemplateEntry"
+      },
       "TrainerDashboard": {
         "properties": {
           "trainer": {
@@ -14727,6 +15136,11 @@
           },
           "progress": {
             "$ref": "#/components/schemas/CheckupProgress"
+          },
+          "logged_7d": {
+            "type": "integer",
+            "title": "Logged 7D",
+            "default": 0
           },
           "attendance_tracked": {
             "type": "boolean",
@@ -15194,6 +15608,30 @@
         ],
         "title": "VoidIn"
       },
+      "WeekVolume": {
+        "properties": {
+          "week_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Week Start"
+          },
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week_start",
+          "sessions",
+          "volume_kg"
+        ],
+        "title": "WeekVolume"
+      },
       "WhatsAppLogIn": {
         "properties": {
           "membership_id": {
@@ -15250,6 +15688,319 @@
           "cooldown"
         ],
         "title": "WorkoutDay"
+      },
+      "WorkoutEntry": {
+        "properties": {
+          "exercise": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Exercise"
+          },
+          "from_plan": {
+            "type": "boolean",
+            "title": "From Plan",
+            "default": false
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSet"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Sets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise",
+          "sets"
+        ],
+        "title": "WorkoutEntry"
+      },
+      "WorkoutHistory": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutOut"
+            },
+            "type": "array",
+            "title": "Sessions"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/WorkoutProgress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions",
+          "progress"
+        ],
+        "title": "WorkoutHistory"
+      },
+      "WorkoutIn": {
+        "properties": {
+          "day_label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Label"
+          },
+          "performed_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performed On"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 600.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutEntry"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "title": "WorkoutIn"
+      },
+      "WorkoutOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "day_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Label"
+          },
+          "performed_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Performed On"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "editable": {
+            "type": "boolean",
+            "title": "Editable"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "day_label",
+          "performed_on",
+          "duration_min",
+          "notes",
+          "entries",
+          "volume_kg",
+          "editable",
+          "created_at"
+        ],
+        "title": "WorkoutOut"
+      },
+      "WorkoutProgress": {
+        "properties": {
+          "sessions_total": {
+            "type": "integer",
+            "title": "Sessions Total"
+          },
+          "sessions_30d": {
+            "type": "integer",
+            "title": "Sessions 30D"
+          },
+          "streak_weeks": {
+            "type": "integer",
+            "title": "Streak Weeks"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/WeekVolume"
+            },
+            "type": "array",
+            "title": "Weeks"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalRecord"
+            },
+            "type": "array",
+            "title": "Records"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions_total",
+          "sessions_30d",
+          "streak_weeks",
+          "weeks",
+          "records"
+        ],
+        "title": "WorkoutProgress"
+      },
+      "WorkoutSet": {
+        "properties": {
+          "reps": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Reps"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reps"
+        ],
+        "title": "WorkoutSet"
+      },
+      "WorkoutTemplate": {
+        "properties": {
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "days": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Days"
+          },
+          "day_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Label"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "days",
+          "day_label",
+          "entries"
+        ],
+        "title": "WorkoutTemplate"
       },
       "app__modules__finance__schemas__DueList": {
         "properties": {

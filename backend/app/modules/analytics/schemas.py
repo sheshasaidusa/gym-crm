@@ -115,6 +115,7 @@ class TrainerDashboard(BaseModel):
     without_plan: int  # running members with no published workout plan
     without_plan_list: list[MemberRow]
     progress: CheckupProgress  # their clients, last 90 days
+    logged_7d: int = 0  # clients who logged a workout in the app in the last 7 days
     attendance_tracked: bool = False  # false: the gym doesn't record visits, hide the rest
     visits_7d: int = 0  # visits by their clients in the last 7 days
     at_risk: int = 0  # running clients with no visit for 14 days

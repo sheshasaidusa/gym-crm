@@ -14,7 +14,7 @@ from app.core.deps import DbSession, TenantContext
 from app.core.jobs import enqueue
 from app.core.permissions import Cap, ctx_with, ensure_member_visible
 from app.modules.ai_plans import generator
-from app.modules.ai_plans.content import PlanContent
+from app.modules.ai_plans.content import DietPlan, PlanContent
 from app.modules.ai_plans.models import AIPlan, PlanStatus
 from app.modules.audit import service as audit
 from app.modules.auth.models import User
@@ -39,6 +39,12 @@ class GenerateIn(BaseModel):
     session_minutes: int = Field(60, ge=30, le=120)
     equipment: Literal["full_gym", "basic", "bodyweight"] = "full_gym"
     instructions: str | None = Field(None, max_length=1000)
+
+
+class ManualPlanIn(BaseModel):
+    title: str | None = Field(None, max_length=200)
+    # Start from one of this member's earlier plans instead of a blank page.
+    copy_from_plan_id: uuid.UUID | None = None
 
 
 class AIPlanUpdate(BaseModel):
@@ -292,6 +298,68 @@ async def generate(
     return await _out(db, plan)
 
 
+def blank_plan() -> PlanContent:
+    return PlanContent(
+        summary="",
+        weekly_schedule=[],
+        diet=DietPlan(
+            daily_calories=0, protein_g=0, carbs_g=0, fat_g=0, meals=[], hydration="", notes=[]
+        ),
+        progression="",
+        safety_notes=[],
+    )
+
+
+@router.post(
+    "/members/{member_id}/ai-plans/manual",
+    response_model=AIPlanOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_manual_plan(
+    member_id: uuid.UUID, body: ManualPlanIn, ctx: CoachContext, db: DbSession
+):
+    """A draft written by hand, no AI needed: blank, or a copy of one of this member's plans.
+    It is checked when published, so it can be built up over a few sittings."""
+    member = await _member(db, ctx, member_id)
+    content = blank_plan().model_dump()
+    title = body.title
+    if body.copy_from_plan_id is not None:
+        source = await db.scalar(
+            select(AIPlan).where(
+                AIPlan.gym_id == ctx.gym_id,
+                AIPlan.id == body.copy_from_plan_id,
+                AIPlan.member_id == member.id,
+            )
+        )
+        if source is None or not source.content:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Plan to copy not found")
+        content = source.content
+        title = title or f"Copy of {source.title}"
+    version = (
+        await db.scalar(select(func.max(AIPlan.version)).where(AIPlan.member_id == member.id)) or 0
+    ) + 1
+    plan = AIPlan(
+        gym_id=ctx.gym_id,
+        member_id=member.id,
+        version=version,
+        status=PlanStatus.DRAFT,
+        title=title or f"Plan v{version}",
+        params={},
+        content=content,
+        created_by=ctx.user.id,
+    )
+    db.add(plan)
+    audit.record(
+        db,
+        ctx,
+        "ai_plan.created_manually",
+        f"Started a hand-written plan for {member.name}",
+        plan.id,
+    )
+    await db.commit()
+    return await _out(db, plan)
+
+
 @router.get("/ai-plans/{plan_id}", response_model=AIPlanOut)
 async def get_plan(plan_id: uuid.UUID, ctx: ViewContext, db: DbSession):
     await _expire_stale(db, ctx.gym_id)
@@ -318,6 +386,10 @@ async def publish_plan(plan_id: uuid.UUID, ctx: CoachContext, db: DbSession):
     if p.status not in (PlanStatus.DRAFT, PlanStatus.ARCHIVED) or not p.content:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Only a reviewed draft or older version can be published"
+        )
+    if not any(day.exercises for day in PlanContent.model_validate(p.content).weekly_schedule):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Add at least one exercise before publishing"
         )
     await db.execute(
         update(AIPlan)

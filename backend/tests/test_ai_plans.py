@@ -1,4 +1,5 @@
 import json
+import uuid
 from types import SimpleNamespace
 
 import anthropic
@@ -344,3 +345,81 @@ async def test_generator_api_errors(monkeypatch):
     fake_client(monkeypatch, FakeMessages(error=anthropic.APIConnectionError(request=req)))
     with pytest.raises(generator.GenerationError, match="reach"):
         await generator.generate_plan({}, {})
+
+
+# --- Hand-written plans ---------------------------------------------------------------------
+
+
+async def test_manual_plan_needs_no_ai(client: AsyncClient, owner: Account):
+    member = await make_member(client, owner)
+    base = f"/api/members/{member['id']}/ai-plans/manual"
+
+    res = await client.post(base, json={"title": "Strength block"}, headers=owner.headers)
+    assert res.status_code == 201, res.text
+    draft = res.json()
+    assert (
+        draft["status"] == "draft" and draft["title"] == "Strength block" and draft["version"] == 1
+    )
+    assert draft["content"]["weekly_schedule"] == []
+
+    # A blank draft can be saved and edited, but not published until it has an exercise.
+    assert (
+        await client.post(f"/api/ai-plans/{draft['id']}/publish", headers=owner.headers)
+    ).status_code == 422
+    res = await client.patch(
+        f"/api/ai-plans/{draft['id']}",
+        json={"content": sample_plan().model_dump()},
+        headers=owner.headers,
+    )
+    assert res.status_code == 200
+    res = await client.post(f"/api/ai-plans/{draft['id']}/publish", headers=owner.headers)
+    assert res.status_code == 200 and res.json()["status"] == "published"
+
+    # Duplicate it as the starting point of the next one.
+    res = await client.post(base, json={"copy_from_plan_id": draft["id"]}, headers=owner.headers)
+    copy = res.json()
+    assert (
+        res.status_code == 201
+        and copy["version"] == 2
+        and copy["title"] == "Copy of Strength block"
+    )
+    assert copy["content"]["summary"] == "A simple full-body start." and copy["status"] == "draft"
+    assert copy["id"] != draft["id"]
+
+
+async def test_manual_plan_copy_stays_within_the_member(client: AsyncClient, owner: Account):
+    a = await make_member(client, owner, phone="9000000001")
+    b = await make_member(client, owner, phone="9000000002")
+    plan = (
+        await client.post(f"/api/members/{a['id']}/ai-plans/manual", json={}, headers=owner.headers)
+    ).json()
+    await client.patch(
+        f"/api/ai-plans/{plan['id']}",
+        json={"content": sample_plan().model_dump()},
+        headers=owner.headers,
+    )
+    res = await client.post(
+        f"/api/members/{b['id']}/ai-plans/manual",
+        json={"copy_from_plan_id": plan["id"]},
+        headers=owner.headers,
+    )
+    assert res.status_code == 404  # someone else's plan can't be copied across members
+    res = await client.post(
+        f"/api/members/{a['id']}/ai-plans/manual",
+        json={"copy_from_plan_id": str(uuid.uuid4())},
+        headers=owner.headers,
+    )
+    assert res.status_code == 404
+
+
+async def test_manual_plan_permissions(client: AsyncClient, owner: Account):
+    from tests.helpers import make_staff
+
+    coach = await make_staff(client, owner, "trainer")
+    other = await make_staff(client, owner, "trainer")
+    desk = await make_staff(client, owner, "front_desk")
+    mine = await make_member(client, owner, phone="9000000001", trainer_id=coach.user_id)
+    url = f"/api/members/{mine['id']}/ai-plans/manual"
+    assert (await client.post(url, json={}, headers=coach.headers)).status_code == 201
+    assert (await client.post(url, json={}, headers=other.headers)).status_code == 404
+    assert (await client.post(url, json={}, headers=desk.headers)).status_code == 403

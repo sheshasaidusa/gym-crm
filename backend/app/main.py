@@ -27,6 +27,8 @@ from app.modules.notifications.router import router as notifications_router
 from app.modules.plans.router import router as plans_router
 from app.modules.public.router import router as public_router
 from app.modules.reminders.router import router as reminders_router
+from app.modules.workouts.router import m_router as workouts_member_router
+from app.modules.workouts.router import staff_router as workouts_staff_router
 
 
 @contextlib.asynccontextmanager
@@ -79,6 +81,8 @@ def create_app() -> FastAPI:
     api.include_router(members_router)
     api.include_router(member_access_router)
     api.include_router(member_app_router)
+    api.include_router(workouts_member_router)
+    api.include_router(workouts_staff_router)
     api.include_router(checkups_router)
     api.include_router(ai_plans_router)
     api.include_router(leads_router)

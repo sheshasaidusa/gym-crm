@@ -5,6 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WeightChart } from "@/components/weight-chart";
 import { formatDate } from "@/lib/format";
 import { useMemberCheckups, useMemberMe, type MemberCheckUp } from "@/lib/member-app-queries";
+import { useDeleteWorkout, useMyWorkouts } from "@/lib/workout-queries";
+import { SessionSummary, WorkoutProgressView } from "@/components/workouts/workout-progress";
+import { Button } from "@/components/ui/button";
+import { Trash2Icon } from "lucide-react";
+import Link from "next/link";
 
 function Tile({ value, label }: { value: string; label: string }) {
   return (
@@ -65,6 +70,8 @@ function CheckUpCard({ c }: { c: MemberCheckUp }) {
 export default function MemberProgressPage() {
   const me = useMemberMe();
   const history = useMemberCheckups();
+  const workouts = useMyWorkouts();
+  const deleteWorkout = useDeleteWorkout();
   if (me.isPending || history.isPending) return <Skeleton className="h-96 w-full rounded-xl" />;
   if (me.isError || history.isError) {
     return <p className="text-sm text-destructive">{(me.error ?? history.error)?.message}</p>;
@@ -114,9 +121,48 @@ export default function MemberProgressPage() {
         </Card>
       )}
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Your workouts</CardTitle>
+          <CardDescription>What you log in the app shows up here.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5">
+          {workouts.data && workouts.data.progress.sessions_total > 0 ? (
+            <>
+              <WorkoutProgressView progress={workouts.data.progress} />
+              <ul className="divide-y rounded-lg border">
+                {workouts.data.sessions.slice(0, 8).map((s) => (
+                  <li key={s.id} className="flex items-start gap-2 p-3">
+                    <div className="min-w-0 flex-1">
+                      <SessionSummary session={s} />
+                    </div>
+                    {s.editable && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Delete this workout"
+                        disabled={deleteWorkout.isPending}
+                        onClick={() => deleteWorkout.mutate(s.id)}
+                      >
+                        <Trash2Icon />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No workouts logged yet.</p>
+          )}
+          <Button nativeButton={false} render={<Link href="/m/workout" />}>
+            Log a workout
+          </Button>
+        </CardContent>
+      </Card>
+
       {history.data.length > 0 && (
         <section className="grid gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">History</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">Check-up history</h2>
           {history.data.map((c) => (
             <CheckUpCard key={c.id} c={c} />
           ))}

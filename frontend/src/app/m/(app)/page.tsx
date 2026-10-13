@@ -1,6 +1,13 @@
 "use client";
 
-import { CalendarCheckIcon, ChevronRightIcon, HeartPulseIcon, MessageCircleIcon, PhoneIcon } from "lucide-react";
+import {
+  CalendarCheckIcon,
+  ChevronRightIcon,
+  DumbbellIcon,
+  HeartPulseIcon,
+  MessageCircleIcon,
+  PhoneIcon,
+} from "lucide-react";
 import Link from "next/link";
 
 import { VisitGrid } from "@/components/attendance/visit-grid";
@@ -108,6 +115,21 @@ export default function MemberHome() {
           </CardContent>
         </Card>
       )}
+
+      <Link href="/m/workout" className="block">
+        <Card className="bg-primary text-primary-foreground transition-opacity hover:opacity-95">
+          <CardContent className="flex items-center gap-3">
+            <DumbbellIcon className="size-5" aria-hidden />
+            <div className="flex-1">
+              <div className="font-medium">Log a workout</div>
+              <div className="text-sm opacity-90">
+                {d.has_plan ? "Today's exercises are ready from your plan" : "Track your sets and weights"}
+              </div>
+            </div>
+            <ChevronRightIcon className="size-4" aria-hidden />
+          </CardContent>
+        </Card>
+      </Link>
 
       <Link href="/m/progress" className="block">
         <Card className="transition-colors hover:bg-muted/40">

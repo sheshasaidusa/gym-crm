@@ -814,6 +814,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/m/workouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Workouts */
+        get: operations["my_workouts_api_m_workouts_get"];
+        put?: never;
+        /** Log Workout */
+        post: operations["log_workout_api_m_workouts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/workouts/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Template
+         * @description A day of their published plan, ready to fill in. Without `day`, the day after the last
+         *     one they logged.
+         */
+        get: operations["my_template_api_m_workouts_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/workouts/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Workout */
+        delete: operations["delete_workout_api_m_workouts__session_id__delete"];
+        options?: never;
+        head?: never;
+        /** Fix Workout */
+        patch: operations["fix_workout_api_m_workouts__session_id__patch"];
+        trace?: never;
+    };
+    "/api/members/{member_id}/workouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Member Workouts */
+        get: operations["member_workouts_api_members__member_id__workouts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/members/{member_id}/checkups": {
         parameters: {
             query?: never;
@@ -938,6 +1012,27 @@ export interface paths {
          * @description Starts generating a new plan version. Poll the plan until it's no longer 'generating'.
          */
         post: operations["generate_api_members__member_id__ai_plans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/{member_id}/ai-plans/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Manual Plan
+         * @description A draft written by hand, no AI needed: blank, or a copy of one of this member's plans.
+         *     It is checked when published, so it can be built up over a few sittings.
+         */
+        post: operations["create_manual_plan_api_members__member_id__ai_plans_manual_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3329,6 +3424,13 @@ export interface components {
             /** Leads */
             leads: number;
         };
+        /** ManualPlanIn */
+        ManualPlanIn: {
+            /** Title */
+            title?: string | null;
+            /** Copy From Plan Id */
+            copy_from_plan_id?: string | null;
+        };
         /** MeOut */
         MeOut: {
             user: components["schemas"]["UserOut"];
@@ -3951,6 +4053,20 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** PersonalRecord */
+        PersonalRecord: {
+            /** Exercise */
+            exercise: string;
+            /** Weight Kg */
+            weight_kg: number | null;
+            /** Reps */
+            reps: number;
+            /**
+             * Performed On
+             * Format: date
+             */
+            performed_on: string;
+        };
         /** PhotoOut */
         PhotoOut: {
             /**
@@ -4524,6 +4640,22 @@ export interface components {
             /** Body */
             body: string;
         };
+        /** TemplateEntry */
+        TemplateEntry: {
+            /** Exercise */
+            exercise: string;
+            /**
+             * From Plan
+             * @default true
+             */
+            from_plan: boolean;
+            /** Sets */
+            sets: components["schemas"]["WorkoutSet"][];
+            /** Target */
+            target?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
         /** TrainerDashboard */
         TrainerDashboard: {
             trainer: components["schemas"]["PersonRef"];
@@ -4539,6 +4671,11 @@ export interface components {
             /** Without Plan List */
             without_plan_list: components["schemas"]["MemberRow"][];
             progress: components["schemas"]["CheckupProgress"];
+            /**
+             * Logged 7D
+             * @default 0
+             */
+            logged_7d: number;
             /**
              * Attendance Tracked
              * @default false
@@ -4719,6 +4856,18 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** WeekVolume */
+        WeekVolume: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /** Sessions */
+            sessions: number;
+            /** Volume Kg */
+            volume_kg: number;
+        };
         /** WhatsAppLogIn */
         WhatsAppLogIn: {
             /**
@@ -4741,6 +4890,98 @@ export interface components {
             exercises: components["schemas"]["Exercise"][];
             /** Cooldown */
             cooldown: string;
+        };
+        /** WorkoutEntry */
+        WorkoutEntry: {
+            /** Exercise */
+            exercise: string;
+            /**
+             * From Plan
+             * @default false
+             */
+            from_plan: boolean;
+            /** Sets */
+            sets: components["schemas"]["WorkoutSet"][];
+        };
+        /** WorkoutHistory */
+        WorkoutHistory: {
+            /** Sessions */
+            sessions: components["schemas"]["WorkoutOut"][];
+            progress: components["schemas"]["WorkoutProgress"];
+        };
+        /** WorkoutIn */
+        WorkoutIn: {
+            /** Day Label */
+            day_label?: string | null;
+            /** Performed On */
+            performed_on?: string | null;
+            /** Duration Min */
+            duration_min?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /** Entries */
+            entries: components["schemas"]["WorkoutEntry"][];
+        };
+        /** WorkoutOut */
+        WorkoutOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Day Label */
+            day_label: string | null;
+            /**
+             * Performed On
+             * Format: date
+             */
+            performed_on: string;
+            /** Duration Min */
+            duration_min: number | null;
+            /** Notes */
+            notes: string | null;
+            /** Entries */
+            entries: components["schemas"]["WorkoutEntry"][];
+            /** Volume Kg */
+            volume_kg: number;
+            /** Editable */
+            editable: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WorkoutProgress */
+        WorkoutProgress: {
+            /** Sessions Total */
+            sessions_total: number;
+            /** Sessions 30D */
+            sessions_30d: number;
+            /** Streak Weeks */
+            streak_weeks: number;
+            /** Weeks */
+            weeks: components["schemas"]["WeekVolume"][];
+            /** Records */
+            records: components["schemas"]["PersonalRecord"][];
+        };
+        /** WorkoutSet */
+        WorkoutSet: {
+            /** Reps */
+            reps: number;
+            /** Weight Kg */
+            weight_kg?: number | null;
+        };
+        /** WorkoutTemplate */
+        WorkoutTemplate: {
+            /** Plan Id */
+            plan_id: string | null;
+            /** Days */
+            days: string[];
+            /** Day Label */
+            day_label: string | null;
+            /** Entries */
+            entries: components["schemas"]["TemplateEntry"][];
         };
         /** DueList */
         app__modules__finance__schemas__DueList: {
@@ -6459,6 +6700,185 @@ export interface operations {
             };
         };
     };
+    my_workouts_api_m_workouts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutHistory"];
+                };
+            };
+        };
+    };
+    log_workout_api_m_workouts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_template_api_m_workouts_template_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutTemplate"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workout_api_m_workouts__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fix_workout_api_m_workouts__session_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    member_workouts_api_members__member_id__workouts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutHistory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_checkups_api_members__member_id__checkups_get: {
         parameters: {
             query?: never;
@@ -6785,6 +7205,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_manual_plan_api_members__member_id__ai_plans_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualPlanIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

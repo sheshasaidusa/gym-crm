@@ -49,6 +49,7 @@ from app.modules.leads.service import end_of_day_utc
 from app.modules.members.models import Member, Membership
 from app.modules.members.schemas import MemberCounts
 from app.modules.members.status import CurrentMembership, current_membership_id, status_expr
+from app.modules.workouts.models import WorkoutSession
 
 LIST_SIZE = 8
 
@@ -155,6 +156,16 @@ async def trainer_dashboard(
         )
     ).all()
 
+    logged_7d = (
+        await db.scalar(
+            mine(
+                select(func.count(distinct(WorkoutSession.member_id)))
+                .join(Member, Member.id == WorkoutSession.member_id)
+                .where(WorkoutSession.performed_on > today - timedelta(days=7))
+            )
+        )
+        or 0
+    )
     tracked = await attendance.is_tracked(db, gym.id, today)
     visits_7d = at_risk_total = 0
     at_risk_rows: list = []
@@ -202,6 +213,7 @@ async def trainer_dashboard(
             [(r[0], r[1], r[2], None) for r in bare_rows.all()], today, days_from_today=True
         ),
         progress=checkup_progress(progress_rows),
+        logged_7d=logged_7d,
         attendance_tracked=tracked,
         visits_7d=visits_7d,
         at_risk=at_risk_total,
