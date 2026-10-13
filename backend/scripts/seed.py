@@ -26,6 +26,7 @@ from app.core.db import SessionLocal, utcnow  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.models import Branch, Gym, Member, Membership, Plan, StaffMembership, User  # noqa: E402
 from app.modules.attendance.models import Attendance, AttendanceSource  # noqa: E402
+from app.modules.finance.models import Payment, PaymentMethod  # noqa: E402
 from app.modules.gyms.models import Role  # noqa: E402
 from app.modules.leads.models import Lead, LeadSource, LeadStage  # noqa: E402
 from app.modules.members.service import compute_total  # noqa: E402
@@ -201,6 +202,32 @@ async def seed_leads_and_visits(db, gym: Gym, owner_id) -> None:
                 assigned_to=staff.get(owner_role),
                 next_follow_up_at=now + timedelta(days=follow_days),
                 trial_at=now + timedelta(days=2) if stage == LeadStage.TRIAL_BOOKED else None,
+            )
+        )
+
+    # Payments over the last months, so the revenue charts and new-vs-renewal split have data.
+    memberships = (
+        await db.execute(
+            select(Membership, Member)
+            .join(Member, Member.id == Membership.member_id)
+            .where(Member.gym_id == gym.id)
+        )
+    ).all()
+    methods = [PaymentMethod.UPI, PaymentMethod.CASH, PaymentMethod.CARD]
+    number = 0
+    for i, (ms, member) in enumerate(memberships):
+        # Pay about 60% of the total, on the membership's start date, so a few dues stay open.
+        number += 1
+        db.add(
+            Payment(
+                gym_id=gym.id,
+                member_id=member.id,
+                membership_id=ms.id,
+                amount=(ms.total * Decimal("0.6")).quantize(Decimal("1")),
+                method=methods[i % 3],
+                paid_on=min(ms.start_date, today_in(gym.timezone)),
+                receipt_no=f"R-{number:04d}",
+                recorded_by=owner_id,
             )
         )
 

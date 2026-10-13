@@ -49,6 +49,11 @@ function Dashboard() {
 
       {!can.role ? (
         <Skeleton className="h-64 w-full rounded-xl" />
+      ) : !me.data?.capabilities ? (
+        // An API that predates roles doesn't say what anyone may do, so there is nothing to show yet.
+        <p className="text-sm text-muted-foreground">
+          The server this app is connected to hasn&apos;t been updated yet, so the dashboards can&apos;t load.
+        </p>
       ) : can.has("analytics") ? (
         viewingTrainer ? (
           <TrainerDashboard trainerId={trainerId} />
