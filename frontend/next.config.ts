@@ -30,6 +30,23 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      {
+        // The member app shows one person's data: never cache or index it.
+        source: "/m/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+      {
+        // The service worker must always be re-checked, and may control only /m (the member app).
+        source: "/m-sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache" },
+          { key: "Service-Worker-Allowed", value: "/m" },
+        ],
+      },
     ];
   },
   async rewrites() {

@@ -1944,6 +1944,389 @@
         }
       }
     },
+    "/api/members/{member_id}/app-access": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "App Access",
+        "operationId": "app_access_api_members__member_id__app_access_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAccessOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Disable Access",
+        "operationId": "disable_access_api_members__member_id__app_access_delete",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/app-access/link": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Send Link",
+        "description": "A new activation link. Using it again resets the member's PIN and signs them out.",
+        "operationId": "send_link_api_members__member_id__app_access_link_post",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppLinkOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/activate/{token}": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Preview Activation",
+        "operationId": "preview_activation_api_m_activate__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/activate": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Activate",
+        "operationId": "activate_api_m_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/auth/login": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_m_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberLoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/auth/refresh": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Refresh",
+        "operationId": "refresh_api_m_auth_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/auth/logout": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_m_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/m/me": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_m_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberMe"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/plan": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Plan",
+        "operationId": "plan_api_m_plan_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberPlan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/checkups": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Checkups",
+        "operationId": "checkups_api_m_checkups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemberCheckUp"
+                  },
+                  "type": "array",
+                  "title": "Response Checkups Api M Checkups Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/checkup-photos/{photo_id}": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Checkup Photo",
+        "operationId": "checkup_photo_api_m_checkup_photos__photo_id__get",
+        "parameters": [
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Photo Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/members/{member_id}/checkups": {
       "get": {
         "tags": [
@@ -5320,6 +5703,61 @@
         ],
         "title": "AcceptInviteIn"
       },
+      "ActivateIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Token"
+          },
+          "pin": {
+            "type": "string",
+            "title": "Pin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "pin"
+        ],
+        "title": "ActivateIn"
+      },
+      "ActivationPreview": {
+        "properties": {
+          "gym_name": {
+            "type": "string",
+            "title": "Gym Name"
+          },
+          "brand_color": {
+            "type": "string",
+            "title": "Brand Color"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gym_name",
+          "brand_color",
+          "logo_url",
+          "first_name"
+        ],
+        "title": "ActivationPreview"
+      },
       "ActivityIn": {
         "properties": {
           "kind": {
@@ -5514,6 +5952,85 @@
           "checkups"
         ],
         "title": "AnalyticsOut"
+      },
+      "AppAccessOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "invited",
+              "active",
+              "disabled"
+            ],
+            "title": "Status"
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "link_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Expires At"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "AppAccessOut"
+      },
+      "AppLinkOut": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "expires_at"
+        ],
+        "title": "AppLinkOut"
       },
       "AssignTrainerIn": {
         "properties": {
@@ -9460,6 +9977,154 @@
         ],
         "title": "Meal"
       },
+      "MemberCheckUp": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "recorded_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Recorded On"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          },
+          "bmi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bmi"
+          },
+          "body_fat_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body Fat Pct"
+          },
+          "muscle_mass_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Muscle Mass Kg"
+          },
+          "chest_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chest Cm"
+          },
+          "waist_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waist Cm"
+          },
+          "hips_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hips Cm"
+          },
+          "arm_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arm Cm"
+          },
+          "thigh_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thigh Cm"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "photos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Photos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "recorded_on",
+          "weight_kg",
+          "bmi",
+          "body_fat_pct",
+          "muscle_mass_kg",
+          "chest_cm",
+          "waist_cm",
+          "hips_cm",
+          "arm_cm",
+          "thigh_cm",
+          "notes",
+          "photos"
+        ],
+        "title": "MemberCheckUp"
+      },
       "MemberCounts": {
         "properties": {
           "all": {
@@ -9810,6 +10475,126 @@
         ],
         "title": "MemberListItem"
       },
+      "MemberLoginIn": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 7,
+            "title": "Phone"
+          },
+          "pin": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 4,
+            "title": "Pin"
+          },
+          "gym_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gym Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone",
+          "pin"
+        ],
+        "title": "MemberLoginIn"
+      },
+      "MemberMe": {
+        "properties": {
+          "gym": {
+            "$ref": "#/components/schemas/PublicGym"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "trainer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Name"
+          },
+          "trainer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Phone"
+          },
+          "membership": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicMembership"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_checkup_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Checkup On"
+          },
+          "has_plan": {
+            "type": "boolean",
+            "title": "Has Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gym",
+          "member_name",
+          "first_name",
+          "trainer_name",
+          "trainer_phone",
+          "membership",
+          "progress",
+          "next_checkup_on",
+          "has_plan"
+        ],
+        "title": "MemberMe"
+      },
       "MemberMonth": {
         "properties": {
           "month": {
@@ -10124,6 +10909,38 @@
         ],
         "title": "MemberOut"
       },
+      "MemberPlan": {
+        "properties": {
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "updated_at"
+        ],
+        "title": "MemberPlan"
+      },
       "MemberRow": {
         "properties": {
           "member_id": {
@@ -10171,6 +10988,24 @@
         ],
         "title": "MemberRow",
         "description": "A member who needs attention, with the one date that matters."
+      },
+      "MemberSession": {
+        "properties": {
+          "gym_name": {
+            "type": "string",
+            "title": "Gym Name"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gym_name",
+          "first_name"
+        ],
+        "title": "MemberSession"
       },
       "MemberUpdate": {
         "properties": {

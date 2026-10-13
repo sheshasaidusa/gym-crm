@@ -606,6 +606,197 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/members/{member_id}/app-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** App Access */
+        get: operations["app_access_api_members__member_id__app_access_get"];
+        put?: never;
+        post?: never;
+        /** Disable Access */
+        delete: operations["disable_access_api_members__member_id__app_access_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/{member_id}/app-access/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Link
+         * @description A new activation link. Using it again resets the member's PIN and signs them out.
+         */
+        post: operations["send_link_api_members__member_id__app_access_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/activate/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Activation */
+        get: operations["preview_activation_api_m_activate__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate */
+        post: operations["activate_api_m_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_m_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh */
+        post: operations["refresh_api_m_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_m_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_m_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plan */
+        get: operations["plan_api_m_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/checkups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Checkups */
+        get: operations["checkups_api_m_checkups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/m/checkup-photos/{photo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Checkup Photo */
+        get: operations["checkup_photo_api_m_checkup_photos__photo_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/members/{member_id}/checkups": {
         parameters: {
             query?: never;
@@ -1617,6 +1808,24 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** ActivateIn */
+        ActivateIn: {
+            /** Token */
+            token: string;
+            /** Pin */
+            pin: string;
+        };
+        /** ActivationPreview */
+        ActivationPreview: {
+            /** Gym Name */
+            gym_name: string;
+            /** Brand Color */
+            brand_color: string;
+            /** Logo Url */
+            logo_url: string | null;
+            /** First Name */
+            first_name: string;
+        };
         /** ActivityIn */
         ActivityIn: {
             /** @default note */
@@ -1690,6 +1899,35 @@ export interface components {
              * @default []
              */
             branch_comparison: components["schemas"]["BranchRow"][];
+        };
+        /** AppAccessOut */
+        AppAccessOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "none" | "invited" | "active" | "disabled";
+            /** Activated At */
+            activated_at?: string | null;
+            /** Last Login At */
+            last_login_at?: string | null;
+            /** Link Expires At */
+            link_expires_at?: string | null;
+            /**
+             * Locked
+             * @default false
+             */
+            locked: boolean;
+        };
+        /** AppLinkOut */
+        AppLinkOut: {
+            /** Url */
+            url: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
         };
         /** AssignTrainerIn */
         AssignTrainerIn: {
@@ -2851,6 +3089,41 @@ export interface components {
             /** Protein G */
             protein_g: number;
         };
+        /** MemberCheckUp */
+        MemberCheckUp: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Recorded On
+             * Format: date
+             */
+            recorded_on: string;
+            /** Weight Kg */
+            weight_kg: number | null;
+            /** Bmi */
+            bmi: number | null;
+            /** Body Fat Pct */
+            body_fat_pct: number | null;
+            /** Muscle Mass Kg */
+            muscle_mass_kg: number | null;
+            /** Chest Cm */
+            chest_cm: number | null;
+            /** Waist Cm */
+            waist_cm: number | null;
+            /** Hips Cm */
+            hips_cm: number | null;
+            /** Arm Cm */
+            arm_cm: number | null;
+            /** Thigh Cm */
+            thigh_cm: number | null;
+            /** Notes */
+            notes: string | null;
+            /** Photos */
+            photos: string[];
+        };
         /** MemberCounts */
         MemberCounts: {
             /**
@@ -2960,6 +3233,33 @@ export interface components {
             status: components["schemas"]["Status"];
             current_membership: components["schemas"]["CurrentMembershipOut"] | null;
         };
+        /** MemberLoginIn */
+        MemberLoginIn: {
+            /** Phone */
+            phone: string;
+            /** Pin */
+            pin: string;
+            /** Gym Id */
+            gym_id?: string | null;
+        };
+        /** MemberMe */
+        MemberMe: {
+            gym: components["schemas"]["PublicGym"];
+            /** Member Name */
+            member_name: string;
+            /** First Name */
+            first_name: string;
+            /** Trainer Name */
+            trainer_name: string | null;
+            /** Trainer Phone */
+            trainer_phone: string | null;
+            membership: components["schemas"]["PublicMembership"] | null;
+            progress: components["schemas"]["PublicProgress"] | null;
+            /** Next Checkup On */
+            next_checkup_on: string | null;
+            /** Has Plan */
+            has_plan: boolean;
+        };
         /** MemberMonth */
         MemberMonth: {
             /** Month */
@@ -3037,6 +3337,12 @@ export interface components {
              */
             created_at: string;
         };
+        /** MemberPlan */
+        MemberPlan: {
+            plan: components["schemas"]["PlanContent"] | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
         /**
          * MemberRow
          * @description A member who needs attention, with the one date that matters.
@@ -3055,6 +3361,13 @@ export interface components {
             on?: string | null;
             /** Days */
             days?: number | null;
+        };
+        /** MemberSession */
+        MemberSession: {
+            /** Gym Name */
+            gym_name: string;
+            /** First Name */
+            first_name: string;
         };
         /** MemberUpdate */
         MemberUpdate: {
@@ -5443,6 +5756,321 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MemberOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    app_access_api_members__member_id__app_access_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppAccessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_access_api_members__member_id__app_access_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_link_api_members__member_id__app_access_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_activation_api_m_activate__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivationPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_api_m_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberSession"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_m_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberLoginIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberSession"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_api_m_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberSession"];
+                };
+            };
+        };
+    };
+    logout_api_m_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    me_api_m_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMe"];
+                };
+            };
+        };
+    };
+    plan_api_m_plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberPlan"];
+                };
+            };
+        };
+    };
+    checkups_api_m_checkups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberCheckUp"][];
+                };
+            };
+        };
+    };
+    checkup_photo_api_m_checkup_photos__photo_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                photo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

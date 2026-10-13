@@ -29,6 +29,7 @@ import { AIPlanSection } from "@/components/ai-plans/ai-plan-section";
 import { ProgressSection } from "@/components/checkups/progress-section";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberPayments } from "@/components/finance/member-payments";
+import { AppAccess } from "@/components/members/app-access";
 import { AddMembershipDialog, FreezeDialog } from "@/components/members/membership-dialogs";
 import { StatusBadge } from "@/components/members/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -74,7 +75,7 @@ import {
   type Member,
   type Membership,
 } from "@/lib/member-queries";
-import { useCan, useCurrency } from "@/lib/queries";
+import { useCan, useCurrency, useMe } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { whatsappUrl } from "@/lib/whatsapp";
 
@@ -310,6 +311,7 @@ export default function MemberPage() {
   const router = useRouter();
   const can = useCan();
   const currency = useCurrency();
+  const gymName = useMe().data?.gym.name ?? "the gym";
   const member = useMember(id);
   const regenerate = useRegeneratePreview(id);
   const updateMember = useUpdateMember(id);
@@ -646,6 +648,7 @@ export default function MemberPage() {
                 {m.notes ? <span className="font-normal whitespace-pre-line">{m.notes}</span> : null}
               </SideDetail>
             </dl>
+            <AppAccess memberId={m.id} name={m.name} phone={m.phone} gym={gymName} />
           </div>
         </aside>
       </div>
