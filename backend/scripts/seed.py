@@ -25,7 +25,9 @@ from app.core.dates import DurationUnit, membership_end, today_in  # noqa: E402
 from app.core.db import SessionLocal, utcnow  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.models import Branch, Gym, Member, Membership, Plan, StaffMembership, User  # noqa: E402
+from app.modules.attendance.models import Attendance, AttendanceSource  # noqa: E402
 from app.modules.gyms.models import Role  # noqa: E402
+from app.modules.leads.models import Lead, LeadSource, LeadStage  # noqa: E402
 from app.modules.members.service import compute_total  # noqa: E402
 
 DEMO_PASSWORD = "DemoPass123!"
@@ -94,6 +96,7 @@ async def main() -> None:
         )
         await db.flush()
         await seed_plans_and_members(db, gym, trainer.id)
+        await seed_leads_and_visits(db, gym, owner.id)
         await db.commit()
         print(f"Created demo gym. Log in as {OWNER_EMAIL} / {DEMO_PASSWORD}")
 
@@ -163,6 +166,67 @@ async def seed_plans_and_members(db, gym: Gym, trainer_id) -> None:
                 )
             )
         db.add(member)
+
+
+async def seed_leads_and_visits(db, gym: Gym, owner_id) -> None:
+    """A few leads and some visits, so the sales, desk and trainer boards have something on them."""
+    staff = {
+        m.role: m.user_id
+        for m in (
+            await db.scalars(select(StaffMembership).where(StaffMembership.gym_id == gym.id))
+        ).all()
+    }
+    now = utcnow()
+    leads = [
+        ("Ananya Rao", "+919822200001", LeadSource.INSTAGRAM, LeadStage.NEW, Role.SALES, -1),
+        ("Vikram Shah", "+919822200002", LeadSource.WALK_IN, LeadStage.CONTACTED, Role.SALES, 0),
+        (
+            "Meera Joshi",
+            "+919822200003",
+            LeadSource.REFERRAL,
+            LeadStage.TRIAL_BOOKED,
+            Role.SALES,
+            2,
+        ),
+        ("Farhan Ali", "+919822200004", LeadSource.GOOGLE, LeadStage.CONTACTED, Role.TRAINER, -2),
+    ]
+    for name, phone, source, stage, owner_role, follow_days in leads:
+        db.add(
+            Lead(
+                gym_id=gym.id,
+                name=name,
+                phone=phone,
+                source=source,
+                stage=stage,
+                assigned_to=staff.get(owner_role),
+                next_follow_up_at=now + timedelta(days=follow_days),
+                trial_at=now + timedelta(days=2) if stage == LeadStage.TRIAL_BOOKED else None,
+            )
+        )
+
+    # Visits: Arjun trains regularly, Sneha came a few times and then went quiet.
+    members = {
+        m.name: m for m in (await db.scalars(select(Member).where(Member.gym_id == gym.id))).all()
+    }
+    today = today_in(gym.timezone)
+    pattern = {"Arjun Mehta": [0, 1, 3, 4, 6, 8, 10, 12, 15, 17], "Sneha Iyer": [18, 20, 22, 25]}
+    for name, ago in pattern.items():
+        member = members.get(name)
+        if member is None:
+            continue
+        member.device_user_id = {"Arjun Mehta": "101", "Sneha Iyer": "102"}[name]
+        for d in ago:
+            day = today - timedelta(days=d)
+            db.add(
+                Attendance(
+                    gym_id=gym.id,
+                    member_id=member.id,
+                    branch_id=member.branch_id,
+                    checked_in_at=now - timedelta(days=d),
+                    local_date=day,
+                    source=AttendanceSource.DESK,
+                )
+            )
 
 
 if __name__ == "__main__":
