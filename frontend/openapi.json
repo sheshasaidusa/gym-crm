@@ -220,6 +220,46 @@
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Update Me",
+        "description": "People edit their own display name and phone (trainers' phone is shown to members).",
+        "operationId": "update_me_api_auth_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/auth/switch-gym": {
@@ -743,6 +783,103 @@
         }
       }
     },
+    "/api/staff/{staff_id}/deactivate": {
+      "post": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Deactivate Staff",
+        "description": "Stops someone logging in to this gym while keeping their history. Their clients and\nleads can be handed to another person in the same step.",
+        "operationId": "deactivate_staff_api_staff__staff_id__deactivate_post",
+        "parameters": [
+          {
+            "name": "staff_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Staff Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffDeactivate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/{staff_id}/reactivate": {
+      "post": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Reactivate Staff",
+        "operationId": "reactivate_staff_api_staff__staff_id__reactivate_post",
+        "parameters": [
+          {
+            "name": "staff_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Staff Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/invites": {
       "get": {
         "tags": [
@@ -785,6 +922,50 @@
         },
         "responses": {
           "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invites/{invite_id}/resend": {
+      "post": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Resend Invite",
+        "description": "A fresh link and a fresh expiry; the old link stops working.",
+        "operationId": "resend_invite_api_invites__invite_id__resend_post",
+        "parameters": [
+          {
+            "name": "invite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invite Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -1529,6 +1710,48 @@
         }
       }
     },
+    "/api/members/assign-trainer": {
+      "post": {
+        "tags": [
+          "members"
+        ],
+        "summary": "Assign Trainer",
+        "description": "Moves a set of members to one trainer (or none), e.g. when rebalancing clients.",
+        "operationId": "assign_trainer_api_members_assign_trainer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTrainerIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignTrainerOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/members/{member_id}/memberships": {
       "post": {
         "tags": [
@@ -1704,6 +1927,651 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/app-access": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "App Access",
+        "operationId": "app_access_api_members__member_id__app_access_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAccessOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Disable Access",
+        "operationId": "disable_access_api_members__member_id__app_access_delete",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/app-access/link": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Send Link",
+        "description": "A new activation link. Using it again resets the member's PIN and signs them out.",
+        "operationId": "send_link_api_members__member_id__app_access_link_post",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppLinkOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/activate/{token}": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Preview Activation",
+        "operationId": "preview_activation_api_m_activate__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/activate": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Activate",
+        "operationId": "activate_api_m_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/auth/login": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_m_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberLoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/auth/refresh": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Refresh",
+        "operationId": "refresh_api_m_auth_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/auth/logout": {
+      "post": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_m_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/m/me": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_m_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberMe"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/attendance": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Attendance History",
+        "operationId": "attendance_history_api_m_attendance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitHistory"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/plan": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Plan",
+        "operationId": "plan_api_m_plan_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberPlan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/checkups": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Checkups",
+        "operationId": "checkups_api_m_checkups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemberCheckUp"
+                  },
+                  "type": "array",
+                  "title": "Response Checkups Api M Checkups Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/checkup-photos/{photo_id}": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Checkup Photo",
+        "operationId": "checkup_photo_api_m_checkup_photos__photo_id__get",
+        "parameters": [
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Photo Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/workouts": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "My Workouts",
+        "operationId": "my_workouts_api_m_workouts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutHistory"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Log Workout",
+        "operationId": "log_workout_api_m_workouts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/workouts/template": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "My Template",
+        "description": "A day of their published plan, ready to fill in. Without `day`, the day after the last\none they logged.",
+        "operationId": "my_template_api_m_workouts_template_get",
+        "parameters": [
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutTemplate"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/m/workouts/{session_id}": {
+      "patch": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Fix Workout",
+        "operationId": "fix_workout_api_m_workouts__session_id__patch",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Delete Workout",
+        "operationId": "delete_workout_api_m_workouts__session_id__delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/workouts": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Member Workouts",
+        "operationId": "member_workouts_api_members__member_id__workouts_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutHistory"
                 }
               }
             }
@@ -2205,6 +3073,60 @@
         },
         "responses": {
           "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPlanOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/ai-plans/manual": {
+      "post": {
+        "tags": [
+          "ai-plans"
+        ],
+        "summary": "Create Manual Plan",
+        "description": "A draft written by hand, no AI needed: blank, or a copy of one of this member's plans.\nIt is checked when published, so it can be built up over a few sittings.",
+        "operationId": "create_manual_plan_api_members__member_id__ai_plans_manual_post",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualPlanIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -4052,6 +4974,567 @@
         }
       }
     },
+    "/api/analytics/staff": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Staff Analytics",
+        "description": "How each trainer and salesperson is doing over the last `months` months.",
+        "operationId": "staff_analytics_api_analytics_staff_get",
+        "parameters": [
+          {
+            "name": "months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "default": 3,
+              "title": "Months"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAnalytics"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/trainer": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Trainer Dashboard",
+        "description": "A trainer's clients and what needs doing. Owners and managers can look at any trainer's.",
+        "operationId": "trainer_dashboard_api_dashboard_trainer_get",
+        "parameters": [
+          {
+            "name": "trainer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trainer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainerDashboard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/desk": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Desk Dashboard",
+        "description": "Today at the front desk: renewals, dues, takings and trials.",
+        "operationId": "desk_dashboard_api_dashboard_desk_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/sales": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Sales Dashboard",
+        "description": "The caller's pipeline against the team's, follow-ups and trials.",
+        "operationId": "sales_dashboard_api_dashboard_sales_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance": {
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Check In",
+        "description": "Check a member in now. Doing it twice in a day returns the first visit. An expired or\nfrozen membership gives a warning but never blocks the visit.",
+        "operationId": "check_in_api_attendance_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckInIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Day List",
+        "description": "Who came in on a day (default today), latest first.",
+        "operationId": "day_list_api_attendance_get",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/{visit_id}": {
+      "delete": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Undo Check In",
+        "description": "Undo a mistaken check-in. Only today's; older visits are history.",
+        "operationId": "undo_check_in_api_attendance__visit_id__delete",
+        "parameters": [
+          {
+            "name": "visit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Visit Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/attendance": {
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Member History",
+        "operationId": "member_history_api_members__member_id__attendance_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 7,
+              "default": 90,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitHistory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "List Devices",
+        "operationId": "list_devices_api_devices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Devices Api Devices Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Create Device",
+        "operationId": "create_device_api_devices_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{device_id}/rotate-key": {
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Rotate Key",
+        "description": "A new key; the old one stops working at once.",
+        "operationId": "rotate_key_api_devices__device_id__rotate_key_post",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{device_id}": {
+      "patch": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Update Device",
+        "operationId": "update_device_api_devices__device_id__patch",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Delete Device",
+        "operationId": "delete_device_api_devices__device_id__delete",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/punches": {
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Report Punches",
+        "description": "Scanners and turnstiles post their punches here with an `X-Device-Key` header. Safe to\nresend: a punch already reported, or a second one from a member that day, is counted as a\nduplicate. See docs/attendance-ingestion.md.",
+        "operationId": "report_punches_api_attendance_punches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PunchesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PunchesOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/audit": {
       "get": {
         "tags": [
@@ -4956,6 +6439,61 @@
         ],
         "title": "AcceptInviteIn"
       },
+      "ActivateIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Token"
+          },
+          "pin": {
+            "type": "string",
+            "title": "Pin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "pin"
+        ],
+        "title": "ActivateIn"
+      },
+      "ActivationPreview": {
+        "properties": {
+          "gym_name": {
+            "type": "string",
+            "title": "Gym Name"
+          },
+          "brand_color": {
+            "type": "string",
+            "title": "Brand Color"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gym_name",
+          "brand_color",
+          "logo_url",
+          "first_name"
+        ],
+        "title": "ActivationPreview"
+      },
       "ActivityIn": {
         "properties": {
           "kind": {
@@ -5107,6 +6645,43 @@
           },
           "checkups": {
             "$ref": "#/components/schemas/CheckupProgress"
+          },
+          "revenue_by_method": {
+            "items": {
+              "$ref": "#/components/schemas/MethodAmount"
+            },
+            "type": "array",
+            "title": "Revenue By Method",
+            "default": []
+          },
+          "new_vs_renewal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NewVsRenewal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "branch_comparison": {
+            "items": {
+              "$ref": "#/components/schemas/BranchRow"
+            },
+            "type": "array",
+            "title": "Branch Comparison",
+            "default": []
+          },
+          "absent_14_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absent 14 Days"
           }
         },
         "type": "object",
@@ -5124,6 +6699,140 @@
           "checkups"
         ],
         "title": "AnalyticsOut"
+      },
+      "AppAccessOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "invited",
+              "active",
+              "disabled"
+            ],
+            "title": "Status"
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "link_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Expires At"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "AppAccessOut"
+      },
+      "AppLinkOut": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "expires_at"
+        ],
+        "title": "AppLinkOut"
+      },
+      "AssignTrainerIn": {
+        "properties": {
+          "member_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Member Ids"
+          },
+          "trainer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_ids",
+          "trainer_id"
+        ],
+        "title": "AssignTrainerIn"
+      },
+      "AssignTrainerOut": {
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "title": "Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "updated"
+        ],
+        "title": "AssignTrainerOut"
+      },
+      "AttendanceSource": {
+        "type": "string",
+        "enum": [
+          "desk",
+          "device",
+          "member_app",
+          "import"
+        ],
+        "title": "AttendanceSource"
       },
       "AuditOut": {
         "properties": {
@@ -5214,6 +6923,26 @@
           },
           "role": {
             "$ref": "#/components/schemas/Role"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities",
+            "default": []
           },
           "gyms": {
             "items": {
@@ -5375,6 +7104,34 @@
         ],
         "title": "BranchOut"
       },
+      "BranchRow": {
+        "properties": {
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "active_members": {
+            "type": "integer",
+            "title": "Active Members"
+          },
+          "new_this_month": {
+            "type": "integer",
+            "title": "New This Month"
+          },
+          "revenue_this_month": {
+            "type": "number",
+            "title": "Revenue This Month"
+          }
+        },
+        "type": "object",
+        "required": [
+          "branch",
+          "active_members",
+          "new_this_month",
+          "revenue_this_month"
+        ],
+        "title": "BranchRow"
+      },
       "BranchUpdate": {
         "properties": {
           "name": {
@@ -5449,6 +7206,68 @@
           "mapping"
         ],
         "title": "CheckIn"
+      },
+      "CheckInIn": {
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_id"
+        ],
+        "title": "CheckInIn"
+      },
+      "CheckInOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked In At"
+          },
+          "already": {
+            "type": "boolean",
+            "title": "Already"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "member_id",
+          "member_name",
+          "checked_in_at",
+          "already",
+          "warning"
+        ],
+        "title": "CheckInOut"
       },
       "CheckOut": {
         "properties": {
@@ -6092,6 +7911,287 @@
         ],
         "title": "DateOrder"
       },
+      "DayList": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VisitRow"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "total",
+          "items"
+        ],
+        "title": "DayList"
+      },
+      "DeskDashboard": {
+        "properties": {
+          "renewals": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Renewals"
+          },
+          "renewals_count": {
+            "type": "integer",
+            "title": "Renewals Count"
+          },
+          "outstanding": {
+            "type": "number",
+            "title": "Outstanding"
+          },
+          "dues_count": {
+            "type": "integer",
+            "title": "Dues Count"
+          },
+          "dues": {
+            "items": {
+              "$ref": "#/components/schemas/DueRow"
+            },
+            "type": "array",
+            "title": "Dues"
+          },
+          "payments_today": {
+            "type": "number",
+            "title": "Payments Today"
+          },
+          "payments_today_count": {
+            "type": "integer",
+            "title": "Payments Today Count"
+          },
+          "payments_by_method": {
+            "items": {
+              "$ref": "#/components/schemas/MethodAmount"
+            },
+            "type": "array",
+            "title": "Payments By Method"
+          },
+          "trials_today": {
+            "items": {
+              "$ref": "#/components/schemas/TrialRow"
+            },
+            "type": "array",
+            "title": "Trials Today"
+          },
+          "new_members_today": {
+            "type": "integer",
+            "title": "New Members Today"
+          },
+          "checkins_today": {
+            "type": "integer",
+            "title": "Checkins Today",
+            "default": 0
+          },
+          "attendance_tracked": {
+            "type": "boolean",
+            "title": "Attendance Tracked",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "renewals",
+          "renewals_count",
+          "outstanding",
+          "dues_count",
+          "dues",
+          "payments_today",
+          "payments_today_count",
+          "payments_by_method",
+          "trials_today",
+          "new_members_today"
+        ],
+        "title": "DeskDashboard"
+      },
+      "DeviceCreated": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "api_key": {
+            "type": "string",
+            "title": "Api Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "branch_id",
+          "is_active",
+          "last_seen_at",
+          "api_key"
+        ],
+        "title": "DeviceCreated"
+      },
+      "DeviceIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "DeviceIn"
+      },
+      "DeviceOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "branch_id",
+          "is_active",
+          "last_seen_at"
+        ],
+        "title": "DeviceOut"
+      },
+      "DeviceUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "DeviceUpdate"
+      },
       "DietPlan": {
         "properties": {
           "daily_calories": {
@@ -6176,16 +8276,12 @@
               }
             ]
           },
-          "goal": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Goal"
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
           },
           "last_checkup_on": {
             "anyOf": [
@@ -6228,7 +8324,7 @@
           "member_name",
           "phone",
           "trainer",
-          "goal",
+          "goals",
           "last_checkup_on",
           "days_since",
           "last_weight_kg"
@@ -6404,6 +8500,40 @@
           "whatsapp_sent_at"
         ],
         "title": "DueReminderOut"
+      },
+      "DueRow": {
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_id",
+          "name",
+          "phone",
+          "plan_name",
+          "balance"
+        ],
+        "title": "DueRow"
       },
       "DuplicateMode": {
         "type": "string",
@@ -8484,6 +10614,51 @@
         ],
         "title": "LeadOut"
       },
+      "LeadRow": {
+        "properties": {
+          "lead_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Lead Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LeadSource"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_id",
+          "name",
+          "phone",
+          "stage",
+          "source",
+          "at"
+        ],
+        "title": "LeadRow"
+      },
       "LeadSource": {
         "type": "string",
         "enum": [
@@ -8730,6 +10905,54 @@
         ],
         "title": "LoginIn"
       },
+      "LostReason": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "leads": {
+            "type": "integer",
+            "title": "Leads"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "leads"
+        ],
+        "title": "LostReason"
+      },
+      "ManualPlanIn": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "copy_from_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy From Plan Id"
+          }
+        },
+        "type": "object",
+        "title": "ManualPlanIn"
+      },
       "MeOut": {
         "properties": {
           "user": {
@@ -8740,6 +10963,26 @@
           },
           "role": {
             "$ref": "#/components/schemas/Role"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities",
+            "default": []
           },
           "gyms": {
             "items": {
@@ -8793,6 +11036,154 @@
           "protein_g"
         ],
         "title": "Meal"
+      },
+      "MemberCheckUp": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "recorded_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Recorded On"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          },
+          "bmi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bmi"
+          },
+          "body_fat_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body Fat Pct"
+          },
+          "muscle_mass_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Muscle Mass Kg"
+          },
+          "chest_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chest Cm"
+          },
+          "waist_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waist Cm"
+          },
+          "hips_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hips Cm"
+          },
+          "arm_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arm Cm"
+          },
+          "thigh_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thigh Cm"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "photos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Photos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "recorded_on",
+          "weight_kg",
+          "bmi",
+          "body_fat_pct",
+          "muscle_mass_kg",
+          "chest_cm",
+          "waist_cm",
+          "hips_cm",
+          "arm_cm",
+          "thigh_cm",
+          "notes",
+          "photos"
+        ],
+        "title": "MemberCheckUp"
       },
       "MemberCounts": {
         "properties": {
@@ -8929,15 +11320,13 @@
             ],
             "title": "Height Cm"
           },
-          "goal": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Goal"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/Goal"
+            },
+            "type": "array",
+            "title": "Goals",
+            "default": []
           },
           "diet_pref": {
             "anyOf": [
@@ -9014,6 +11403,18 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "device_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device User Id"
           },
           "joined_on": {
             "anyOf": [
@@ -9145,6 +11546,126 @@
           "current_membership"
         ],
         "title": "MemberListItem"
+      },
+      "MemberLoginIn": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 7,
+            "title": "Phone"
+          },
+          "pin": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 4,
+            "title": "Pin"
+          },
+          "gym_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gym Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone",
+          "pin"
+        ],
+        "title": "MemberLoginIn"
+      },
+      "MemberMe": {
+        "properties": {
+          "gym": {
+            "$ref": "#/components/schemas/PublicGym"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "trainer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Name"
+          },
+          "trainer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Phone"
+          },
+          "membership": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicMembership"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_checkup_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Checkup On"
+          },
+          "has_plan": {
+            "type": "boolean",
+            "title": "Has Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gym",
+          "member_name",
+          "first_name",
+          "trainer_name",
+          "trainer_phone",
+          "membership",
+          "progress",
+          "next_checkup_on",
+          "has_plan"
+        ],
+        "title": "MemberMe"
       },
       "MemberMonth": {
         "properties": {
@@ -9346,15 +11867,12 @@
             ],
             "title": "Height Cm"
           },
-          "goal": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Goal"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/Goal"
+            },
+            "type": "array",
+            "title": "Goals"
           },
           "diet_pref": {
             "anyOf": [
@@ -9397,6 +11915,17 @@
               }
             ],
             "title": "Notes"
+          },
+          "device_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device User Id"
           },
           "preview_enabled": {
             "type": "boolean",
@@ -9450,11 +11979,12 @@
           "emergency_contact_name",
           "emergency_contact_phone",
           "height_cm",
-          "goal",
+          "goals",
           "diet_pref",
           "experience_level",
           "medical_notes",
           "notes",
+          "device_user_id",
           "preview_enabled",
           "preview_url",
           "memberships",
@@ -9462,6 +11992,104 @@
           "created_at"
         ],
         "title": "MemberOut"
+      },
+      "MemberPlan": {
+        "properties": {
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "updated_at"
+        ],
+        "title": "MemberPlan"
+      },
+      "MemberRow": {
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_id",
+          "name",
+          "phone"
+        ],
+        "title": "MemberRow",
+        "description": "A member who needs attention, with the one date that matters."
+      },
+      "MemberSession": {
+        "properties": {
+          "gym_name": {
+            "type": "string",
+            "title": "Gym Name"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gym_name",
+          "first_name"
+        ],
+        "title": "MemberSession"
       },
       "MemberUpdate": {
         "properties": {
@@ -9571,15 +12199,19 @@
             ],
             "title": "Height Cm"
           },
-          "goal": {
+          "goals": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Goal"
+                "items": {
+                  "$ref": "#/components/schemas/Goal"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Goals"
           },
           "diet_pref": {
             "anyOf": [
@@ -9662,6 +12294,18 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "device_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device User Id"
           },
           "joined_on": {
             "anyOf": [
@@ -9828,23 +12472,58 @@
             "title": "End Date"
           },
           "price": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Price"
           },
           "discount": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Discount"
           },
           "joining_fee": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Joining Fee"
           },
           "tax_pct": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tax Pct"
           },
           "total": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Total"
           },
           "max_freeze_days": {
@@ -9922,11 +12601,25 @@
             "title": "Days Left"
           },
           "paid": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Paid"
           },
           "balance": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Balance"
           }
         },
@@ -9958,6 +12651,29 @@
         ],
         "title": "MembershipOut"
       },
+      "MethodAmount": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "payments": {
+            "type": "integer",
+            "title": "Payments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "amount",
+          "payments"
+        ],
+        "title": "MethodAmount"
+      },
       "MonthTotals": {
         "properties": {
           "month": {
@@ -9985,6 +12701,29 @@
           "profit"
         ],
         "title": "MonthTotals"
+      },
+      "NewVsRenewal": {
+        "properties": {
+          "new": {
+            "type": "number",
+            "title": "New"
+          },
+          "renewal": {
+            "type": "number",
+            "title": "Renewal"
+          },
+          "other": {
+            "type": "number",
+            "title": "Other"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new",
+          "renewal",
+          "other"
+        ],
+        "title": "NewVsRenewal"
       },
       "NotificationList": {
         "properties": {
@@ -10456,6 +13195,61 @@
           "created_at"
         ],
         "title": "PaymentOut"
+      },
+      "PersonRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "PersonRef"
+      },
+      "PersonalRecord": {
+        "properties": {
+          "exercise": {
+            "type": "string",
+            "title": "Exercise"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          },
+          "reps": {
+            "type": "integer",
+            "title": "Reps"
+          },
+          "performed_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Performed On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise",
+          "weight_kg",
+          "reps",
+          "performed_on"
+        ],
+        "title": "PersonalRecord"
       },
       "PhotoOut": {
         "properties": {
@@ -11333,6 +14127,78 @@
         ],
         "title": "PublicProgress"
       },
+      "Punch": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "User Id"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "ref": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Ref"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "at",
+          "ref"
+        ],
+        "title": "Punch"
+      },
+      "PunchesIn": {
+        "properties": {
+          "punches": {
+            "items": {
+              "$ref": "#/components/schemas/Punch"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Punches"
+          }
+        },
+        "type": "object",
+        "required": [
+          "punches"
+        ],
+        "title": "PunchesIn"
+      },
+      "PunchesOut": {
+        "properties": {
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "duplicates": {
+            "type": "integer",
+            "title": "Duplicates"
+          },
+          "unknown_user_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unknown User Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "duplicates",
+          "unknown_user_ids"
+        ],
+        "title": "PunchesOut"
+      },
       "ReceiptGym": {
         "properties": {
           "name": {
@@ -11613,7 +14479,8 @@
           "owner",
           "manager",
           "trainer",
-          "front_desk"
+          "front_desk",
+          "sales"
         ],
         "title": "Role"
       },
@@ -11670,6 +14537,149 @@
           "already_sent"
         ],
         "title": "RunSummaryOut"
+      },
+      "SalesDashboard": {
+        "properties": {
+          "pipeline_mine": {
+            "items": {
+              "$ref": "#/components/schemas/StageCount"
+            },
+            "type": "array",
+            "title": "Pipeline Mine"
+          },
+          "pipeline_team": {
+            "items": {
+              "$ref": "#/components/schemas/StageCount"
+            },
+            "type": "array",
+            "title": "Pipeline Team"
+          },
+          "follow_ups_due": {
+            "type": "integer",
+            "title": "Follow Ups Due"
+          },
+          "follow_ups": {
+            "items": {
+              "$ref": "#/components/schemas/LeadRow"
+            },
+            "type": "array",
+            "title": "Follow Ups"
+          },
+          "trials": {
+            "items": {
+              "$ref": "#/components/schemas/LeadRow"
+            },
+            "type": "array",
+            "title": "Trials"
+          },
+          "converted_mine_30d": {
+            "type": "integer",
+            "title": "Converted Mine 30D"
+          },
+          "converted_team_30d": {
+            "type": "integer",
+            "title": "Converted Team 30D"
+          },
+          "conversion_mine_90d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Mine 90D"
+          },
+          "conversion_team_90d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Team 90D"
+          },
+          "lost_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/LostReason"
+            },
+            "type": "array",
+            "title": "Lost Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pipeline_mine",
+          "pipeline_team",
+          "follow_ups_due",
+          "follow_ups",
+          "trials",
+          "converted_mine_30d",
+          "converted_team_30d",
+          "conversion_mine_90d",
+          "conversion_team_90d",
+          "lost_reasons"
+        ],
+        "title": "SalesDashboard"
+      },
+      "SalesPerformance": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "leads": {
+            "type": "integer",
+            "title": "Leads"
+          },
+          "contacted": {
+            "type": "integer",
+            "title": "Contacted"
+          },
+          "trials": {
+            "type": "integer",
+            "title": "Trials"
+          },
+          "converted": {
+            "type": "integer",
+            "title": "Converted"
+          },
+          "conversion_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Rate"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "name",
+          "leads",
+          "contacted",
+          "trials",
+          "converted",
+          "conversion_rate",
+          "revenue"
+        ],
+        "title": "SalesPerformance"
       },
       "SendStatus": {
         "type": "string",
@@ -11749,6 +14759,66 @@
         ],
         "title": "SourceCount"
       },
+      "StaffAnalytics": {
+        "properties": {
+          "period_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Period Start"
+          },
+          "trainers": {
+            "items": {
+              "$ref": "#/components/schemas/TrainerPerformance"
+            },
+            "type": "array",
+            "title": "Trainers"
+          },
+          "sales": {
+            "items": {
+              "$ref": "#/components/schemas/SalesPerformance"
+            },
+            "type": "array",
+            "title": "Sales"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period_start",
+          "trainers",
+          "sales"
+        ],
+        "title": "StaffAnalytics"
+      },
+      "StaffDeactivate": {
+        "properties": {
+          "reassign_members_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reassign Members To"
+          },
+          "reassign_leads_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reassign Leads To"
+          }
+        },
+        "type": "object",
+        "title": "StaffDeactivate"
+      },
       "StaffOut": {
         "properties": {
           "id": {
@@ -11769,6 +14839,17 @@
             "type": "string",
             "title": "Email"
           },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
           "role": {
             "$ref": "#/components/schemas/Role"
           },
@@ -11783,6 +14864,11 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
           },
           "joined_at": {
             "type": "string",
@@ -11844,6 +14930,18 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           }
         },
         "type": "object",
@@ -11951,6 +15049,136 @@
         ],
         "title": "Template"
       },
+      "TemplateEntry": {
+        "properties": {
+          "exercise": {
+            "type": "string",
+            "title": "Exercise"
+          },
+          "from_plan": {
+            "type": "boolean",
+            "title": "From Plan",
+            "default": true
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSet"
+            },
+            "type": "array",
+            "title": "Sets"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise",
+          "sets"
+        ],
+        "title": "TemplateEntry"
+      },
+      "TrainerDashboard": {
+        "properties": {
+          "trainer": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "clients": {
+            "$ref": "#/components/schemas/MemberCounts"
+          },
+          "expiring": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Expiring"
+          },
+          "checkups_due": {
+            "type": "integer",
+            "title": "Checkups Due"
+          },
+          "checkups_due_list": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Checkups Due List"
+          },
+          "without_plan": {
+            "type": "integer",
+            "title": "Without Plan"
+          },
+          "without_plan_list": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Without Plan List"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/CheckupProgress"
+          },
+          "logged_7d": {
+            "type": "integer",
+            "title": "Logged 7D",
+            "default": 0
+          },
+          "attendance_tracked": {
+            "type": "boolean",
+            "title": "Attendance Tracked",
+            "default": false
+          },
+          "visits_7d": {
+            "type": "integer",
+            "title": "Visits 7D",
+            "default": 0
+          },
+          "at_risk": {
+            "type": "integer",
+            "title": "At Risk",
+            "default": 0
+          },
+          "at_risk_list": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "At Risk List",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "trainer",
+          "clients",
+          "expiring",
+          "checkups_due",
+          "checkups_due_list",
+          "without_plan",
+          "without_plan_list",
+          "progress"
+        ],
+        "title": "TrainerDashboard"
+      },
       "TrainerDraft": {
         "properties": {
           "name": {
@@ -11995,6 +15223,134 @@
         ],
         "title": "TrainerDraft"
       },
+      "TrainerPerformance": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "clients": {
+            "type": "integer",
+            "title": "Clients"
+          },
+          "active_clients": {
+            "type": "integer",
+            "title": "Active Clients"
+          },
+          "renewal_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renewal Rate"
+          },
+          "checkup_compliance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkup Compliance"
+          },
+          "members_tracked": {
+            "type": "integer",
+            "title": "Members Tracked"
+          },
+          "on_track": {
+            "type": "integer",
+            "title": "On Track"
+          },
+          "avg_weight_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Weight Change"
+          },
+          "visits_per_client_week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visits Per Client Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "name",
+          "clients",
+          "active_clients",
+          "renewal_rate",
+          "checkup_compliance",
+          "members_tracked",
+          "on_track",
+          "avg_weight_change"
+        ],
+        "title": "TrainerPerformance"
+      },
+      "TrialRow": {
+        "properties": {
+          "lead_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Lead Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "trial_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Trial At"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_id",
+          "name",
+          "phone",
+          "trial_at",
+          "assigned_to"
+        ],
+        "title": "TrialRow"
+      },
       "Upcoming": {
         "properties": {
           "expiring_30_days": {
@@ -12012,6 +15368,37 @@
           "renewal_value"
         ],
         "title": "Upcoming"
+      },
+      "UpdateMeIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "title": "UpdateMeIn"
       },
       "UploadOut": {
         "properties": {
@@ -12065,6 +15452,17 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           }
         },
         "type": "object",
@@ -12115,6 +15513,86 @@
         ],
         "title": "ValidationError"
       },
+      "VisitHistory": {
+        "properties": {
+          "dates": {
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "type": "array",
+            "title": "Dates"
+          },
+          "visits_30d": {
+            "type": "integer",
+            "title": "Visits 30D"
+          },
+          "last_visit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Visit"
+          },
+          "streak_weeks": {
+            "type": "integer",
+            "title": "Streak Weeks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dates",
+          "visits_30d",
+          "last_visit",
+          "streak_weeks"
+        ],
+        "title": "VisitHistory"
+      },
+      "VisitRow": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked In At"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AttendanceSource"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "member_id",
+          "member_name",
+          "phone",
+          "checked_in_at",
+          "source"
+        ],
+        "title": "VisitRow"
+      },
       "VoidIn": {
         "properties": {
           "reason": {
@@ -12129,6 +15607,30 @@
           "reason"
         ],
         "title": "VoidIn"
+      },
+      "WeekVolume": {
+        "properties": {
+          "week_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Week Start"
+          },
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week_start",
+          "sessions",
+          "volume_kg"
+        ],
+        "title": "WeekVolume"
       },
       "WhatsAppLogIn": {
         "properties": {
@@ -12186,6 +15688,319 @@
           "cooldown"
         ],
         "title": "WorkoutDay"
+      },
+      "WorkoutEntry": {
+        "properties": {
+          "exercise": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Exercise"
+          },
+          "from_plan": {
+            "type": "boolean",
+            "title": "From Plan",
+            "default": false
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSet"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Sets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise",
+          "sets"
+        ],
+        "title": "WorkoutEntry"
+      },
+      "WorkoutHistory": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutOut"
+            },
+            "type": "array",
+            "title": "Sessions"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/WorkoutProgress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions",
+          "progress"
+        ],
+        "title": "WorkoutHistory"
+      },
+      "WorkoutIn": {
+        "properties": {
+          "day_label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Label"
+          },
+          "performed_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performed On"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 600.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutEntry"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "title": "WorkoutIn"
+      },
+      "WorkoutOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "day_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Label"
+          },
+          "performed_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Performed On"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "editable": {
+            "type": "boolean",
+            "title": "Editable"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "day_label",
+          "performed_on",
+          "duration_min",
+          "notes",
+          "entries",
+          "volume_kg",
+          "editable",
+          "created_at"
+        ],
+        "title": "WorkoutOut"
+      },
+      "WorkoutProgress": {
+        "properties": {
+          "sessions_total": {
+            "type": "integer",
+            "title": "Sessions Total"
+          },
+          "sessions_30d": {
+            "type": "integer",
+            "title": "Sessions 30D"
+          },
+          "streak_weeks": {
+            "type": "integer",
+            "title": "Streak Weeks"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/WeekVolume"
+            },
+            "type": "array",
+            "title": "Weeks"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalRecord"
+            },
+            "type": "array",
+            "title": "Records"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions_total",
+          "sessions_30d",
+          "streak_weeks",
+          "weeks",
+          "records"
+        ],
+        "title": "WorkoutProgress"
+      },
+      "WorkoutSet": {
+        "properties": {
+          "reps": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Reps"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reps"
+        ],
+        "title": "WorkoutSet"
+      },
+      "WorkoutTemplate": {
+        "properties": {
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "days": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Days"
+          },
+          "day_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Label"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "days",
+          "day_label",
+          "entries"
+        ],
+        "title": "WorkoutTemplate"
       },
       "app__modules__finance__schemas__DueList": {
         "properties": {

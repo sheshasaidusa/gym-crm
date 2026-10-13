@@ -8,7 +8,8 @@ from pwdlib import PasswordHash
 
 from app.core.config import settings
 
-TokenType = Literal["access", "refresh"]
+# Staff use "access"/"refresh"; members get their own types, so one can never pass as the other.
+TokenType = Literal["access", "refresh", "m_access", "m_refresh"]
 
 _password_hash = PasswordHash.recommended()
 
@@ -31,6 +32,27 @@ def create_token(user_id: uuid.UUID, gym_id: uuid.UUID, token_type: TokenType) -
     payload = {
         "sub": str(user_id),
         "gym": str(gym_id),
+        "type": token_type,
+        "iat": now,
+        "exp": now + ttl,
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def create_member_token(
+    member_id: uuid.UUID, gym_id: uuid.UUID, version: int, token_type: TokenType
+) -> str:
+    """`version` is the account's token_version: bumping it signs the member out everywhere."""
+    now = datetime.now(UTC)
+    ttl = (
+        timedelta(minutes=settings.access_token_minutes)
+        if token_type == "m_access"
+        else timedelta(days=settings.member_refresh_token_days)
+    )
+    payload = {
+        "sub": str(member_id),
+        "gym": str(gym_id),
+        "tv": version,
         "type": token_type,
         "iat": now,
         "exp": now + ttl,

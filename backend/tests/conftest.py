@@ -10,8 +10,9 @@ from dataclasses import dataclass
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
+from app.core.config import Settings
 from app.core.db import Base, get_db, get_sessionmaker
 from app.main import app
 
@@ -23,16 +24,27 @@ def _reset_rate_limits():
     RateLimiter.reset_all()
 
 
+# Set TEST_DATABASE_URL to run the suite against Postgres (CI does); otherwise in-memory SQLite.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+
+
 @pytest.fixture
 async def sessions() -> AsyncIterator[async_sessionmaker]:
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
-        await conn.run_sync(Base.metadata.create_all)
+    if TEST_DATABASE_URL:
+        url = Settings(database_url=TEST_DATABASE_URL).database_url  # normalizes to asyncpg
+        engine = create_async_engine(url, poolclass=NullPool)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+    else:
+        engine = create_async_engine(
+            "sqlite+aiosqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        async with engine.begin() as conn:
+            await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+            await conn.run_sync(Base.metadata.create_all)
     yield async_sessionmaker(engine, expire_on_commit=False)
     await engine.dispose()
 

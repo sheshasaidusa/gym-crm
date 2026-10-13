@@ -14,27 +14,32 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.schemas import round_money
 from app.modules.analytics.schemas import (
     AnalyticsOut,
+    BranchRow,
     CheckupProgress,
     FinanceMonth,
     GoalProgress,
     Kpis,
     LeadAnalytics,
     MemberMonth,
+    MethodAmount,
+    NewVsRenewal,
     PlanAmount,
     PlanCount,
     SourceCount,
     StageCount,
     Upcoming,
 )
+from app.modules.attendance import service as attendance
+from app.modules.attendance.models import Attendance
 from app.modules.checkups.models import CheckUp
 from app.modules.finance.models import Expense, Payment
-from app.modules.gyms.models import Gym
+from app.modules.gyms.models import Branch, Gym
 from app.modules.leads.models import Lead, LeadSource, LeadStage
 from app.modules.members.models import Goal, Member, Membership
 
@@ -152,7 +157,7 @@ async def build(
                     CheckUp.body_fat_pct,
                     CheckUp.muscle_mass_kg,
                     CheckUp.waist_cm,
-                    Member.goal,
+                    Member.goals,
                 )
                 .join(Member, Member.id == CheckUp.member_id)
                 .where(CheckUp.recorded_on >= period_start, CheckUp.recorded_on <= today)
@@ -183,7 +188,14 @@ async def build(
     pay_rows = (
         await db.execute(
             member_scope(
-                select(Payment.paid_on, Payment.amount, Membership.plan_name)
+                select(
+                    Payment.paid_on,
+                    Payment.amount,
+                    Membership.plan_name,
+                    Payment.method,
+                    Payment.member_id,
+                    Membership.start_date,
+                )
                 .join(Member, Member.id == Payment.member_id)
                 .outerjoin(Membership, Membership.id == Payment.membership_id)
                 .where(
@@ -196,10 +208,24 @@ async def build(
     ).all()
     revenue: dict[str, Decimal] = defaultdict(lambda: ZERO)
     by_plan: dict[str, Decimal] = defaultdict(lambda: ZERO)
-    for paid_on, amount, plan_name in pay_rows:
+    by_method: dict[str, list] = defaultdict(lambda: [ZERO, 0])
+    first_start = {mid: min(m.start for m in ms) for mid, ms in by_member.items()}
+    new_money = renewal_money = other_money = ZERO
+    revenue_by_member: dict[uuid.UUID, Decimal] = defaultdict(lambda: ZERO)
+    for paid_on, amount, plan_name, method, member_id, ms_start in pay_rows:
         revenue[month_key(paid_on)] += amount
+        if month_key(paid_on) == this_key:
+            revenue_by_member[member_id] += amount
         if paid_on >= period_start:
             by_plan[plan_name or OTHER_PAYMENTS] += amount
+            by_method[method.value][0] += amount
+            by_method[method.value][1] += 1
+            if ms_start is None:
+                other_money += amount
+            elif ms_start == first_start.get(member_id):
+                new_money += amount  # paid against the member's first membership
+            else:
+                renewal_money += amount
 
     expense_stmt = select(Expense.spent_on, Expense.amount).where(
         Expense.gym_id == gym.id, Expense.spent_on >= period_start, Expense.spent_on <= today
@@ -259,6 +285,67 @@ async def build(
         ),
     )
 
+    # --- Branch comparison (only when looking at the whole gym) ---------------------------
+    branch_rows: list[BranchRow] = []
+    branches = (
+        await db.execute(select(Branch.id, Branch.name).where(Branch.gym_id == gym.id))
+    ).all()
+    if branch_id is None and len(branches) > 1:
+        member_branch = dict(
+            (
+                await db.execute(select(Member.id, Member.branch_id).where(Member.gym_id == gym.id))
+            ).all()
+        )
+        new_by_branch = Counter(
+            b
+            for (b,) in (
+                await db.execute(
+                    select(Member.branch_id).where(
+                        Member.gym_id == gym.id, Member.joined_on >= today.replace(day=1)
+                    )
+                )
+            ).all()
+        )
+        active_by_branch = Counter(
+            member_branch.get(mid)
+            for mid, ms in by_member.items()
+            if any(m.active_on(today) for m in ms)
+        )
+        money_by_branch: dict[uuid.UUID | None, Decimal] = defaultdict(lambda: ZERO)
+        for mid, amount in revenue_by_member.items():
+            money_by_branch[member_branch.get(mid)] += amount
+        for bid, name in [*branches, (None, "No branch")]:
+            if active_by_branch[bid] or new_by_branch[bid] or money_by_branch[bid]:
+                branch_rows.append(
+                    BranchRow(
+                        branch=name,
+                        active_members=active_by_branch[bid],
+                        new_this_month=new_by_branch[bid],
+                        revenue_this_month=round_money(money_by_branch[bid]),
+                    )
+                )
+
+    absent = None
+    if await attendance.is_tracked(db, gym.id, today):
+        seen = dict(
+            (
+                await db.execute(
+                    member_scope(
+                        select(Attendance.member_id, func.max(Attendance.local_date))
+                        .join(Member, Member.id == Attendance.member_id)
+                        .group_by(Attendance.member_id)
+                    )
+                )
+            ).all()
+        )
+        cutoff = today - timedelta(days=attendance.ABSENT_DAYS)
+        absent = sum(
+            1
+            for mid, ms in by_member.items()
+            if any(m.active_on(today) and m.start <= cutoff for m in ms)
+            and (mid not in seen or seen[mid] <= cutoff)
+        )
+
     return AnalyticsOut(
         currency=gym.currency,
         today=today,
@@ -286,6 +373,17 @@ async def build(
         ),
         leads=leads,
         checkups=checkup_progress(checkup_rows),
+        revenue_by_method=[
+            MethodAmount(method=m, amount=round_money(a), payments=n)
+            for m, (a, n) in sorted(by_method.items(), key=lambda x: -x[1][0])
+        ],
+        new_vs_renewal=NewVsRenewal(
+            new=round_money(new_money),
+            renewal=round_money(renewal_money),
+            other=round_money(other_money),
+        ),
+        branch_comparison=branch_rows,
+        absent_14_days=absent,
     )
 
 
@@ -326,14 +424,18 @@ def checkup_progress(rows) -> CheckupProgress:
             continue
         first, last = checks[0], checks[-1]
         n_tracked += 1
-        good = on_track(first.goal, first, last)
-        n_on_track += good
-        g = goals[first.goal]
-        g[0] += 1
-        g[1] += good
-        if (w := _change(first, last, "weight_kg")) is not None:
+        member_goals: list[Goal | None] = [Goal(x) for x in first.goals or []] or [None]
+        # Overall progress follows the first (primary) goal; each goal also gets its own row.
+        n_on_track += on_track(member_goals[0], first, last)
+        w = _change(first, last, "weight_kg")
+        for goal in member_goals:
+            g = goals[goal]
+            g[0] += 1
+            g[1] += on_track(goal, first, last)
+            if w is not None:
+                g[2].append(w)
+        if w is not None:
             weight_changes.append(w)
-            g[2].append(w)
         if (f := _change(first, last, "body_fat_pct")) is not None:
             fat_changes.append(f)
 

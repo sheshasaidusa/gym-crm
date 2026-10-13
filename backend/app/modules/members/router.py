@@ -1,17 +1,18 @@
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy import Select, String, cast, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import CurrentContext, DbSession, TenantContext, require_roles
+from app.core.deps import DbSession, TenantContext
+from app.core.permissions import Cap, can, ctx_with, ensure_member_visible, scope_members
 from app.core.schemas import Page
 from app.core.security import generate_url_token
 from app.modules.audit import service as audit
 from app.modules.auth.models import User
-from app.modules.gyms.models import Role
 from app.modules.members import service
 from app.modules.members.models import Member, Membership
 from app.modules.members.schemas import (
@@ -27,11 +28,9 @@ from app.modules.members.status import CurrentMembership, Status, current_member
 
 router = APIRouter(tags=["members"])
 
-# Front desk onboards members and sells memberships; trainers can view.
-DeskContext = Annotated[
-    TenantContext, Depends(require_roles(Role.OWNER, Role.MANAGER, Role.FRONT_DESK))
-]
-ManagerContext = Annotated[TenantContext, Depends(require_roles(Role.OWNER, Role.MANAGER))]
+ViewContext = ctx_with(Cap.MEMBERS_VIEW)  # trainers: only their own members
+EditContext = ctx_with(Cap.MEMBERS_EDIT)  # front desk and up: onboard, edit, sell memberships
+DeleteContext = ctx_with(Cap.MEMBERS_DELETE)
 
 StatusFilter = Literal["active", "expiring", "frozen", "upcoming", "expired", "none"]
 SortOption = Literal["newest", "name", "ending"]
@@ -47,6 +46,18 @@ async def load_member(db: DbSession, gym_id: uuid.UUID, member_id: uuid.UUID) ->
     if member is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
     return member
+
+
+async def load_member_for(db: DbSession, ctx: TenantContext, member_id: uuid.UUID) -> Member:
+    """load_member, but out-of-scope members (another trainer's, another branch's) 404."""
+    member = await load_member(db, ctx.gym_id, member_id)
+    ensure_member_visible(ctx, member)
+    return member
+
+
+async def member_out_for(db: DbSession, ctx: TenantContext, member: Member, today) -> MemberOut:
+    out = await service.member_out(db, member, today)
+    return out if can(ctx, Cap.MEMBER_MONEY) else service.hide_money(out)
 
 
 async def load_membership(db: DbSession, gym_id: uuid.UUID, membership_id: uuid.UUID) -> Membership:
@@ -88,7 +99,7 @@ def _filtered(
 
 @router.get("/members", response_model=Page[MemberListItem])
 async def list_members(
-    ctx: CurrentContext,
+    ctx: ViewContext,
     db: DbSession,
     q: str | None = None,
     status_: Annotated[StatusFilter | None, Query(alias="status")] = None,
@@ -107,7 +118,7 @@ async def list_members(
         .outerjoin(CurrentMembership, CurrentMembership.id == current_membership_id(today))
         .outerjoin(User, User.id == Member.trainer_id)
     )
-    stmt = _filtered(stmt, ctx.gym_id, q, branch_id, trainer_id, tag)
+    stmt = scope_members(_filtered(stmt, ctx.gym_id, q, branch_id, trainer_id, tag), ctx)
     if status_ == "active":
         stmt = stmt.where(member_status.in_([Status.ACTIVE.value, Status.EXPIRING.value]))
     elif status_:
@@ -126,7 +137,7 @@ async def list_members(
 
 @router.get("/members/counts", response_model=MemberCounts)
 async def member_counts(
-    ctx: CurrentContext,
+    ctx: ViewContext,
     db: DbSession,
     q: str | None = None,
     branch_id: uuid.UUID | None = None,
@@ -140,7 +151,8 @@ async def member_counts(
         .select_from(Member)
         .outerjoin(CurrentMembership, CurrentMembership.id == current_membership_id(today))
     )
-    stmt = _filtered(stmt, ctx.gym_id, q, branch_id, trainer_id, tag).group_by(member_status)
+    stmt = scope_members(_filtered(stmt, ctx.gym_id, q, branch_id, trainer_id, tag), ctx)
+    stmt = stmt.group_by(member_status)
     counts = MemberCounts()
     for key, n in (await db.execute(stmt)).all():
         setattr(counts, key, n)
@@ -150,9 +162,10 @@ async def member_counts(
 
 
 @router.post("/members", response_model=MemberOut, status_code=status.HTTP_201_CREATED)
-async def create_member(body: MemberIn, ctx: DeskContext, db: DbSession):
+async def create_member(body: MemberIn, ctx: EditContext, db: DbSession):
     await service.validate_refs(db, ctx.gym_id, body.branch_id, body.trainer_id)
     await service.ensure_unique_phone(db, ctx.gym_id, body.phone)
+    await service.ensure_unique_device_user(db, ctx.gym_id, body.device_user_id)
     today = await service.gym_today(db, ctx.gym_id)
 
     values = body.model_dump(exclude={"membership", "joined_on"})
@@ -170,18 +183,18 @@ async def create_member(body: MemberIn, ctx: DeskContext, db: DbSession):
         summary += f" on {ms.plan_name}"
     audit.record(db, ctx, "member.created", summary, member.id)
     await db.commit()
-    return await service.member_out(db, await load_member(db, ctx.gym_id, member.id), today)
+    return await member_out_for(db, ctx, await load_member(db, ctx.gym_id, member.id), today)
 
 
 @router.get("/members/{member_id}", response_model=MemberOut)
-async def get_member(member_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
+async def get_member(member_id: uuid.UUID, ctx: ViewContext, db: DbSession):
     today = await service.gym_today(db, ctx.gym_id)
-    return await service.member_out(db, await load_member(db, ctx.gym_id, member_id), today)
+    return await member_out_for(db, ctx, await load_member_for(db, ctx, member_id), today)
 
 
 @router.patch("/members/{member_id}", response_model=MemberOut)
-async def update_member(member_id: uuid.UUID, body: MemberUpdate, ctx: DeskContext, db: DbSession):
-    member = await load_member(db, ctx.gym_id, member_id)
+async def update_member(member_id: uuid.UUID, body: MemberUpdate, ctx: EditContext, db: DbSession):
+    member = await load_member_for(db, ctx, member_id)
     values = body.model_dump(exclude_unset=True)
     if values.get("name") is None:
         values.pop("name", None)
@@ -193,6 +206,10 @@ async def update_member(member_id: uuid.UUID, body: MemberUpdate, ctx: DeskConte
         values["tags"] = []
     if "phone" in values:
         await service.ensure_unique_phone(db, ctx.gym_id, values["phone"], exclude_id=member.id)
+    if "device_user_id" in values:
+        await service.ensure_unique_device_user(
+            db, ctx.gym_id, values["device_user_id"], exclude_id=member.id
+        )
     await service.validate_refs(db, ctx.gym_id, values.get("branch_id"), values.get("trainer_id"))
     changed = audit.changes({k: getattr(member, k) for k in values}, values)
     for key, value in values.items():
@@ -212,15 +229,15 @@ async def update_member(member_id: uuid.UUID, body: MemberUpdate, ctx: DeskConte
     except IntegrityError as exc:
         raise service.conflict("Another member already uses this phone number") from exc
     today = await service.gym_today(db, ctx.gym_id)
-    return await service.member_out(db, await load_member(db, ctx.gym_id, member_id), today)
+    return await member_out_for(db, ctx, await load_member(db, ctx.gym_id, member_id), today)
 
 
 @router.delete("/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_member(member_id: uuid.UUID, ctx: ManagerContext, db: DbSession) -> None:
+async def delete_member(member_id: uuid.UUID, ctx: DeleteContext, db: DbSession) -> None:
     from app.core.storage import get_storage
     from app.modules.checkups.models import CheckUp, CheckUpPhoto
 
-    member = await load_member(db, ctx.gym_id, member_id)
+    member = await load_member_for(db, ctx, member_id)
     photo_keys = (
         await db.scalars(
             select(CheckUpPhoto.storage_key)
@@ -236,14 +253,47 @@ async def delete_member(member_id: uuid.UUID, ctx: ManagerContext, db: DbSession
 
 
 @router.post("/members/{member_id}/preview-link", response_model=MemberOut)
-async def regenerate_preview_link(member_id: uuid.UUID, ctx: DeskContext, db: DbSession):
+async def regenerate_preview_link(member_id: uuid.UUID, ctx: EditContext, db: DbSession):
     """Issues a new preview link; the old one stops working."""
-    member = await load_member(db, ctx.gym_id, member_id)
+    member = await load_member_for(db, ctx, member_id)
     member.preview_token = generate_url_token()
     audit.record(db, ctx, "member.link_reset", f"Reset {member.name}'s preview link", member.id)
     await db.commit()
     today = await service.gym_today(db, ctx.gym_id)
-    return await service.member_out(db, await load_member(db, ctx.gym_id, member_id), today)
+    return await member_out_for(db, ctx, await load_member(db, ctx.gym_id, member_id), today)
+
+
+class AssignTrainerIn(BaseModel):
+    member_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+    trainer_id: uuid.UUID | None  # null = unassign
+
+
+class AssignTrainerOut(BaseModel):
+    updated: int
+
+
+@router.post("/members/assign-trainer", response_model=AssignTrainerOut)
+async def assign_trainer(
+    body: AssignTrainerIn, ctx: ctx_with(Cap.MEMBERS_ASSIGN_TRAINER), db: DbSession
+):
+    """Moves a set of members to one trainer (or none), e.g. when rebalancing clients."""
+    await service.validate_refs(db, ctx.gym_id, None, body.trainer_id)
+    stmt = select(Member).where(Member.gym_id == ctx.gym_id, Member.id.in_(body.member_ids))
+    members = (await db.scalars(scope_members(stmt, ctx))).all()
+    for member in members:
+        member.trainer_id = body.trainer_id
+    trainer = await db.get(User, body.trainer_id) if body.trainer_id else None
+    to = trainer.name if trainer else "no trainer"
+    audit.record(
+        db,
+        ctx,
+        "member.trainer_assigned",
+        f"Assigned {len(members)} member(s) to {to}",
+        body.trainer_id,
+        {"member_ids": [str(m.id) for m in members]},
+    )
+    await db.commit()
+    return AssignTrainerOut(updated=len(members))
 
 
 # --- Memberships ------------------------------------------------------------
@@ -254,8 +304,8 @@ async def regenerate_preview_link(member_id: uuid.UUID, ctx: DeskContext, db: Db
     response_model=MemberOut,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_membership(member_id: uuid.UUID, body: MembershipIn, ctx: DeskContext, db: DbSession):
-    member = await load_member(db, ctx.gym_id, member_id)
+async def add_membership(member_id: uuid.UUID, body: MembershipIn, ctx: EditContext, db: DbSession):
+    member = await load_member_for(db, ctx, member_id)
     today = await service.gym_today(db, ctx.gym_id)
     ms = await service.add_membership(db, ctx.gym_id, member, body, today, ctx.user.id)
     audit.record(
@@ -268,7 +318,7 @@ async def add_membership(member_id: uuid.UUID, body: MembershipIn, ctx: DeskCont
         {"member_id": member.id, "total": ms.total},
     )
     await db.commit()
-    return await service.member_out(db, await load_member(db, ctx.gym_id, member_id), today)
+    return await member_out_for(db, ctx, await load_member(db, ctx.gym_id, member_id), today)
 
 
 async def _membership_action(
@@ -279,6 +329,7 @@ async def _membership_action(
     event: tuple[str, str],  # ("frozen", "Froze")
 ) -> MemberOut:
     m = await load_membership(db, ctx.gym_id, membership_id)
+    ensure_member_visible(ctx, m.member)
     today = await service.gym_today(db, ctx.gym_id)
     action(m, today)
     name = await db.scalar(select(Member.name).where(Member.id == m.member_id))
@@ -288,12 +339,12 @@ async def _membership_action(
         summary += f" ({m.freeze_start:%d %b} to {m.freeze_end:%d %b})"
     audit.record(db, ctx, f"membership.{key}", summary, m.id, {"member_id": m.member_id})
     await db.commit()
-    return await service.member_out(db, await load_member(db, ctx.gym_id, m.member_id), today)
+    return await member_out_for(db, ctx, await load_member(db, ctx.gym_id, m.member_id), today)
 
 
 @router.post("/memberships/{membership_id}/freeze", response_model=MemberOut)
 async def freeze_membership(
-    membership_id: uuid.UUID, body: FreezeIn, ctx: DeskContext, db: DbSession
+    membership_id: uuid.UUID, body: FreezeIn, ctx: EditContext, db: DbSession
 ):
     return await _membership_action(
         membership_id,
@@ -305,14 +356,14 @@ async def freeze_membership(
 
 
 @router.post("/memberships/{membership_id}/unfreeze", response_model=MemberOut)
-async def unfreeze_membership(membership_id: uuid.UUID, ctx: DeskContext, db: DbSession):
+async def unfreeze_membership(membership_id: uuid.UUID, ctx: EditContext, db: DbSession):
     return await _membership_action(
         membership_id, ctx, db, service.unfreeze, ("unfrozen", "Unfroze")
     )
 
 
 @router.post("/memberships/{membership_id}/cancel", response_model=MemberOut)
-async def cancel_membership(membership_id: uuid.UUID, ctx: ManagerContext, db: DbSession):
+async def cancel_membership(membership_id: uuid.UUID, ctx: DeleteContext, db: DbSession):
     return await _membership_action(
         membership_id, ctx, db, lambda m, _today: service.cancel(m), ("cancelled", "Cancelled")
     )

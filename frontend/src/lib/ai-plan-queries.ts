@@ -70,6 +70,22 @@ export function useGeneratePlan(memberId: string) {
   });
 }
 
+/** A hand-written draft: blank, or a copy of one of this member's plans. No AI needed. */
+export function useCreateManualPlan(memberId: string) {
+  const saved = useSaved();
+  return useMutation({
+    mutationFn: (body: { title?: string | null; copy_from_plan_id?: string | null }) =>
+      unwrap(
+        api.POST("/api/members/{member_id}/ai-plans/manual", {
+          params: { path: { member_id: memberId } },
+          body,
+        }),
+      ),
+    onSuccess: saved,
+    onError,
+  });
+}
+
 export function useUpdatePlan(id: string) {
   const saved = useSaved();
   return useMutation({

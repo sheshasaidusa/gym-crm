@@ -23,6 +23,53 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run pytest -q
 
+  # The same suite on Postgres, the database production runs (SQLite hides dialect bugs).
+  backend-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gym
+          POSTGRES_PASSWORD: gym
+          POSTGRES_DB: gym_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gym -d gym_test" --health-interval 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://gym:gym@localhost:5432/gym_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
+  # The typed API client must match the backend. Run the "Regenerate API types" workflow
+  # (or `npm run gen:api` locally) when this fails.
+  api-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --frozen
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - run: uv run python scripts/export_openapi.py ../frontend/openapi.json
+        working-directory: backend
+      - run: npx openapi-typescript openapi.json -o src/lib/api/schema.d.ts
+        working-directory: frontend
+      - name: Fail if the committed types are stale
+        run: git diff --exit-code -- frontend/openapi.json frontend/src/lib/api/schema.d.ts
+
   # Tests use SQLite; this checks the migrations against the database production runs.
   migrations:
     runs-on: ubuntu-latest

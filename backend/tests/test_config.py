@@ -9,6 +9,15 @@ from app.core.config import Settings
         ("postgres://u:p@h:5432/db", "postgresql+asyncpg://u:p@h:5432/db"),
         ("postgresql://u:p@h/db?sslmode=require", "postgresql+asyncpg://u:p@h/db?ssl=require"),
         ("postgresql+asyncpg://u:p@h/db", "postgresql+asyncpg://u:p@h/db"),
+        # What Neon's "copy connection string" gives you: libpq-only options asyncpg would reject.
+        (
+            "postgresql://u:p@ep-x.neon.tech/db?sslmode=require&channel_binding=require",
+            "postgresql+asyncpg://u:p@ep-x.neon.tech/db?ssl=require",
+        ),
+        (
+            "postgresql://u:p@ep-x.neon.tech/db?channel_binding=require&sslmode=require",
+            "postgresql+asyncpg://u:p@ep-x.neon.tech/db?ssl=require",
+        ),
         ("sqlite+aiosqlite:///./dev.db", "sqlite+aiosqlite:///./dev.db"),
     ],
 )

@@ -116,3 +116,48 @@ async def test_plans_members_and_memberships_are_isolated(
 
     # Same phone number is fine in a different gym.
     await make_member(client, owner, phone=b_member["phone"], name="Same Phone")
+
+
+async def test_new_staff_endpoints_do_not_cross_gyms(
+    client: AsyncClient, owner: Account, other_owner: Account
+):
+    from tests.helpers import make_member, make_staff
+
+    victim_member = await make_member(client, other_owner)
+    victim_coach = await make_staff(client, other_owner, "trainer")
+    my_coach = await make_staff(client, owner, "trainer")
+    victim_row = next(
+        s
+        for s in (await client.get("/api/staff", headers=other_owner.headers)).json()
+        if s["user_id"] == victim_coach.user_id
+    )
+
+    # Bulk-assigning another gym's member touches nothing.
+    res = await client.post(
+        "/api/members/assign-trainer",
+        json={"member_ids": [victim_member["id"]], "trainer_id": my_coach.user_id},
+        headers=owner.headers,
+    )
+    assert res.status_code == 200 and res.json() == {"updated": 0}
+    # Another gym's staff row is invisible to every staff action.
+    for path in ("deactivate", "reactivate"):
+        res = await client.post(
+            f"/api/staff/{victim_row['id']}/{path}", json={}, headers=owner.headers
+        )
+        assert res.status_code == 404, path
+    res = await client.patch(
+        f"/api/staff/{victim_row['id']}", json={"role": "manager"}, headers=owner.headers
+    )
+    assert res.status_code == 404
+    # ...and other gyms' staff can't be named as a reassignment target.
+    mine = next(
+        s
+        for s in (await client.get("/api/staff", headers=owner.headers)).json()
+        if s["user_id"] == my_coach.user_id
+    )
+    res = await client.post(
+        f"/api/staff/{mine['id']}/deactivate",
+        json={"reassign_members_to": victim_coach.user_id},
+        headers=owner.headers,
+    )
+    assert res.status_code == 404

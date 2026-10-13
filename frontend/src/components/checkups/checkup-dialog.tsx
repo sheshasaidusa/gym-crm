@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useSaveCheckup, useUploadPhoto, type CheckUp } from "@/lib/checkup-queries";
@@ -166,12 +167,11 @@ export function CheckupDialog({
         <FieldGroup>
           <Field className="max-w-44">
             <FieldLabel htmlFor="cu-date">Date</FieldLabel>
-            <Input
+            <DatePicker
               id="cu-date"
-              type="date"
               max={todayIso()}
               value={draft.recorded_on}
-              onChange={(e) => set("recorded_on", e.target.value)}
+              onChange={(v) => set("recorded_on", v)}
             />
           </Field>
           <FieldSet>

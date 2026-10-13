@@ -2,22 +2,16 @@ import uuid
 from datetime import date, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 
 from app.core.config import settings
-from app.core.deps import (
-    CurrentContext,
-    DbSession,
-    ManagerContext,
-    OwnerContext,
-    TenantContext,
-    require_roles,
-)
+from app.core.deps import CurrentContext, DbSession
+from app.core.permissions import Cap, ctx_with
 from app.core.schemas import Page
 from app.modules.audit import service as audit
 from app.modules.auth.models import User
-from app.modules.gyms.models import Gym, Role
+from app.modules.gyms.models import Gym
 from app.modules.members.models import Member, Membership
 from app.modules.reminders import service
 from app.modules.reminders.models import Channel, ReminderLog
@@ -42,9 +36,9 @@ from app.modules.reminders.templates import (
 
 router = APIRouter(prefix="/reminders", tags=["reminders"])
 
-DeskContext = Annotated[
-    TenantContext, Depends(require_roles(Role.OWNER, Role.MANAGER, Role.FRONT_DESK))
-]
+DeskContext = ctx_with(Cap.REMINDERS)  # due list, WhatsApp, history
+RunContext = ctx_with(Cap.REMINDERS_RUN)
+SettingsContext = ctx_with(Cap.REMINDER_SETTINGS)
 
 
 def _due_out(item: service.DueReminder) -> DueReminderOut:
@@ -83,7 +77,7 @@ async def due(ctx: DeskContext, db: DbSession, day: date | None = None):
 
 
 @router.post("/run", response_model=RunSummaryOut)
-async def run_now(ctx: ManagerContext, db: DbSession):
+async def run_now(ctx: RunContext, db: DbSession):
     """Sends today's due reminder emails now, retrying any that failed earlier."""
     gym = await db.get_one(Gym, ctx.gym_id)
     summary = await service.send_due_emails(
@@ -170,7 +164,7 @@ async def get_settings(ctx: CurrentContext, db: DbSession):
 
 
 @router.patch("/settings", response_model=ReminderSettingsOut)
-async def update_settings(body: ReminderSettingsUpdate, ctx: OwnerContext, db: DbSession):
+async def update_settings(body: ReminderSettingsUpdate, ctx: SettingsContext, db: DbSession):
     gym = await db.get_one(Gym, ctx.gym_id)
     if body.enabled is not None:
         gym.reminders_enabled = body.enabled

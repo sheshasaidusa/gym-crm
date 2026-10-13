@@ -84,14 +84,23 @@ class StaffOut(BaseModel):
     user_id: uuid.UUID
     name: str
     email: str
+    phone: str | None = None
     role: Role
     branch_id: uuid.UUID | None
+    is_active: bool = True
     joined_at: datetime
 
 
 class StaffUpdate(BaseModel):
     role: Role | None = None
     branch_id: uuid.UUID | None = None
+    phone: str | None = Field(None, max_length=30)
+
+
+class StaffDeactivate(BaseModel):
+    # Hand their clients and leads to someone before they go (both optional).
+    reassign_members_to: uuid.UUID | None = None
+    reassign_leads_to: uuid.UUID | None = None
 
 
 class InviteIn(BaseModel):

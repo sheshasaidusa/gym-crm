@@ -2,9 +2,13 @@
 
     uv run python scripts/seed.py
 
-Local-only test accounts (never use these anywhere real):
-    owner:   demo-owner@example.com   / DemoPass123!
-    trainer: demo-trainer@example.com / DemoPass123!
+Local-only test accounts (never use these anywhere real), all with DemoPass123!:
+    owner      demo-owner@example.com
+    manager    demo-manager@example.com    (Main branch only)
+    front desk demo-desk@example.com       (Main branch only)
+    sales      demo-sales@example.com
+    trainer    demo-trainer@example.com    (Main branch; owns the demo members)
+    trainer 2  demo-trainer2@example.com   (Downtown branch; no members yet)
 """
 
 import asyncio
@@ -21,18 +25,43 @@ from app.core.dates import DurationUnit, membership_end, today_in  # noqa: E402
 from app.core.db import SessionLocal, utcnow  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.models import Branch, Gym, Member, Membership, Plan, StaffMembership, User  # noqa: E402
+from app.modules.ai_plans.content import (  # noqa: E402
+    DietPlan,
+    Exercise,
+    Meal,
+    PlanContent,
+    WorkoutDay,
+)
+from app.modules.ai_plans.models import AIPlan, PlanStatus  # noqa: E402
+from app.modules.attendance.models import Attendance, AttendanceSource  # noqa: E402
+from app.modules.checkups.models import CheckUp  # noqa: E402
+from app.modules.finance.models import Payment, PaymentMethod  # noqa: E402
 from app.modules.gyms.models import Role  # noqa: E402
+from app.modules.leads.models import Lead, LeadSource, LeadStage  # noqa: E402
+from app.modules.member_app.models import MemberAccount  # noqa: E402
 from app.modules.members.service import compute_total  # noqa: E402
+from app.modules.workouts.models import WorkoutSession  # noqa: E402
 
-DEMO_PASSWORD = "DemoPass123!"
+# Local defaults; scripts/reset_demo.py sets random ones so shared servers never use these.
+DEMO_PASSWORD = os.environ.get("SEED_PASSWORD", "DemoPass123!")
+DEMO_PIN = os.environ.get("SEED_PIN", "4829")
+MEMBER_PHONE = "+919811100001"  # Arjun Mehta: the demo member who has the app set up
 OWNER_EMAIL = "demo-owner@example.com"
 TRAINER_EMAIL = "demo-trainer@example.com"
 
+# (email, name, role, which branch): one login per role so every dashboard can be tried.
+TEAM = [
+    ("demo-manager@example.com", "Demo Manager", Role.MANAGER, "main"),
+    ("demo-desk@example.com", "Demo Front Desk", Role.FRONT_DESK, "main"),
+    ("demo-sales@example.com", "Demo Sales", Role.SALES, None),
+    ("demo-trainer2@example.com", "Demo Trainer Two", Role.TRAINER, "downtown"),
+]
 
-async def get_or_create_user(db, email: str, name: str) -> User:
+
+async def get_or_create_user(db, email: str, name: str, phone: str | None = None) -> User:
     user = await db.scalar(select(User).where(User.email == email))
     if user is None:
-        user = User(email=email, name=name, password_hash=hash_password(DEMO_PASSWORD))
+        user = User(email=email, name=name, phone=phone, password_hash=hash_password(DEMO_PASSWORD))
         db.add(user)
         await db.flush()
     return user
@@ -57,7 +86,19 @@ async def main() -> None:
         db.add(main_branch)
         await db.flush()
 
-        trainer = await get_or_create_user(db, TRAINER_EMAIL, "Demo Trainer")
+        downtown = Branch(gym_id=gym.id, name="Downtown", address="4 Park Street")
+        db.add(downtown)
+        await db.flush()
+        branches = {"main": main_branch.id, "downtown": downtown.id, None: None}
+
+        trainer = await get_or_create_user(db, TRAINER_EMAIL, "Demo Trainer", "+919800000001")
+        for email, name, role, where in TEAM:
+            user = await get_or_create_user(db, email, name)
+            db.add(
+                StaffMembership(
+                    user_id=user.id, gym_id=gym.id, role=role, branch_id=branches[where]
+                )
+            )
         db.add_all(
             [
                 StaffMembership(
@@ -70,8 +111,11 @@ async def main() -> None:
         )
         await db.flush()
         await seed_plans_and_members(db, gym, trainer.id)
+        await seed_leads_and_visits(db, gym, owner.id)
+        await seed_member_app(db, gym, trainer.id)
         await db.commit()
         print(f"Created demo gym. Log in as {OWNER_EMAIL} / {DEMO_PASSWORD}")
+        print(f"Member app: phone {MEMBER_PHONE} / PIN {DEMO_PIN}")
 
 
 async def seed_plans_and_members(db, gym: Gym, trainer_id) -> None:
@@ -139,6 +183,197 @@ async def seed_plans_and_members(db, gym: Gym, trainer_id) -> None:
                 )
             )
         db.add(member)
+
+
+async def seed_leads_and_visits(db, gym: Gym, owner_id) -> None:
+    """A few leads and some visits, so the sales, desk and trainer boards have something on them."""
+    staff = {
+        m.role: m.user_id
+        for m in (
+            await db.scalars(select(StaffMembership).where(StaffMembership.gym_id == gym.id))
+        ).all()
+    }
+    now = utcnow()
+    leads = [
+        ("Ananya Rao", "+919822200001", LeadSource.INSTAGRAM, LeadStage.NEW, Role.SALES, -1),
+        ("Vikram Shah", "+919822200002", LeadSource.WALK_IN, LeadStage.CONTACTED, Role.SALES, 0),
+        (
+            "Meera Joshi",
+            "+919822200003",
+            LeadSource.REFERRAL,
+            LeadStage.TRIAL_BOOKED,
+            Role.SALES,
+            2,
+        ),
+        ("Farhan Ali", "+919822200004", LeadSource.GOOGLE, LeadStage.CONTACTED, Role.TRAINER, -2),
+    ]
+    for name, phone, source, stage, owner_role, follow_days in leads:
+        db.add(
+            Lead(
+                gym_id=gym.id,
+                name=name,
+                phone=phone,
+                source=source,
+                stage=stage,
+                assigned_to=staff.get(owner_role),
+                next_follow_up_at=now + timedelta(days=follow_days),
+                trial_at=now + timedelta(days=2) if stage == LeadStage.TRIAL_BOOKED else None,
+            )
+        )
+
+    # Payments over the last months, so the revenue charts and new-vs-renewal split have data.
+    memberships = (
+        await db.execute(
+            select(Membership, Member)
+            .join(Member, Member.id == Membership.member_id)
+            .where(Member.gym_id == gym.id)
+        )
+    ).all()
+    methods = [PaymentMethod.UPI, PaymentMethod.CASH, PaymentMethod.CARD]
+    number = 0
+    for i, (ms, member) in enumerate(memberships):
+        # Pay about 60% of the total, on the membership's start date, so a few dues stay open.
+        number += 1
+        db.add(
+            Payment(
+                gym_id=gym.id,
+                member_id=member.id,
+                membership_id=ms.id,
+                amount=(ms.total * Decimal("0.6")).quantize(Decimal("1")),
+                method=methods[i % 3],
+                paid_on=min(ms.start_date, today_in(gym.timezone)),
+                receipt_no=f"R-{number:04d}",
+                recorded_by=owner_id,
+            )
+        )
+
+    # Visits: Arjun trains regularly, Sneha came a few times and then went quiet.
+    members = {
+        m.name: m for m in (await db.scalars(select(Member).where(Member.gym_id == gym.id))).all()
+    }
+    today = today_in(gym.timezone)
+    pattern = {"Arjun Mehta": [0, 1, 3, 4, 6, 8, 10, 12, 15, 17], "Sneha Iyer": [18, 20, 22, 25]}
+    for name, ago in pattern.items():
+        member = members.get(name)
+        if member is None:
+            continue
+        member.device_user_id = {"Arjun Mehta": "101", "Sneha Iyer": "102"}[name]
+        for d in ago:
+            day = today - timedelta(days=d)
+            db.add(
+                Attendance(
+                    gym_id=gym.id,
+                    member_id=member.id,
+                    branch_id=member.branch_id,
+                    checked_in_at=now - timedelta(days=d),
+                    local_date=day,
+                    source=AttendanceSource.DESK,
+                )
+            )
+
+
+async def seed_member_app(db, gym: Gym, trainer_id) -> None:
+    """Arjun gets a published plan, check-ups, two logged workouts and an activated app login."""
+    member = await db.scalar(
+        select(Member).where(Member.gym_id == gym.id, Member.phone == MEMBER_PHONE)
+    )
+    if member is None:
+        return
+    today = today_in(gym.timezone)
+    plan = AIPlan(
+        gym_id=gym.id,
+        member_id=member.id,
+        version=1,
+        status=PlanStatus.PUBLISHED,
+        title="Strength and fat loss, 3 days",
+        content=PlanContent(
+            summary="Three simple full-body sessions a week to build strength while losing fat.",
+            weekly_schedule=[
+                WorkoutDay(
+                    day=f"Day {i + 1} - {focus}",
+                    focus=focus,
+                    warmup="5 minutes on the bike, then light sets",
+                    exercises=[
+                        Exercise(name=n, sets=3, reps=reps, rest_seconds=90, notes="")
+                        for n, reps in moves
+                    ],
+                    cooldown="5 minutes of stretching",
+                )
+                for i, (focus, moves) in enumerate(
+                    [
+                        ("Push", [("Bench press", "8-10"), ("Overhead press", "10")]),
+                        ("Pull", [("Barbell row", "8-10"), ("Lat pulldown", "10-12")]),
+                        ("Legs", [("Back squat", "6-8"), ("Romanian deadlift", "8-10")]),
+                    ]
+                )
+            ],
+            diet=DietPlan(
+                daily_calories=2200,
+                protein_g=150,
+                carbs_g=230,
+                fat_g=70,
+                meals=[
+                    Meal(
+                        name="Breakfast",
+                        time="8:00 AM",
+                        items=["Oats with milk", "2 eggs"],
+                        calories=550,
+                        protein_g=32,
+                    )
+                ],
+                hydration="3 litres of water a day",
+                notes=["Eat protein at every meal"],
+            ),
+            progression="Add 2.5 kg to a lift once you finish all sets with good form.",
+            safety_notes=["Stop and tell your trainer if anything hurts."],
+        ).model_dump(),
+        published_at=utcnow(),
+        created_by=trainer_id,
+    )
+    db.add(plan)
+    await db.flush()
+    for ago, weight, fat in ((42, 88.0, 27.5), (21, 86.4, 26.4), (3, 85.1, 25.6)):
+        db.add(
+            CheckUp(
+                gym_id=gym.id,
+                member_id=member.id,
+                recorded_on=today - timedelta(days=ago),
+                weight_kg=weight,
+                body_fat_pct=fat,
+                height_cm=178,
+                recorded_by=trainer_id,
+            )
+        )
+    for ago, day, lifts in (
+        (5, "Day 1 - Push", [("Bench press", [(8, 55), (8, 55), (6, 60)])]),
+        (2, "Day 2 - Pull", [("Barbell row", [(8, 50), (8, 50), (8, 52.5)])]),
+    ):
+        db.add(
+            WorkoutSession(
+                gym_id=gym.id,
+                member_id=member.id,
+                plan_id=plan.id,
+                day_label=day,
+                performed_on=today - timedelta(days=ago),
+                duration_min=55,
+                entries=[
+                    {
+                        "exercise": name,
+                        "from_plan": True,
+                        "sets": [{"reps": r, "weight_kg": w} for r, w in sets],
+                    }
+                    for name, sets in lifts
+                ],
+            )
+        )
+    db.add(
+        MemberAccount(
+            gym_id=gym.id,
+            member_id=member.id,
+            pin_hash=hash_password(DEMO_PIN),
+            activated_at=utcnow(),
+        )
+    )
 
 
 if __name__ == "__main__":

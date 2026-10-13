@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { ChipSelect } from "@/components/chip-select";
+import { ChipSelect, MultiChipSelect } from "@/components/chip-select";
 import { TextField } from "@/components/form-fields";
 import {
   draftToBody,
@@ -19,23 +19,20 @@ import {
 import { SimpleSelect } from "@/components/simple-select";
 import { TagInput } from "@/components/tag-input";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   DIET_LABELS,
   EXPERIENCE_LABELS,
+  formatDate,
+  formatMoney,
   GENDER_LABELS,
   GOAL_LABELS,
+  initials,
   todayIso,
   toOptions,
 } from "@/lib/format";
@@ -46,9 +43,18 @@ import {
   type Member,
   type MemberUpdate,
 } from "@/lib/member-queries";
-import { ROLE_LABELS, useBranches, useStaff } from "@/lib/queries";
+import { ROLE_LABELS, useBranches, useCoaches, useCurrency } from "@/lib/queries";
 
 const NONE = "none";
+
+type Tab = "membership" | "personal" | "fitness" | "notes";
+// Fields that live inside each tab, so a failed submit can jump to the right one.
+const TAB_FIELDS = {
+  personal: ["email", "dob", "gender", "address", "emergency_contact_name", "emergency_contact_phone", "device_user_id"],
+  fitness: ["goals", "diet_pref", "experience_level", "height_cm", "medical_notes"],
+  notes: ["notes", "tags"],
+} as const;
+const PANEL = "pt-2";
 
 const phoneOk = (v: string) => {
   const digits = v.replace(/\D/g, "");
@@ -70,7 +76,7 @@ const schema = z.object({
   height_cm: z
     .string()
     .refine((v) => v === "" || (Number(v) >= 50 && Number(v) <= 260), "Between 50 and 260 cm"),
-  goal: z.string(),
+  goals: z.array(z.string()).max(3, "Pick up to 3 goals"),
   diet_pref: z.string(),
   experience_level: z.string(),
   medical_notes: z.string().max(2000),
@@ -79,6 +85,7 @@ const schema = z.object({
   trainer_id: z.string(),
   branch_id: z.string(),
   joined_on: z.string(),
+  device_user_id: z.string().max(40, "At most 40 characters"),
 });
 type Values = z.infer<typeof schema>;
 
@@ -93,7 +100,7 @@ function toValues(m?: Member): Values {
     emergency_contact_name: m?.emergency_contact_name ?? "",
     emergency_contact_phone: m?.emergency_contact_phone ?? "",
     height_cm: m?.height_cm != null ? String(m.height_cm) : "",
-    goal: m?.goal ?? "",
+    goals: m?.goals ?? [],
     diet_pref: m?.diet_pref ?? "",
     experience_level: m?.experience_level ?? "",
     medical_notes: m?.medical_notes ?? "",
@@ -102,6 +109,7 @@ function toValues(m?: Member): Values {
     trainer_id: m?.trainer?.id ?? NONE,
     branch_id: m?.branch_id ?? NONE,
     joined_on: m?.joined_on ?? todayIso(),
+    device_user_id: m?.device_user_id ?? "",
   };
 }
 
@@ -118,7 +126,7 @@ function toBody(v: Values) {
     emergency_contact_name: orNull(v.emergency_contact_name),
     emergency_contact_phone: orNull(v.emergency_contact_phone),
     height_cm: v.height_cm === "" ? null : Number(v.height_cm),
-    goal: orNull(v.goal) as MemberUpdate["goal"],
+    goals: v.goals as NonNullable<MemberUpdate["goals"]>,
     diet_pref: orNull(v.diet_pref) as MemberUpdate["diet_pref"],
     experience_level: orNull(v.experience_level) as MemberUpdate["experience_level"],
     medical_notes: orNull(v.medical_notes),
@@ -127,6 +135,7 @@ function toBody(v: Values) {
     trainer_id: v.trainer_id === NONE ? null : v.trainer_id,
     branch_id: v.branch_id === NONE ? null : v.branch_id,
     joined_on: orNull(v.joined_on),
+    device_user_id: orNull(v.device_user_id),
   };
 }
 
@@ -135,7 +144,7 @@ export function MemberForm({ member }: { member?: Member }) {
   const isEdit = !!member;
   const create = useCreateMember();
   const update = useUpdateMember(member?.id ?? "");
-  const staff = useStaff();
+  const staff = useCoaches();
   const branches = useBranches();
   const plans = usePlans();
 
@@ -149,6 +158,9 @@ export function MemberForm({ member }: { member?: Member }) {
   const addingMembership = !isEdit && withMembership && hasPlans;
 
   const pending = create.isPending || update.isPending;
+  const currency = useCurrency();
+  const [tab, setTab] = useState<Tab>(isEdit ? "personal" : "membership");
+  const tabHasError = (t: keyof typeof TAB_FIELDS) => TAB_FIELDS[t].some((f) => f in errors);
 
   const submit = form.handleSubmit((v) => {
     const body = toBody(v);
@@ -161,6 +173,7 @@ export function MemberForm({ member }: { member?: Member }) {
       const plan = plans.data?.find((p) => p.id === draft.plan_id);
       if (!plan) {
         setPlanError("Choose a plan, or switch off “Add a membership now”");
+        setTab("membership");
         return;
       }
       if (resolveDraft(draft, plan, true).error) return;
@@ -170,6 +183,10 @@ export function MemberForm({ member }: { member?: Member }) {
       { ...body, membership },
       { onSuccess: (m) => router.push(`/members/${m.id}`) },
     );
+  }, (errs) => {
+    // Show the tab holding the first invalid field; essentials are always on screen.
+    const hit = (Object.keys(TAB_FIELDS) as (keyof typeof TAB_FIELDS)[]).find((t) => TAB_FIELDS[t].some((f) => f in errs));
+    if (hit) setTab(hit);
   });
 
   const trainerOptions = [
@@ -181,27 +198,132 @@ export function MemberForm({ member }: { member?: Member }) {
     ...(branches.data ?? []).map((b) => ({ value: b.id, label: b.name })),
   ];
 
+  const [name, phone, trainerId, joinedOn, goals, tags] = form.watch(["name", "phone", "trainer_id", "joined_on", "goals", "tags"]);
+  const plan = plans.data?.find((p) => p.id === draft.plan_id);
+  const trainer = staff.data?.find((s) => s.user_id === trainerId);
+
   return (
-    <form onSubmit={submit} noValidate className="grid items-start gap-6 lg:grid-cols-[1fr_380px]">
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal details</CardTitle>
-          </CardHeader>
-          <CardContent>
+    <form onSubmit={submit} noValidate className="mt-4 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+      <div className="grid min-w-0 gap-8">
+        <section aria-labelledby="essentials">
+          <h2 id="essentials" className="mb-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Essentials
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Full name" autoComplete="off" error={errors.name} {...form.register("name")} />
+            <TextField
+              label="Phone"
+              type="tel"
+              autoComplete="off"
+              placeholder="+91 98765 43210"
+              error={errors.phone}
+              {...form.register("phone")}
+            />
+            <Field>
+              <FieldLabel htmlFor="trainer_id">Trainer</FieldLabel>
+              <Controller
+                control={form.control}
+                name="trainer_id"
+                render={({ field }) => (
+                  <SimpleSelect id="trainer_id" options={trainerOptions} value={field.value} onChange={field.onChange} />
+                )}
+              />
+            </Field>
+            <Field data-invalid={!!errors.joined_on}>
+              <FieldLabel htmlFor="joined_on">Joined on</FieldLabel>
+              <Controller
+                control={form.control}
+                name="joined_on"
+                render={({ field }) => (
+                  <DatePicker id="joined_on" value={field.value ?? ""} onChange={field.onChange} aria-invalid={!!errors.joined_on} />
+                )}
+              />
+              <FieldError errors={[errors.joined_on]} />
+            </Field>
+            {(branches.data?.length ?? 0) > 1 && (
+              <Field>
+                <FieldLabel htmlFor="branch_id">Branch</FieldLabel>
+                <Controller
+                  control={form.control}
+                  name="branch_id"
+                  render={({ field }) => (
+                    <SimpleSelect id="branch_id" options={branchOptions} value={field.value} onChange={field.onChange} />
+                  )}
+                />
+              </Field>
+            )}
+          </div>
+        </section>
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="gap-5">
+          <TabsList variant="line" className="w-full justify-start overflow-x-auto border-b border-border">
+            {!isEdit && (
+              <TabsTrigger value="membership" className="flex-none px-4">
+                Membership
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="personal" className="flex-none px-4">
+              Personal
+              {tabHasError("personal") && <ErrorDot />}
+            </TabsTrigger>
+            <TabsTrigger value="fitness" className="flex-none px-4">
+              Fitness & health
+              {tabHasError("fitness") && <ErrorDot />}
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="flex-none px-4">
+              Notes & tags
+            </TabsTrigger>
+          </TabsList>
+
+          {!isEdit && (
+            <TabsContent value="membership" keepMounted className={PANEL}>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-medium">Sell a membership</p>
+                  <p className="text-muted-foreground">
+                    {hasPlans
+                      ? "Start their first plan now, or add one later from their profile."
+                      : "Create a plan first to sell memberships."}
+                  </p>
+                </div>
+                {hasPlans && (
+                  <Switch aria-label="Add a membership now" checked={withMembership} onCheckedChange={setWithMembership} />
+                )}
+              </div>
+              {addingMembership && (
+                <MembershipFields
+                  value={draft}
+                  onChange={(d) => {
+                    setDraft(d);
+                    if (d.plan_id) setPlanError(undefined);
+                  }}
+                  isFirst
+                  planError={planError}
+                />
+              )}
+              {!hasPlans && !plans.isPending && (
+                <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/plans" />}>
+                  Go to Plans
+                </Button>
+              )}
+            </TabsContent>
+          )}
+
+          <TabsContent value="personal" keepMounted className={PANEL}>
             <FieldGroup>
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="Full name" autoComplete="off" error={errors.name} {...form.register("name")} />
-                <TextField
-                  label="Phone"
-                  type="tel"
-                  autoComplete="off"
-                  placeholder="+91 98765 43210"
-                  error={errors.phone}
-                  {...form.register("phone")}
-                />
-                <TextField label="Email (optional)" type="email" autoComplete="off" error={errors.email} {...form.register("email")} />
-                <TextField label="Date of birth" type="date" max={todayIso()} error={errors.dob} {...form.register("dob")} />
+                <TextField label="Email" type="email" autoComplete="off" error={errors.email} {...form.register("email")} />
+                <Field data-invalid={!!errors.dob}>
+                  <FieldLabel htmlFor="dob">Date of birth</FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="dob"
+                    render={({ field }) => (
+                      <DatePicker id="dob" max={todayIso()} value={field.value ?? ""} onChange={field.onChange} aria-invalid={!!errors.dob} />
+                    )}
+                  />
+                  <FieldError errors={[errors.dob]} />
+                </Field>
               </div>
               <Field>
                 <FieldLabel>Gender</FieldLabel>
@@ -228,47 +350,51 @@ export function MemberForm({ member }: { member?: Member }) {
                   {...form.register("emergency_contact_phone")}
                 />
               </div>
+              <TextField
+                label="Scanner number"
+                placeholder="Optional: the ID on the door scanner"
+                error={errors.device_user_id}
+                {...form.register("device_user_id")}
+              />
             </FieldGroup>
-          </CardContent>
-        </Card>
+          </TabsContent>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Fitness profile</CardTitle>
-            <CardDescription>Used by trainers and for AI workout & diet plans.</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <TabsContent value="fitness" keepMounted className={PANEL}>
+            <p className="mb-4 text-muted-foreground">Used by trainers and for AI workout & diet plans.</p>
             <FieldGroup>
               <Field>
-                <FieldLabel>Goal</FieldLabel>
+                <FieldLabel>Goals</FieldLabel>
                 <Controller
                   control={form.control}
-                  name="goal"
+                  name="goals"
                   render={({ field }) => (
-                    <ChipSelect options={toOptions(GOAL_LABELS)} value={field.value} onChange={field.onChange} />
+                    <MultiChipSelect options={toOptions(GOAL_LABELS)} value={field.value} onChange={field.onChange} max={3} />
                   )}
                 />
+                <FieldDescription>Up to 3, most important first.</FieldDescription>
               </Field>
-              <Field>
-                <FieldLabel>Diet preference</FieldLabel>
-                <Controller
-                  control={form.control}
-                  name="diet_pref"
-                  render={({ field }) => (
-                    <ChipSelect options={toOptions(DIET_LABELS)} value={field.value} onChange={field.onChange} />
-                  )}
-                />
-              </Field>
-              <Field>
-                <FieldLabel>Experience</FieldLabel>
-                <Controller
-                  control={form.control}
-                  name="experience_level"
-                  render={({ field }) => (
-                    <ChipSelect options={toOptions(EXPERIENCE_LABELS)} value={field.value} onChange={field.onChange} />
-                  )}
-                />
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel>Diet preference</FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="diet_pref"
+                    render={({ field }) => (
+                      <ChipSelect options={toOptions(DIET_LABELS)} value={field.value} onChange={field.onChange} />
+                    )}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel>Experience</FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="experience_level"
+                    render={({ field }) => (
+                      <ChipSelect options={toOptions(EXPERIENCE_LABELS)} value={field.value} onChange={field.onChange} />
+                    )}
+                  />
+                </Field>
+              </div>
               <TextField
                 label="Height (cm)"
                 type="number"
@@ -288,80 +414,10 @@ export function MemberForm({ member }: { member?: Member }) {
                 <FieldDescription>Trainers see this before planning workouts.</FieldDescription>
               </Field>
             </FieldGroup>
-          </CardContent>
-        </Card>
-      </div>
+          </TabsContent>
 
-      <div className="grid gap-6 lg:sticky lg:top-4">
-        {!isEdit && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Membership</CardTitle>
-              <CardDescription>
-                {hasPlans ? "Sell a plan now, or add one later." : "Create a plan first to sell memberships."}
-              </CardDescription>
-              {hasPlans && (
-                <CardAction>
-                  <Switch
-                    aria-label="Add a membership now"
-                    checked={withMembership}
-                    onCheckedChange={setWithMembership}
-                  />
-                </CardAction>
-              )}
-            </CardHeader>
-            {addingMembership && (
-              <CardContent>
-                <MembershipFields
-                  value={draft}
-                  onChange={(d) => {
-                    setDraft(d);
-                    if (d.plan_id) setPlanError(undefined);
-                  }}
-                  isFirst
-                  planError={planError}
-                />
-              </CardContent>
-            )}
-            {!hasPlans && !plans.isPending && (
-              <CardContent>
-                <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/plans" />}>
-                  Go to Plans
-                </Button>
-              </CardContent>
-            )}
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Assignment</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <TabsContent value="notes" keepMounted className={PANEL}>
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="trainer_id">Trainer</FieldLabel>
-                <Controller
-                  control={form.control}
-                  name="trainer_id"
-                  render={({ field }) => (
-                    <SimpleSelect id="trainer_id" options={trainerOptions} value={field.value} onChange={field.onChange} />
-                  )}
-                />
-              </Field>
-              {(branches.data?.length ?? 0) > 1 && (
-                <Field>
-                  <FieldLabel htmlFor="branch_id">Branch</FieldLabel>
-                  <Controller
-                    control={form.control}
-                    name="branch_id"
-                    render={({ field }) => (
-                      <SimpleSelect id="branch_id" options={branchOptions} value={field.value} onChange={field.onChange} />
-                    )}
-                  />
-                </Field>
-              )}
-              <TextField label="Joined on" type="date" error={errors.joined_on} {...form.register("joined_on")} />
               <Field>
                 <FieldLabel htmlFor="tags">Tags</FieldLabel>
                 <Controller
@@ -379,26 +435,82 @@ export function MemberForm({ member }: { member?: Member }) {
               </Field>
               <Field>
                 <FieldLabel htmlFor="notes">Notes</FieldLabel>
-                <Textarea id="notes" rows={2} {...form.register("notes")} />
+                <Textarea id="notes" rows={4} {...form.register("notes")} />
               </Field>
             </FieldGroup>
-          </CardContent>
-        </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
 
-        <div className="flex justify-end gap-2">
+      <aside aria-label="Summary" className="flex flex-col border-t border-border/70 pt-6 lg:sticky lg:top-20 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+        <div className="flex items-center gap-3 pb-4">
+          <span
+            aria-hidden
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+          >
+            {name.trim() ? initials(name) : "?"}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-medium">{name.trim() || (isEdit ? member.name : "New member")}</p>
+            <p className="truncate text-xs text-muted-foreground">{phone.trim() || "No phone yet"}</p>
+          </div>
+        </div>
+        <dl className="divide-y divide-border/70 border-y border-border/70 text-sm">
+          {!isEdit && (
+            <SummaryRow label="Plan">
+              {addingMembership && plan ? `${plan.name} · ${plan.duration_value} ${plan.duration_unit}` : "No membership"}
+            </SummaryRow>
+          )}
+          {addingMembership && plan && (
+            <SummaryRow label="Total due">
+              <span className="font-medium tabular-nums">{formatMoney(resolveDraft(draft, plan, true).total, currency)}</span>
+            </SummaryRow>
+          )}
+          <SummaryRow label="Trainer">{trainer?.name ?? "Not assigned"}</SummaryRow>
+          <SummaryRow label="Joined">{joinedOn ? formatDate(joinedOn) : "—"}</SummaryRow>
+          <SummaryRow label="Goals">
+            {goals.length ? goals.map((g) => GOAL_LABELS[g as keyof typeof GOAL_LABELS]).join(", ") : "—"}
+          </SummaryRow>
+          {tags.length > 0 && (
+            <SummaryRow label="Tags">
+              <span className="flex flex-wrap gap-1">
+                {tags.map((t) => (
+                  <span key={t} className="rounded-full border px-2 py-0.5 text-xs">
+                    {t}
+                  </span>
+                ))}
+              </span>
+            </SummaryRow>
+          )}
+        </dl>
+        <div className="grid gap-2 pt-5">
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending && <Spinner />}
+            {isEdit ? "Save changes" : "Add member"}
+          </Button>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
+            className="w-full"
             onClick={() => (isEdit ? router.push(`/members/${member.id}`) : router.push("/members"))}
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={pending}>
-            {pending && <Spinner />}
-            {isEdit ? "Save changes" : "Add member"}
-          </Button>
         </div>
-      </div>
+      </aside>
     </form>
   );
+}
+
+function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-1 py-3">
+      <dt className="text-xs tracking-wide text-muted-foreground uppercase">{label}</dt>
+      <dd className="min-w-0 truncate">{children}</dd>
+    </div>
+  );
+}
+
+function ErrorDot() {
+  return <span aria-label="has errors" className="size-1.5 rounded-full bg-destructive" />;
 }

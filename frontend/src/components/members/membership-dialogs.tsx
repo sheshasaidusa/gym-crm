@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { addDays, formatDate, todayIso } from "@/lib/format";
 import {
@@ -166,13 +167,12 @@ export function FreezeDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor="freeze_start">From</FieldLabel>
-              <Input
+              <DatePicker
                 id="freeze_start"
-                type="date"
                 min={minStart}
                 max={membership.end_date}
                 value={start}
-                onChange={(e) => setStart(e.target.value)}
+                onChange={setStart}
               />
             </Field>
           </div>

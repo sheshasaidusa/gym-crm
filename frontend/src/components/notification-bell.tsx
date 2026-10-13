@@ -36,16 +36,16 @@ export function NotificationBell() {
       <PopoverTrigger
         render={
           <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
+            variant="outline"
+            size="icon-sm"
+            className="relative size-9 rounded-full p-0"
             aria-label={unread ? `Notifications (${unread} unread)` : "Notifications"}
           />
         }
       >
         <BellIcon />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] leading-4 font-medium text-white">
+          <span className="absolute -top-1 -right-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

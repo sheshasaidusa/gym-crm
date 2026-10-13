@@ -155,7 +155,7 @@ export function PaymentsTab() {
                       >
                         <ReceiptIcon />
                       </Button>
-                      {can.manage && !p.voided_at && (
+                      {can.has("payments_void") && !p.voided_at && (
                         <Button variant="ghost" size="icon-sm" aria-label={`Void ${p.receipt_no}`} onClick={() => setVoiding(p)}>
                           <BanIcon />
                         </Button>

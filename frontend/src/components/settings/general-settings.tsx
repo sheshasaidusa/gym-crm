@@ -80,7 +80,7 @@ export function GeneralSettings() {
   if (gym.isPending) return <Skeleton className="h-96 w-full rounded-xl" />;
   if (gym.isError) return <p className="text-sm text-destructive">{gym.error.message}</p>;
 
-  const readOnly = !can.own;
+  const readOnly = !can.has("gym_settings");
   const { errors, isDirty } = form.formState;
   const timezones = TIMEZONES.includes(gym.data.timezone)
     ? TIMEZONES
@@ -91,7 +91,7 @@ export function GeneralSettings() {
       onSubmit={form.handleSubmit((v) => update.mutate({ ...v, phone: v.phone || null }))}
       noValidate
     >
-      <Card>
+      <Card variant="flat">
         <CardHeader>
           <CardTitle>Gym details</CardTitle>
           <CardDescription>

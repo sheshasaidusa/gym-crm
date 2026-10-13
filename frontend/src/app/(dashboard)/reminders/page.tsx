@@ -46,7 +46,7 @@ function RemindersView() {
 
 export default function RemindersPage() {
   const can = useCan();
-  if (can.role === "trainer") {
+  if (!can.has("reminders")) {
     return <p className="text-sm text-muted-foreground">Reminders are handled by the front desk.</p>;
   }
   return (

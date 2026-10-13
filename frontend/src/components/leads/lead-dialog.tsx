@@ -25,7 +25,7 @@ import {
   type LeadSource,
 } from "@/lib/lead-queries";
 import { usePlans } from "@/lib/member-queries";
-import { useMe, useStaff } from "@/lib/queries";
+import { useCan, useMe, useStaff } from "@/lib/queries";
 
 const NONE = "none";
 
@@ -67,6 +67,7 @@ export function LeadDialog({
   onCreated?: (lead: LeadDetail) => void;
 }) {
   const me = useMe();
+  const can = useCan();
   const staff = useStaff();
   const plans = usePlans();
   const create = useCreateLead();
@@ -165,18 +166,21 @@ export function LeadDialog({
                 onChange={(v) => set({ interested_plan_id: v })}
               />
             </Field>
-            <Field>
-              <FieldLabel htmlFor="lead-assigned">Assigned to</FieldLabel>
-              <SimpleSelect
-                id="lead-assigned"
-                options={[
-                  { value: NONE, label: "Unassigned" },
-                  ...(staff.data ?? []).map((s) => ({ value: s.user_id, label: s.name })),
-                ]}
-                value={draft.assigned_to}
-                onChange={(v) => set({ assigned_to: v })}
-              />
-            </Field>
+            {/* Trainers' leads are always their own, so there's nothing to pick. */}
+            {can.has("leads") && (
+              <Field>
+                <FieldLabel htmlFor="lead-assigned">Assigned to</FieldLabel>
+                <SimpleSelect
+                  id="lead-assigned"
+                  options={[
+                    { value: NONE, label: "Unassigned" },
+                    ...(staff.data ?? []).filter((s) => s.is_active).map((s) => ({ value: s.user_id, label: s.name })),
+                  ]}
+                  value={draft.assigned_to}
+                  onChange={(v) => set({ assigned_to: v })}
+                />
+              </Field>
+            )}
           </div>
           <Field>
             <FieldLabel htmlFor="lead-follow-up">Next follow-up</FieldLabel>

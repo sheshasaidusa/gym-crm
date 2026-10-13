@@ -1,10 +1,7 @@
 """Unauthenticated endpoints. Everything here is reachable by anyone holding a link, so it
 returns the minimum needed and never internal IDs, staff details or photos."""
 
-from datetime import date, datetime
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -12,66 +9,19 @@ from app.core.db import utcnow
 from app.core.deps import DbSession
 from app.core.ratelimit import RateLimiter
 from app.modules.ai_plans.content import PlanContent
-from app.modules.ai_plans.models import AIPlan, PlanStatus
-from app.modules.auth.models import User
-from app.modules.checkups.models import CheckUp
 from app.modules.gyms.models import Gym, Role
 from app.modules.leads import service as lead_service
 from app.modules.leads.models import ActivityKind, Lead, LeadSource, LeadStage
 from app.modules.leads.schemas import PublicFormInfo, PublicLeadIn
+from app.modules.member_app import service as member_service
+from app.modules.member_app.schemas import PublicMemberPage
 from app.modules.members.models import Member
-from app.modules.members.service import days_left, gym_today
-from app.modules.members.status import Status, membership_status, pick_current
+from app.modules.members.service import gym_today
 from app.modules.notifications.service import notify_staff
 
 router = APIRouter(prefix="/public", tags=["public"])
 
 preview_limiter = RateLimiter(limit=60, window_seconds=60)
-
-
-class PublicGym(BaseModel):
-    name: str
-    brand_color: str
-    logo_url: str | None
-    phone: str | None
-
-
-class PublicMembership(BaseModel):
-    plan_name: str
-    status: Status
-    start_date: date
-    end_date: date
-    days_left: int | None
-    frozen_until: date | None
-    renewal_starts: date | None
-
-
-class Point(BaseModel):
-    date: date
-    value: float
-
-
-class PublicProgress(BaseModel):
-    checkups: int
-    latest_date: date
-    weight_kg: float | None
-    body_fat_pct: float | None
-    bmi: float | None
-    waist_cm: float | None
-    weight_change_kg: float | None  # since the first check-up
-    first_date: date
-    weight_series: list[Point]
-
-
-class PublicMemberPage(BaseModel):
-    gym: PublicGym
-    member_name: str
-    first_name: str
-    trainer_name: str | None
-    membership: PublicMembership | None
-    plan: PlanContent | None
-    plan_updated_at: datetime | None
-    progress: PublicProgress | None
 
 
 NOT_FOUND = HTTPException(status.HTTP_404_NOT_FOUND, "This link isn't valid anymore")
@@ -99,72 +49,17 @@ async def member_page(token: str, response: Response, db: DbSession):
 
     gym = await db.get_one(Gym, member.gym_id)
     today = await gym_today(db, gym.id)
-
-    current = pick_current(member.memberships, today)
-    membership = None
-    if current:
-        renewal = min(
-            (
-                m.start_date
-                for m in member.memberships
-                if m.cancelled_at is None and m.start_date > current.end_date
-            ),
-            default=None,
-        )
-        state = membership_status(current, today)
-        membership = PublicMembership(
-            plan_name=current.plan_name,
-            status=state,
-            start_date=current.start_date,
-            end_date=current.end_date,
-            days_left=days_left(current, today),
-            frozen_until=current.freeze_end if state == Status.FROZEN else None,
-            renewal_starts=renewal,
-        )
-
-    plan = await db.scalar(
-        select(AIPlan).where(AIPlan.member_id == member.id, AIPlan.status == PlanStatus.PUBLISHED)
-    )
-    trainer_name = (
-        await db.scalar(select(User.name).where(User.id == member.trainer_id))
-        if member.trainer_id
-        else None
-    )
-
-    checkups = (
-        await db.scalars(
-            select(CheckUp).where(CheckUp.member_id == member.id).order_by(CheckUp.recorded_on)
-        )
-    ).all()
-    progress = None
-    if checkups:
-        first, last = checkups[0], checkups[-1]
-        weights = [c for c in checkups if c.weight_kg is not None]
-        progress = PublicProgress(
-            checkups=len(checkups),
-            latest_date=last.recorded_on,
-            weight_kg=last.weight_kg,
-            body_fat_pct=last.body_fat_pct,
-            bmi=last.bmi,
-            waist_cm=last.waist_cm,
-            weight_change_kg=round(weights[-1].weight_kg - weights[0].weight_kg, 1)
-            if len(weights) > 1
-            else None,
-            first_date=first.recorded_on,
-            weight_series=[Point(date=c.recorded_on, value=c.weight_kg) for c in weights],
-        )
-
+    plan = await member_service.published_plan(db, member.id)
+    trainer = await member_service.trainer_of(db, member)
     return PublicMemberPage(
-        gym=PublicGym(
-            name=gym.name, brand_color=gym.brand_color, logo_url=gym.logo_url, phone=gym.phone
-        ),
+        gym=member_service.gym_view(gym),
         member_name=member.name,
         first_name=member.name.split()[0],
-        trainer_name=trainer_name,
-        membership=membership,
+        trainer_name=trainer.name if trainer else None,
+        membership=member_service.membership_view(member, today),
         plan=PlanContent.model_validate(plan.content) if plan and plan.content else None,
         plan_updated_at=(plan.updated_at if plan else None),
-        progress=progress,
+        progress=member_service.progress_view(await member_service.checkups_of(db, member.id)),
     )
 
 
@@ -233,7 +128,7 @@ async def submit_lead_form(token: str, body: PublicLeadIn, db: DbSession) -> dic
     await notify_staff(
         db,
         gym.id,
-        roles=(Role.OWNER, Role.MANAGER, Role.FRONT_DESK),
+        roles=(Role.OWNER, Role.MANAGER, Role.FRONT_DESK, Role.SALES),
         kind="lead_new",
         title=title,
         body=body.message[:200] if body.message else "Call them back today.",

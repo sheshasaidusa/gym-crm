@@ -23,7 +23,9 @@ async def notify_staff(
     have a notification with this dedupe_key are skipped. `user_ids` narrows it to those
     people (who must still be staff of this gym). Returns how many were created."""
     stmt = select(StaffMembership.user_id).where(
-        StaffMembership.gym_id == gym_id, StaffMembership.role.in_(roles)
+        StaffMembership.gym_id == gym_id,
+        StaffMembership.role.in_(roles),
+        StaffMembership.is_active,  # deactivated staff don't get notified
     )
     if user_ids is not None:
         stmt = stmt.where(StaffMembership.user_id.in_(user_ids))

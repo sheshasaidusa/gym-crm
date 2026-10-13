@@ -62,7 +62,10 @@ class ExperienceLevel(enum.StrEnum):
 
 class Member(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "members"
-    __table_args__ = (UniqueConstraint("gym_id", "phone"),)
+    __table_args__ = (
+        UniqueConstraint("gym_id", "phone"),
+        UniqueConstraint("gym_id", "device_user_id", name="uq_members_gym_id_device_user_id"),
+    )
 
     branch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("branches.id", ondelete="SET NULL")
@@ -77,7 +80,7 @@ class Member(IdMixin, TenantMixin, TimestampMixin, Base):
     emergency_contact_phone: Mapped[str | None] = mapped_column(String(30))
 
     height_cm: Mapped[float | None] = mapped_column(Float)
-    goal: Mapped[Goal | None] = mapped_column(_str_enum(Goal))
+    goals: Mapped[list[str]] = mapped_column(JSON, default=list)  # Goal values, up to 3
     diet_pref: Mapped[DietPref | None] = mapped_column(_str_enum(DietPref))
     experience_level: Mapped[ExperienceLevel | None] = mapped_column(_str_enum(ExperienceLevel))
     medical_notes: Mapped[str | None] = mapped_column(Text)
@@ -87,6 +90,8 @@ class Member(IdMixin, TenantMixin, TimestampMixin, Base):
     trainer_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL")
     )
+    # The number a fingerprint scanner or turnstile knows this member by (unique per gym).
+    device_user_id: Mapped[str | None] = mapped_column(String(40))
     photo_url: Mapped[str | None] = mapped_column(String(500))
     joined_on: Mapped[date] = mapped_column(Date)
 

@@ -11,6 +11,7 @@ from app.core.monitoring import RequestContextMiddleware, configure_logging, ini
 from app.core.scheduler import run_scheduler
 from app.modules.ai_plans.router import router as ai_plans_router
 from app.modules.analytics.router import router as analytics_router
+from app.modules.attendance.router import router as attendance_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.checkups.router import router as checkups_router
@@ -19,11 +20,15 @@ from app.modules.finance.router import router as finance_router
 from app.modules.gyms.router import router as gyms_router
 from app.modules.imports.router import router as imports_router
 from app.modules.leads.router import router as leads_router
+from app.modules.member_app.router import router as member_app_router
+from app.modules.member_app.router import staff_router as member_access_router
 from app.modules.members.router import router as members_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.plans.router import router as plans_router
 from app.modules.public.router import router as public_router
 from app.modules.reminders.router import router as reminders_router
+from app.modules.workouts.router import m_router as workouts_member_router
+from app.modules.workouts.router import staff_router as workouts_staff_router
 
 
 @contextlib.asynccontextmanager
@@ -74,12 +79,17 @@ def create_app() -> FastAPI:
     api.include_router(gyms_router)
     api.include_router(plans_router)
     api.include_router(members_router)
+    api.include_router(member_access_router)
+    api.include_router(member_app_router)
+    api.include_router(workouts_member_router)
+    api.include_router(workouts_staff_router)
     api.include_router(checkups_router)
     api.include_router(ai_plans_router)
     api.include_router(leads_router)
     api.include_router(finance_router)
     api.include_router(imports_router)
     api.include_router(analytics_router)
+    api.include_router(attendance_router)
     api.include_router(audit_router)
     api.include_router(exports_router)
     api.include_router(public_router)

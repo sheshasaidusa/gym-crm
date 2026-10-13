@@ -15,7 +15,7 @@ from app.modules.imports.parsing import (
     read_table,
 )
 from tests.conftest import Account
-from tests.helpers import make_member, make_plan
+from tests.helpers import make_member, make_plan, today
 from tests.test_gym_and_staff import invite_and_accept
 
 
@@ -192,7 +192,7 @@ async def test_members_import_end_to_end(client: AsyncClient, owner: Account):
     members = (await client.get("/api/members?q=asha", headers=owner.headers)).json()["items"]
     asha = (await client.get(f"/api/members/{members[0]['id']}", headers=owner.headers)).json()
     assert asha["phone"] == "9876543210"
-    assert asha["gender"] == "female" and asha["goal"] == "weight_loss"
+    assert asha["gender"] == "female" and asha["goals"] == ["weight_loss"]
     ms = asha["memberships"][0]
     assert (ms["start_date"], ms["end_date"], ms["paid"], ms["balance"]) == (
         "2026-09-01",
@@ -301,12 +301,14 @@ async def test_excel_plans_then_leads_payments_checkups(client: AsyncClient, own
     ]
 
     total = member["memberships"][0]["total"]
+    paid_on = today().strftime("%d/%m/%Y")
     pays = to_csv(
         [
             ["Mobile", "Amount", "Date", "Mode", "UTR"],
-            ["9876543210", "2000", "01/10/2026", "neft", "UTR1"],
-            ["9876543210", "2000", "01/10/2026", "neft", "UTR1"],  # exact repeat
-            ["9999999999", "100", "01/10/2026", "", ""],
+            # Paid today, so the payment falls inside the membership that started today.
+            ["9876543210", "2000", paid_on, "neft", "UTR1"],
+            ["9876543210", "2000", paid_on, "neft", "UTR1"],  # exact repeat
+            ["9999999999", "100", paid_on, "", ""],
         ]
     )
     up = await upload(client, owner, "payments", pays)

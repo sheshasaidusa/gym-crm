@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.dates import membership_end, today_in
 from app.core.db import utcnow
+from app.core.permissions import COACH_ROLES
 from app.core.repository import TenantRepository
 from app.core.schemas import round_money
 from app.modules.auth.models import User
@@ -60,13 +61,20 @@ async def validate_refs(
     if branch_id is not None:
         await BranchRepository(db, gym_id).get_or_404(branch_id)
     if trainer_id is not None:
-        is_staff = await db.scalar(
-            select(StaffMembership.id).where(
-                StaffMembership.gym_id == gym_id, StaffMembership.user_id == trainer_id
+        role = await db.scalar(
+            select(StaffMembership.role).where(
+                StaffMembership.gym_id == gym_id,
+                StaffMembership.user_id == trainer_id,
+                StaffMembership.is_active,
             )
         )
-        if not is_staff:
+        if role is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Trainer not found")
+        if role not in COACH_ROLES:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "Only trainers, managers or owners can be assigned as a trainer",
+            )
 
 
 async def ensure_unique_phone(
@@ -78,6 +86,23 @@ async def ensure_unique_phone(
     existing = (await db.execute(stmt)).first()
     if existing:
         raise conflict(f"{existing.name} already uses this phone number")
+
+
+async def ensure_unique_device_user(
+    db: AsyncSession,
+    gym_id: uuid.UUID,
+    device_user_id: str | None,
+    exclude_id: uuid.UUID | None = None,
+) -> None:
+    if not device_user_id:
+        return
+    stmt = select(Member.name).where(
+        Member.gym_id == gym_id, Member.device_user_id == device_user_id
+    )
+    if exclude_id:
+        stmt = stmt.where(Member.id != exclude_id)
+    if (name := await db.scalar(stmt)) is not None:
+        raise conflict(f"{name} already has device number {device_user_id}")
 
 
 # --- Memberships ------------------------------------------------------------
@@ -261,6 +286,14 @@ def member_status(current: Membership | None, today: date) -> Status:
     return membership_status(current, today) if current else Status.NONE
 
 
+def hide_money(out: "MemberOut") -> "MemberOut":
+    """Blanks prices, totals and balances for staff who may not see member finances."""
+    for ms in out.memberships:
+        ms.price = ms.discount = ms.joining_fee = ms.tax_pct = ms.total = None
+        ms.paid = ms.balance = None
+    return out
+
+
 def list_item(
     member: Member, current: Membership | None, trainer_name: str | None, today: date
 ) -> MemberListItem:
@@ -307,11 +340,12 @@ async def member_out(db: AsyncSession, member: Member, today: date) -> MemberOut
         emergency_contact_name=member.emergency_contact_name,
         emergency_contact_phone=member.emergency_contact_phone,
         height_cm=member.height_cm,
-        goal=member.goal,
+        goals=member.goals or [],
         diet_pref=member.diet_pref,
         experience_level=member.experience_level,
         medical_notes=member.medical_notes,
         notes=member.notes,
+        device_user_id=member.device_user_id,
         preview_enabled=member.preview_enabled,
         preview_url=f"{settings.frontend_url}/p/{member.preview_token}",
         memberships=[

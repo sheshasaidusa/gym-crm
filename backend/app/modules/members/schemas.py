@@ -29,6 +29,18 @@ def _phone_if_given(v: str | None) -> str | None:
     return normalize_phone(v) if v is not None else None
 
 
+MAX_GOALS = 3
+
+
+def _clean_goals(v: list[Goal] | None) -> list[Goal] | None:
+    if v is None:
+        return v
+    goals = list(dict.fromkeys(v))
+    if len(goals) > MAX_GOALS:
+        raise ValueError(f"Pick up to {MAX_GOALS} goals")
+    return goals
+
+
 def _clean_tags(v: list[str] | None) -> list[str] | None:
     if v is None:
         return v
@@ -76,11 +88,12 @@ class MembershipOut(ORMModel):
     duration_unit: DurationUnit
     start_date: date
     end_date: date
-    price: Money
-    discount: Money
-    joining_fee: Money
-    tax_pct: Money
-    total: Money
+    # Money fields are null for staff who can't see member finances (trainers).
+    price: Money | None
+    discount: Money | None
+    joining_fee: Money | None
+    tax_pct: Money | None
+    total: Money | None
     max_freeze_days: int
     frozen_days: int
     freeze_start: date | None
@@ -90,8 +103,8 @@ class MembershipOut(ORMModel):
     created_at: datetime
     status: Status
     days_left: int | None
-    paid: Money
-    balance: Money
+    paid: Money | None
+    balance: Money | None
 
 
 class CurrentMembershipOut(BaseModel):
@@ -116,7 +129,7 @@ class MemberFields(BaseModel):
     emergency_contact_name: str | None = Field(None, max_length=120)
     emergency_contact_phone: str | None = None
     height_cm: float | None = Field(None, ge=50, le=260)
-    goal: Goal | None = None
+    goals: list[Goal] = []
     diet_pref: DietPref | None = None
     experience_level: ExperienceLevel | None = None
     medical_notes: str | None = Field(None, max_length=2000)
@@ -124,13 +137,21 @@ class MemberFields(BaseModel):
     tags: list[str] = []
     trainer_id: uuid.UUID | None = None
     branch_id: uuid.UUID | None = None
+    device_user_id: str | None = Field(None, max_length=40)
 
     _empty = field_validator(
-        "email", "address", "emergency_contact_name", "medical_notes", "notes", mode="before"
+        "email",
+        "address",
+        "emergency_contact_name",
+        "medical_notes",
+        "notes",
+        "device_user_id",
+        mode="before",
     )(_empty_to_none)
     _phone = field_validator("phone")(_phone_if_given)
     _ec_phone = field_validator("emergency_contact_phone")(_optional_phone)
     _tags = field_validator("tags")(_clean_tags)
+    _goals = field_validator("goals")(_clean_goals)
 
     @field_validator("name")
     @classmethod
@@ -155,6 +176,7 @@ class MemberUpdate(MemberFields):
     name: str | None = Field(None, min_length=2, max_length=120)  # type: ignore[assignment]
     phone: str | None = None  # type: ignore[assignment]
     tags: list[str] | None = None  # type: ignore[assignment]
+    goals: list[Goal] | None = None  # type: ignore[assignment]
     joined_on: date | None = None
     preview_enabled: bool | None = None
 
@@ -185,11 +207,12 @@ class MemberOut(MemberListItem):
     emergency_contact_name: str | None
     emergency_contact_phone: str | None
     height_cm: float | None
-    goal: Goal | None
+    goals: list[Goal]
     diet_pref: DietPref | None
     experience_level: ExperienceLevel | None
     medical_notes: str | None
     notes: str | None
+    device_user_id: str | None
     preview_enabled: bool
     preview_url: str
     memberships: list[MembershipOut]

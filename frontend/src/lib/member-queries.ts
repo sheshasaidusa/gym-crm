@@ -148,6 +148,60 @@ export function useUpdateMember(id: string) {
   });
 }
 
+/** Give several members the same trainer (or none) in one go. */
+export function useAssignTrainer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Schemas["AssignTrainerIn"]) => unwrap(api.POST("/api/members/assign-trainer", { body })),
+    onSuccess: ({ updated }) => {
+      qc.invalidateQueries({ queryKey: keys.members });
+      toast.success(`${updated} member${updated === 1 ? "" : "s"} updated`);
+    },
+    onError,
+  });
+}
+
+const appAccessKey = (id: string) => ["members", id, "app-access"] as const;
+
+/** Whether a member has opened the member app, and whether a link is waiting. */
+export function useAppAccess(memberId: string) {
+  return useQuery({
+    queryKey: appAccessKey(memberId),
+    queryFn: () =>
+      unwrap(api.GET("/api/members/{member_id}/app-access", { params: { path: { member_id: memberId } } })),
+  });
+}
+
+/** A fresh activation link. It resets the member's PIN, so only make one when you mean to. */
+export function useSendAppLink(memberId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.POST("/api/members/{member_id}/app-access/link", {
+          params: { path: { member_id: memberId } },
+        }),
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appAccessKey(memberId) }),
+    onError,
+  });
+}
+
+export function useDisableAppAccess(memberId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.DELETE("/api/members/{member_id}/app-access", { params: { path: { member_id: memberId } } }),
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: appAccessKey(memberId) });
+      toast.success("App access turned off");
+    },
+    onError,
+  });
+}
+
 export function useDeleteMember() {
   const qc = useQueryClient();
   return useMutation({

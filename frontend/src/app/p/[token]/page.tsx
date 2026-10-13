@@ -7,8 +7,9 @@ import { PlanView } from "@/components/plan-view";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { components } from "@/lib/api/schema";
 import { formatDate, STATUS_META } from "@/lib/format";
+import { membershipLine } from "@/lib/membership-line";
 
-import { WeightChart } from "./weight-chart";
+import { WeightChart } from "@/components/weight-chart";
 
 type PageData = components["schemas"]["PublicMemberPage"];
 
@@ -31,21 +32,6 @@ async function load(token: string): Promise<PageData | "rate-limited" | null> {
   if (res.status === 429) return "rate-limited";
   if (!res.ok) return null;
   return res.json();
-}
-
-function membershipLine(m: NonNullable<PageData["membership"]>) {
-  switch (m.status) {
-    case "expired":
-      return `Ended on ${formatDate(m.end_date)}. Talk to us to renew.`;
-    case "upcoming":
-      return `Starts on ${formatDate(m.start_date)}.`;
-    case "frozen":
-      return `Paused until ${formatDate(m.frozen_until)}. Ends ${formatDate(m.end_date)}.`;
-    default:
-      return m.days_left === 0
-        ? "Ends today."
-        : `${m.days_left} day${m.days_left === 1 ? "" : "s"} left · ends ${formatDate(m.end_date)}`;
-  }
 }
 
 export default async function MemberPreviewPage({ params }: { params: Promise<{ token: string }> }) {

@@ -26,37 +26,54 @@ function messageFrom(body: unknown, status: number): string {
   return status >= 500 ? "Something went wrong. Please try again." : "Request failed";
 }
 
-let refreshing: Promise<boolean> | null = null;
+/**
+ * A typed client that quietly refreshes the session on a 401 and retries once. Staff and members
+ * each get one, with their own refresh endpoint and login page, so the two sessions never mix.
+ */
+function makeClient(session: { refreshUrl: string; loginPath: string; noRetry: string[] }) {
+  let refreshing: Promise<boolean> | null = null;
 
-/** One refresh at a time, shared by every request that got a 401 meanwhile. */
-function refreshSession(): Promise<boolean> {
-  refreshing ??= fetch("/api/auth/refresh", { method: "POST", credentials: "include" })
-    .then((res) => res.ok)
-    .catch(() => false)
-    .finally(() => {
-      refreshing = null;
-    });
-  return refreshing;
-}
+  /** One refresh at a time, shared by every request that got a 401 meanwhile. */
+  const refreshSession = () => {
+    refreshing ??= fetch(session.refreshUrl, { method: "POST", credentials: "include" })
+      .then((res) => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshing = null;
+      });
+    return refreshing;
+  };
 
-const NO_RETRY = ["/api/auth/login", "/api/auth/signup", "/api/auth/refresh", "/api/auth/logout"];
-
-async function fetchWithRefresh(input: Request): Promise<Response> {
-  const retry = input.clone();
-  const res = await fetch(input);
-  const path = new URL(input.url).pathname;
-  if (res.status !== 401 || NO_RETRY.some((p) => path.startsWith(p))) return res;
-  if (await refreshSession()) return fetch(retry);
-  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-    window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+  async function fetchWithRefresh(input: Request): Promise<Response> {
+    const retry = input.clone();
+    const res = await fetch(input);
+    const path = new URL(input.url).pathname;
+    if (res.status !== 401 || session.noRetry.some((p) => path.startsWith(p))) return res;
+    if (await refreshSession()) return fetch(retry);
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith(session.loginPath)) {
+      window.location.href = `${session.loginPath}?next=${encodeURIComponent(window.location.pathname)}`;
+    }
+    return res;
   }
-  return res;
+
+  return createClient<paths>({
+    baseUrl: typeof window === "undefined" ? process.env.BACKEND_URL : "",
+    credentials: "include",
+    fetch: fetchWithRefresh,
+  });
 }
 
-export const api = createClient<paths>({
-  baseUrl: typeof window === "undefined" ? process.env.BACKEND_URL : "",
-  credentials: "include",
-  fetch: fetchWithRefresh,
+export const api = makeClient({
+  refreshUrl: "/api/auth/refresh",
+  loginPath: "/login",
+  noRetry: ["/api/auth/login", "/api/auth/signup", "/api/auth/refresh", "/api/auth/logout"],
+});
+
+/** The member app's client (phone + PIN session). */
+export const mApi = makeClient({
+  refreshUrl: "/api/m/auth/refresh",
+  loginPath: "/m/login",
+  noRetry: ["/api/m/auth/login", "/api/m/activate", "/api/m/auth/refresh", "/api/m/auth/logout"],
 });
 
 /** Turns an openapi-fetch result into data-or-throw, for use with TanStack Query. */

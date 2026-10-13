@@ -1,4 +1,5 @@
 import logging
+import re
 from functools import lru_cache
 from typing import Literal
 
@@ -14,6 +15,11 @@ class Settings(BaseSettings):
 
     # SQLite for local dev without Docker; use postgresql+asyncpg://... in production.
     database_url: str = "sqlite+aiosqlite:///./dev.db"
+    # Postgres connection pool, per API process. Keep (size + overflow) x processes under the
+    # database's connection limit; small Render plans allow roughly 100.
+    db_pool_size: int = 5
+    db_max_overflow: int = 5
+    db_pool_recycle_seconds: int = 1800
 
     jwt_secret: str = "change-me-in-production-please-use-a-long-random-string"
     jwt_algorithm: str = "HS256"
@@ -68,6 +74,7 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     cors_origins: list[str] = ["http://localhost:3000"]
     frontend_url: str = "http://localhost:3000"
+    member_refresh_token_days: int = 30  # members stay signed in on their phone
 
     @field_validator("database_url")
     @classmethod
@@ -79,6 +86,9 @@ class Settings(BaseSettings):
                 url = "postgresql+asyncpg://" + url[len(prefix) :]
         if url.startswith("postgresql+asyncpg://"):
             url = url.replace("sslmode=", "ssl=")
+            # Neon's copy-paste URL adds channel_binding, a libpq option asyncpg rejects.
+            url = re.sub(r"\?channel_binding=[^&]*&", "?", url)  # first of several options
+            url = re.sub(r"[?&]channel_binding=[^&]*", "", url)  # anywhere else
         return url
 
     @property

@@ -18,6 +18,7 @@ from app.modules.auth.schemas import (
     RefreshIn,
     SignupIn,
     SwitchGymIn,
+    UpdateMeIn,
 )
 from app.modules.gyms.models import Gym
 
@@ -78,6 +79,20 @@ async def logout(response: Response) -> None:
 
 @router.get("/me", response_model=MeOut)
 async def me(ctx: CurrentContext, db: DbSession):
+    return await service.build_me(db, ctx.user, ctx.gym_id)
+
+
+@router.patch("/me", response_model=MeOut)
+async def update_me(body: UpdateMeIn, ctx: CurrentContext, db: DbSession):
+    """People edit their own display name and phone (trainers' phone is shown to members)."""
+    values = body.model_dump(exclude_unset=True)
+    if values.get("name") is None:
+        values.pop("name", None)
+    if "phone" in values:
+        values["phone"] = (values["phone"] or "").strip() or None
+    for key, value in values.items():
+        setattr(ctx.user, key, value)
+    await db.commit()
     return await service.build_me(db, ctx.user, ctx.gym_id)
 
 
