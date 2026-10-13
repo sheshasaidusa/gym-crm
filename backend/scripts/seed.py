@@ -25,13 +25,27 @@ from app.core.dates import DurationUnit, membership_end, today_in  # noqa: E402
 from app.core.db import SessionLocal, utcnow  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.models import Branch, Gym, Member, Membership, Plan, StaffMembership, User  # noqa: E402
+from app.modules.ai_plans.content import (  # noqa: E402
+    DietPlan,
+    Exercise,
+    Meal,
+    PlanContent,
+    WorkoutDay,
+)
+from app.modules.ai_plans.models import AIPlan, PlanStatus  # noqa: E402
 from app.modules.attendance.models import Attendance, AttendanceSource  # noqa: E402
+from app.modules.checkups.models import CheckUp  # noqa: E402
 from app.modules.finance.models import Payment, PaymentMethod  # noqa: E402
 from app.modules.gyms.models import Role  # noqa: E402
 from app.modules.leads.models import Lead, LeadSource, LeadStage  # noqa: E402
+from app.modules.member_app.models import MemberAccount  # noqa: E402
 from app.modules.members.service import compute_total  # noqa: E402
+from app.modules.workouts.models import WorkoutSession  # noqa: E402
 
-DEMO_PASSWORD = "DemoPass123!"
+# Local defaults; scripts/reset_demo.py sets random ones so shared servers never use these.
+DEMO_PASSWORD = os.environ.get("SEED_PASSWORD", "DemoPass123!")
+DEMO_PIN = os.environ.get("SEED_PIN", "4829")
+MEMBER_PHONE = "+919811100001"  # Arjun Mehta: the demo member who has the app set up
 OWNER_EMAIL = "demo-owner@example.com"
 TRAINER_EMAIL = "demo-trainer@example.com"
 
@@ -98,8 +112,10 @@ async def main() -> None:
         await db.flush()
         await seed_plans_and_members(db, gym, trainer.id)
         await seed_leads_and_visits(db, gym, owner.id)
+        await seed_member_app(db, gym, trainer.id)
         await db.commit()
         print(f"Created demo gym. Log in as {OWNER_EMAIL} / {DEMO_PASSWORD}")
+        print(f"Member app: phone {MEMBER_PHONE} / PIN {DEMO_PIN}")
 
 
 async def seed_plans_and_members(db, gym: Gym, trainer_id) -> None:
@@ -254,6 +270,110 @@ async def seed_leads_and_visits(db, gym: Gym, owner_id) -> None:
                     source=AttendanceSource.DESK,
                 )
             )
+
+
+async def seed_member_app(db, gym: Gym, trainer_id) -> None:
+    """Arjun gets a published plan, check-ups, two logged workouts and an activated app login."""
+    member = await db.scalar(
+        select(Member).where(Member.gym_id == gym.id, Member.phone == MEMBER_PHONE)
+    )
+    if member is None:
+        return
+    today = today_in(gym.timezone)
+    plan = AIPlan(
+        gym_id=gym.id,
+        member_id=member.id,
+        version=1,
+        status=PlanStatus.PUBLISHED,
+        title="Strength and fat loss, 3 days",
+        content=PlanContent(
+            summary="Three simple full-body sessions a week to build strength while losing fat.",
+            weekly_schedule=[
+                WorkoutDay(
+                    day=f"Day {i + 1} - {focus}",
+                    focus=focus,
+                    warmup="5 minutes on the bike, then light sets",
+                    exercises=[
+                        Exercise(name=n, sets=3, reps=reps, rest_seconds=90, notes="")
+                        for n, reps in moves
+                    ],
+                    cooldown="5 minutes of stretching",
+                )
+                for i, (focus, moves) in enumerate(
+                    [
+                        ("Push", [("Bench press", "8-10"), ("Overhead press", "10")]),
+                        ("Pull", [("Barbell row", "8-10"), ("Lat pulldown", "10-12")]),
+                        ("Legs", [("Back squat", "6-8"), ("Romanian deadlift", "8-10")]),
+                    ]
+                )
+            ],
+            diet=DietPlan(
+                daily_calories=2200,
+                protein_g=150,
+                carbs_g=230,
+                fat_g=70,
+                meals=[
+                    Meal(
+                        name="Breakfast",
+                        time="8:00 AM",
+                        items=["Oats with milk", "2 eggs"],
+                        calories=550,
+                        protein_g=32,
+                    )
+                ],
+                hydration="3 litres of water a day",
+                notes=["Eat protein at every meal"],
+            ),
+            progression="Add 2.5 kg to a lift once you finish all sets with good form.",
+            safety_notes=["Stop and tell your trainer if anything hurts."],
+        ).model_dump(),
+        published_at=utcnow(),
+        created_by=trainer_id,
+    )
+    db.add(plan)
+    await db.flush()
+    for ago, weight, fat in ((42, 88.0, 27.5), (21, 86.4, 26.4), (3, 85.1, 25.6)):
+        db.add(
+            CheckUp(
+                gym_id=gym.id,
+                member_id=member.id,
+                recorded_on=today - timedelta(days=ago),
+                weight_kg=weight,
+                body_fat_pct=fat,
+                height_cm=178,
+                recorded_by=trainer_id,
+            )
+        )
+    for ago, day, lifts in (
+        (5, "Day 1 - Push", [("Bench press", [(8, 55), (8, 55), (6, 60)])]),
+        (2, "Day 2 - Pull", [("Barbell row", [(8, 50), (8, 50), (8, 52.5)])]),
+    ):
+        db.add(
+            WorkoutSession(
+                gym_id=gym.id,
+                member_id=member.id,
+                plan_id=plan.id,
+                day_label=day,
+                performed_on=today - timedelta(days=ago),
+                duration_min=55,
+                entries=[
+                    {
+                        "exercise": name,
+                        "from_plan": True,
+                        "sets": [{"reps": r, "weight_kg": w} for r, w in sets],
+                    }
+                    for name, sets in lifts
+                ],
+            )
+        )
+    db.add(
+        MemberAccount(
+            gym_id=gym.id,
+            member_id=member.id,
+            pin_hash=hash_password(DEMO_PIN),
+            activated_at=utcnow(),
+        )
+    )
 
 
 if __name__ == "__main__":
