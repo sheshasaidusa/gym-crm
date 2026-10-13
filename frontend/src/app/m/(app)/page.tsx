@@ -3,16 +3,18 @@
 import { CalendarCheckIcon, ChevronRightIcon, HeartPulseIcon, MessageCircleIcon, PhoneIcon } from "lucide-react";
 import Link from "next/link";
 
+import { VisitGrid } from "@/components/attendance/visit-grid";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, STATUS_META, todayIso } from "@/lib/format";
-import { useMemberMe } from "@/lib/member-app-queries";
+import { useMemberAttendance, useMemberMe } from "@/lib/member-app-queries";
 import { membershipLine } from "@/lib/membership-line";
 import { whatsappUrl } from "@/lib/whatsapp";
 
 export default function MemberHome() {
   const me = useMemberMe();
+  const visits = useMemberAttendance();
   if (me.isPending) return <Skeleton className="h-64 w-full rounded-xl" />;
   if (me.isError) return <p className="text-sm text-destructive">{me.error.message}</p>;
 
@@ -87,6 +89,25 @@ export default function MemberHome() {
           </CardContent>
         )}
       </Card>
+
+      {visits.data && (visits.data.dates.length > 0 || visits.data.last_visit) && (
+        <Card>
+          <CardHeader>
+            <CardDescription>Your visits</CardDescription>
+            <CardTitle className="text-lg">
+              {visits.data.visits_30d} in the last 30 days
+              {visits.data.streak_weeks > 1 && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  · {visits.data.streak_weeks} week streak 🔥
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VisitGrid dates={visits.data.dates} />
+          </CardContent>
+        </Card>
+      )}
 
       <Link href="/m/progress" className="block">
         <Card className="transition-colors hover:bg-muted/40">

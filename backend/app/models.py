@@ -2,6 +2,7 @@
 
 from app.core.db import Base
 from app.modules.ai_plans.models import AIPlan
+from app.modules.attendance.models import Attendance, Device
 from app.modules.audit.models import AuditLog
 from app.modules.auth.models import User
 from app.modules.checkups.models import CheckUp, CheckUpPhoto
@@ -17,11 +18,13 @@ from app.modules.reminders.models import ReminderLog
 
 __all__ = [
     "AIPlan",
+    "Attendance",
     "AuditLog",
     "Base",
     "Branch",
     "CheckUp",
     "CheckUpPhoto",
+    "Device",
     "Expense",
     "Gym",
     "ImportJob",

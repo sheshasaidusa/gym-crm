@@ -11,6 +11,7 @@ from app.core.monitoring import RequestContextMiddleware, configure_logging, ini
 from app.core.scheduler import run_scheduler
 from app.modules.ai_plans.router import router as ai_plans_router
 from app.modules.analytics.router import router as analytics_router
+from app.modules.attendance.router import router as attendance_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.checkups.router import router as checkups_router
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     api.include_router(finance_router)
     api.include_router(imports_router)
     api.include_router(analytics_router)
+    api.include_router(attendance_router)
     api.include_router(audit_router)
     api.include_router(exports_router)
     api.include_router(public_router)

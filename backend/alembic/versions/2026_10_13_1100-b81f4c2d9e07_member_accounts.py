@@ -36,18 +36,27 @@ def upgrade() -> None:
         sa.Column("disabled_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["gym_id"], ["gyms.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["member_id"], ["members.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("member_id"),
+        sa.ForeignKeyConstraint(
+            ["gym_id"], ["gyms.id"], name=op.f("fk_member_accounts_gym_id_gyms"), ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(
+            ["member_id"],
+            ["members.id"],
+            name=op.f("fk_member_accounts_member_id_members"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_member_accounts")),
+        sa.UniqueConstraint("member_id", name=op.f("uq_member_accounts_member_id")),
     )
-    op.create_index("ix_member_accounts_gym_id", "member_accounts", ["gym_id"])
+    op.create_index(op.f("ix_member_accounts_gym_id"), "member_accounts", ["gym_id"])
     op.create_index(
-        "ix_member_accounts_activation_token_hash", "member_accounts", ["activation_token_hash"]
+        op.f("ix_member_accounts_activation_token_hash"),
+        "member_accounts",
+        ["activation_token_hash"],
     )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_member_accounts_activation_token_hash", table_name="member_accounts")
-    op.drop_index("ix_member_accounts_gym_id", table_name="member_accounts")
+    op.drop_index(op.f("ix_member_accounts_activation_token_hash"), table_name="member_accounts")
+    op.drop_index(op.f("ix_member_accounts_gym_id"), table_name="member_accounts")
     op.drop_table("member_accounts")

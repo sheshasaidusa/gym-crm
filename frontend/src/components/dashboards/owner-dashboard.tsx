@@ -131,6 +131,19 @@ export function OwnerDashboard() {
         <Skeleton className="h-28 w-full rounded-xl" />
       )}
 
+      {a?.absent_14_days != null && a.absent_14_days > 0 && (
+        <Link
+          href="/members?status=active"
+          className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm hover:bg-amber-500/10"
+        >
+          <span>
+            <strong className="tabular-nums">{a.absent_14_days}</strong> active member{a.absent_14_days === 1 ? " hasn't" : "s haven't"} visited in
+            14 days. They are the ones most likely not to renew.
+          </span>
+          <ArrowRightIcon className="size-4 shrink-0" />
+        </Link>
+      )}
+
       {a ? <MoneySection data={a} /> : <Skeleton className="h-72 w-full rounded-xl" />}
 
       <section className="space-y-3">

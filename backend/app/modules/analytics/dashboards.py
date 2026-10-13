@@ -36,6 +36,8 @@ from app.modules.analytics.schemas import (
     TrialRow,
 )
 from app.modules.analytics.service import Ms, checkup_progress, pct, shift_month
+from app.modules.attendance import service as attendance
+from app.modules.attendance.models import Attendance
 from app.modules.auth.models import User
 from app.modules.checkups.models import CheckUp
 from app.modules.checkups.queries import is_due, last_checkup, running_member_ids
@@ -153,6 +155,42 @@ async def trainer_dashboard(
         )
     ).all()
 
+    tracked = await attendance.is_tracked(db, gym.id, today)
+    visits_7d = at_risk_total = 0
+    at_risk_rows: list = []
+    if tracked:
+        visits_7d = (
+            await db.scalar(
+                mine(
+                    select(func.count())
+                    .select_from(Attendance)
+                    .join(Member, Member.id == Attendance.member_id)
+                    .where(Attendance.local_date > today - timedelta(days=7))
+                )
+            )
+            or 0
+        )
+        seen = attendance.last_visit(gym.id)
+        at_risk_stmt = mine(
+            select(Member.id, Member.name, Member.phone, seen.c.last_on)
+            .outerjoin(seen, seen.c.member_id == Member.id)
+            .where(
+                Member.id.in_(attendance.established_member_ids(gym.id, today)),
+                (seen.c.last_on.is_(None))
+                | (seen.c.last_on <= today - timedelta(days=attendance.ABSENT_DAYS)),
+            )
+        )
+        at_risk_total = (
+            await db.scalar(select(func.count()).select_from(at_risk_stmt.subquery())) or 0
+        )
+        at_risk_rows = (
+            await db.execute(
+                at_risk_stmt.order_by(
+                    seen.c.last_on.is_not(None), seen.c.last_on, Member.name
+                ).limit(LIST_SIZE)
+            )
+        ).all()
+
     return TrainerDashboard(
         trainer=subject,
         clients=counts,
@@ -164,6 +202,10 @@ async def trainer_dashboard(
             [(r[0], r[1], r[2], None) for r in bare_rows.all()], today, days_from_today=True
         ),
         progress=checkup_progress(progress_rows),
+        attendance_tracked=tracked,
+        visits_7d=visits_7d,
+        at_risk=at_risk_total,
+        at_risk_list=_rows(at_risk_rows, today, days_from_today=False),
     )
 
 
@@ -284,6 +326,8 @@ async def desk_dashboard(
             for lead, who in trials.all()
         ],
         new_members_today=new_today or 0,
+        checkins_today=await attendance.visits_today(db, gym.id, today),
+        attendance_tracked=await attendance.is_tracked(db, gym.id, today),
     )
 
 
@@ -465,6 +509,24 @@ async def staff_analytics(
         )
     ).all()
 
+    tracked = await attendance.is_tracked(db, gym.id, today)
+    visits: dict[uuid.UUID, int] = {}
+    if tracked and owner_of:
+        visits = dict(
+            (
+                await db.execute(
+                    select(Attendance.member_id, func.count())
+                    .where(
+                        Attendance.gym_id == gym.id,
+                        Attendance.member_id.in_(owner_of),
+                        Attendance.local_date >= period_start,
+                    )
+                    .group_by(Attendance.member_id)
+                )
+            ).all()
+        )
+    weeks = max((today - period_start).days / 7, 1)
+
     clients: dict[uuid.UUID, list[uuid.UUID]] = defaultdict(list)
     for member_id, trainer_id in owner_of.items():
         clients[trainer_id].append(member_id)
@@ -490,6 +552,11 @@ async def staff_analytics(
                 members_tracked=progress.members_tracked,
                 on_track=progress.on_track,
                 avg_weight_change=progress.avg_weight_change,
+                visits_per_client_week=round(
+                    sum(visits.get(m, 0) for m in mine) / weeks / active, 1
+                )
+                if tracked and active
+                else None,
             )
         )
     trainers.sort(key=lambda t: (-t.active_clients, t.name))

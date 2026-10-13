@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.schemas import round_money
@@ -35,6 +35,8 @@ from app.modules.analytics.schemas import (
     StageCount,
     Upcoming,
 )
+from app.modules.attendance import service as attendance
+from app.modules.attendance.models import Attendance
 from app.modules.checkups.models import CheckUp
 from app.modules.finance.models import Expense, Payment
 from app.modules.gyms.models import Branch, Gym
@@ -323,6 +325,27 @@ async def build(
                     )
                 )
 
+    absent = None
+    if await attendance.is_tracked(db, gym.id, today):
+        seen = dict(
+            (
+                await db.execute(
+                    member_scope(
+                        select(Attendance.member_id, func.max(Attendance.local_date))
+                        .join(Member, Member.id == Attendance.member_id)
+                        .group_by(Attendance.member_id)
+                    )
+                )
+            ).all()
+        )
+        cutoff = today - timedelta(days=attendance.ABSENT_DAYS)
+        absent = sum(
+            1
+            for mid, ms in by_member.items()
+            if any(m.active_on(today) and m.start <= cutoff for m in ms)
+            and (mid not in seen or seen[mid] <= cutoff)
+        )
+
     return AnalyticsOut(
         currency=gym.currency,
         today=today,
@@ -360,6 +383,7 @@ async def build(
             other=round_money(other_money),
         ),
         branch_comparison=branch_rows,
+        absent_14_days=absent,
     )
 
 

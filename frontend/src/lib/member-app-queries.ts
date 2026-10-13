@@ -20,6 +20,13 @@ export function useMemberPlan() {
   return useQuery({ queryKey: ["m", "plan"], queryFn: () => unwrap(mApi.GET("/api/m/plan")) });
 }
 
+export function useMemberAttendance() {
+  return useQuery({
+    queryKey: ["m", "attendance"],
+    queryFn: () => unwrap(mApi.GET("/api/m/attendance")),
+  });
+}
+
 export function useMemberCheckups() {
   return useQuery({
     queryKey: ["m", "checkups"],

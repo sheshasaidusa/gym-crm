@@ -65,6 +65,9 @@ class Cap(enum.StrEnum):
     BRANCHES = "branches"
     GYM_SETTINGS = "gym_settings"
 
+    ATTENDANCE = "attendance"  # check members in at the desk, see today's visits
+    DEVICES = "devices"  # scanners and turnstiles that report punches
+
 
 CAPS: dict[Cap, frozenset[Role]] = {
     Cap.MEMBERS_VIEW: frozenset({OWNER, MANAGER, DESK, TRAINER}),
@@ -93,6 +96,8 @@ CAPS: dict[Cap, frozenset[Role]] = {
     Cap.STAFF_MANAGE: frozenset({OWNER, MANAGER}),
     Cap.BRANCHES: frozenset({OWNER, MANAGER}),
     Cap.GYM_SETTINGS: frozenset({OWNER}),
+    Cap.ATTENDANCE: frozenset({OWNER, MANAGER, DESK}),
+    Cap.DEVICES: frozenset({OWNER, MANAGER}),
 }
 
 # Who may manage whom: you can only manage staff ranked strictly below you.

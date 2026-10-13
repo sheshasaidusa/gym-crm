@@ -2245,6 +2245,27 @@
         }
       }
     },
+    "/api/m/attendance": {
+      "get": {
+        "tags": [
+          "member-app"
+        ],
+        "summary": "Attendance History",
+        "operationId": "attendance_history_api_m_attendance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitHistory"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/m/plan": {
       "get": {
         "tags": [
@@ -4799,6 +4820,426 @@
         }
       }
     },
+    "/api/attendance": {
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Check In",
+        "description": "Check a member in now. Doing it twice in a day returns the first visit. An expired or\nfrozen membership gives a warning but never blocks the visit.",
+        "operationId": "check_in_api_attendance_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckInIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Day List",
+        "description": "Who came in on a day (default today), latest first.",
+        "operationId": "day_list_api_attendance_get",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/{visit_id}": {
+      "delete": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Undo Check In",
+        "description": "Undo a mistaken check-in. Only today's; older visits are history.",
+        "operationId": "undo_check_in_api_attendance__visit_id__delete",
+        "parameters": [
+          {
+            "name": "visit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Visit Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/attendance": {
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Member History",
+        "operationId": "member_history_api_members__member_id__attendance_get",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Member Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 7,
+              "default": 90,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitHistory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "List Devices",
+        "operationId": "list_devices_api_devices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Devices Api Devices Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Create Device",
+        "operationId": "create_device_api_devices_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{device_id}/rotate-key": {
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Rotate Key",
+        "description": "A new key; the old one stops working at once.",
+        "operationId": "rotate_key_api_devices__device_id__rotate_key_post",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{device_id}": {
+      "patch": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Update Device",
+        "operationId": "update_device_api_devices__device_id__patch",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Delete Device",
+        "operationId": "delete_device_api_devices__device_id__delete",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/punches": {
+      "post": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Report Punches",
+        "description": "Scanners and turnstiles post their punches here with an `X-Device-Key` header. Safe to\nresend: a punch already reported, or a second one from a member that day, is counted as a\nduplicate. See docs/attendance-ingestion.md.",
+        "operationId": "report_punches_api_attendance_punches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PunchesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PunchesOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/audit": {
       "get": {
         "tags": [
@@ -5935,6 +6376,17 @@
             "type": "array",
             "title": "Branch Comparison",
             "default": []
+          },
+          "absent_14_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absent 14 Days"
           }
         },
         "type": "object",
@@ -6076,6 +6528,16 @@
           "updated"
         ],
         "title": "AssignTrainerOut"
+      },
+      "AttendanceSource": {
+        "type": "string",
+        "enum": [
+          "desk",
+          "device",
+          "member_app",
+          "import"
+        ],
+        "title": "AttendanceSource"
       },
       "AuditOut": {
         "properties": {
@@ -6449,6 +6911,68 @@
           "mapping"
         ],
         "title": "CheckIn"
+      },
+      "CheckInIn": {
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_id"
+        ],
+        "title": "CheckInIn"
+      },
+      "CheckInOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked In At"
+          },
+          "already": {
+            "type": "boolean",
+            "title": "Already"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "member_id",
+          "member_name",
+          "checked_in_at",
+          "already",
+          "warning"
+        ],
+        "title": "CheckInOut"
       },
       "CheckOut": {
         "properties": {
@@ -7092,6 +7616,33 @@
         ],
         "title": "DateOrder"
       },
+      "DayList": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VisitRow"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "total",
+          "items"
+        ],
+        "title": "DayList"
+      },
       "DeskDashboard": {
         "properties": {
           "renewals": {
@@ -7145,6 +7696,16 @@
           "new_members_today": {
             "type": "integer",
             "title": "New Members Today"
+          },
+          "checkins_today": {
+            "type": "integer",
+            "title": "Checkins Today",
+            "default": 0
+          },
+          "attendance_tracked": {
+            "type": "boolean",
+            "title": "Attendance Tracked",
+            "default": false
           }
         },
         "type": "object",
@@ -7161,6 +7722,180 @@
           "new_members_today"
         ],
         "title": "DeskDashboard"
+      },
+      "DeviceCreated": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "api_key": {
+            "type": "string",
+            "title": "Api Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "branch_id",
+          "is_active",
+          "last_seen_at",
+          "api_key"
+        ],
+        "title": "DeviceCreated"
+      },
+      "DeviceIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "DeviceIn"
+      },
+      "DeviceOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "branch_id",
+          "is_active",
+          "last_seen_at"
+        ],
+        "title": "DeviceOut"
+      },
+      "DeviceUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "DeviceUpdate"
       },
       "DietPlan": {
         "properties": {
@@ -10344,6 +11079,18 @@
             ],
             "title": "Branch Id"
           },
+          "device_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device User Id"
+          },
           "joined_on": {
             "anyOf": [
               {
@@ -10844,6 +11591,17 @@
             ],
             "title": "Notes"
           },
+          "device_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device User Id"
+          },
           "preview_enabled": {
             "type": "boolean",
             "title": "Preview Enabled"
@@ -10901,6 +11659,7 @@
           "experience_level",
           "medical_notes",
           "notes",
+          "device_user_id",
           "preview_enabled",
           "preview_url",
           "memberships",
@@ -11210,6 +11969,18 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "device_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device User Id"
           },
           "joined_on": {
             "anyOf": [
@@ -12995,6 +13766,78 @@
         ],
         "title": "PublicProgress"
       },
+      "Punch": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "User Id"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "ref": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Ref"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "at",
+          "ref"
+        ],
+        "title": "Punch"
+      },
+      "PunchesIn": {
+        "properties": {
+          "punches": {
+            "items": {
+              "$ref": "#/components/schemas/Punch"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Punches"
+          }
+        },
+        "type": "object",
+        "required": [
+          "punches"
+        ],
+        "title": "PunchesIn"
+      },
+      "PunchesOut": {
+        "properties": {
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "duplicates": {
+            "type": "integer",
+            "title": "Duplicates"
+          },
+          "unknown_user_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unknown User Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "duplicates",
+          "unknown_user_ids"
+        ],
+        "title": "PunchesOut"
+      },
       "ReceiptGym": {
         "properties": {
           "name": {
@@ -13884,6 +14727,29 @@
           },
           "progress": {
             "$ref": "#/components/schemas/CheckupProgress"
+          },
+          "attendance_tracked": {
+            "type": "boolean",
+            "title": "Attendance Tracked",
+            "default": false
+          },
+          "visits_7d": {
+            "type": "integer",
+            "title": "Visits 7D",
+            "default": 0
+          },
+          "at_risk": {
+            "type": "integer",
+            "title": "At Risk",
+            "default": 0
+          },
+          "at_risk_list": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "At Risk List",
+            "default": []
           }
         },
         "type": "object",
@@ -14002,6 +14868,17 @@
               }
             ],
             "title": "Avg Weight Change"
+          },
+          "visits_per_client_week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visits Per Client Week"
           }
         },
         "type": "object",
@@ -14221,6 +15098,86 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VisitHistory": {
+        "properties": {
+          "dates": {
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "type": "array",
+            "title": "Dates"
+          },
+          "visits_30d": {
+            "type": "integer",
+            "title": "Visits 30D"
+          },
+          "last_visit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Visit"
+          },
+          "streak_weeks": {
+            "type": "integer",
+            "title": "Streak Weeks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dates",
+          "visits_30d",
+          "last_visit",
+          "streak_weeks"
+        ],
+        "title": "VisitHistory"
+      },
+      "VisitRow": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "member_name": {
+            "type": "string",
+            "title": "Member Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked In At"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AttendanceSource"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "member_id",
+          "member_name",
+          "phone",
+          "checked_in_at",
+          "source"
+        ],
+        "title": "VisitRow"
       },
       "VoidIn": {
         "properties": {

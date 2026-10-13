@@ -165,6 +165,7 @@ async def member_counts(
 async def create_member(body: MemberIn, ctx: EditContext, db: DbSession):
     await service.validate_refs(db, ctx.gym_id, body.branch_id, body.trainer_id)
     await service.ensure_unique_phone(db, ctx.gym_id, body.phone)
+    await service.ensure_unique_device_user(db, ctx.gym_id, body.device_user_id)
     today = await service.gym_today(db, ctx.gym_id)
 
     values = body.model_dump(exclude={"membership", "joined_on"})
@@ -205,6 +206,10 @@ async def update_member(member_id: uuid.UUID, body: MemberUpdate, ctx: EditConte
         values["tags"] = []
     if "phone" in values:
         await service.ensure_unique_phone(db, ctx.gym_id, values["phone"], exclude_id=member.id)
+    if "device_user_id" in values:
+        await service.ensure_unique_device_user(
+            db, ctx.gym_id, values["device_user_id"], exclude_id=member.id
+        )
     await service.validate_refs(db, ctx.gym_id, values.get("branch_id"), values.get("trainer_id"))
     changed = audit.changes({k: getattr(member, k) for k in values}, values)
     for key, value in values.items():

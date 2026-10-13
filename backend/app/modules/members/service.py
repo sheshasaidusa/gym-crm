@@ -88,6 +88,23 @@ async def ensure_unique_phone(
         raise conflict(f"{existing.name} already uses this phone number")
 
 
+async def ensure_unique_device_user(
+    db: AsyncSession,
+    gym_id: uuid.UUID,
+    device_user_id: str | None,
+    exclude_id: uuid.UUID | None = None,
+) -> None:
+    if not device_user_id:
+        return
+    stmt = select(Member.name).where(
+        Member.gym_id == gym_id, Member.device_user_id == device_user_id
+    )
+    if exclude_id:
+        stmt = stmt.where(Member.id != exclude_id)
+    if (name := await db.scalar(stmt)) is not None:
+        raise conflict(f"{name} already has device number {device_user_id}")
+
+
 # --- Memberships ------------------------------------------------------------
 
 
@@ -328,6 +345,7 @@ async def member_out(db: AsyncSession, member: Member, today: date) -> MemberOut
         experience_level=member.experience_level,
         medical_notes=member.medical_notes,
         notes=member.notes,
+        device_user_id=member.device_user_id,
         preview_enabled=member.preview_enabled,
         preview_url=f"{settings.frontend_url}/p/{member.preview_token}",
         memberships=[

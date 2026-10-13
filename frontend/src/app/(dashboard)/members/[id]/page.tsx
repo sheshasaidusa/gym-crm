@@ -29,6 +29,7 @@ import { AIPlanSection } from "@/components/ai-plans/ai-plan-section";
 import { ProgressSection } from "@/components/checkups/progress-section";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberPayments } from "@/components/finance/member-payments";
+import { MemberAttendance } from "@/components/attendance/member-attendance";
 import { AppAccess } from "@/components/members/app-access";
 import { AddMembershipDialog, FreezeDialog } from "@/components/members/membership-dialogs";
 import { StatusBadge } from "@/components/members/status-badge";
@@ -510,6 +511,9 @@ export default function MemberPage() {
               <TabsTrigger value="progress" className="flex-none px-4">
                 Progress
               </TabsTrigger>
+              <TabsTrigger value="attendance" className="flex-none px-4">
+                Attendance
+              </TabsTrigger>
               <TabsTrigger value="history" className="flex-none px-4">
                 History
                 <span className="text-xs text-muted-foreground tabular-nums">{m.memberships.length}</span>
@@ -525,6 +529,9 @@ export default function MemberPage() {
             </TabsContent>
             <TabsContent value="progress">
               <ProgressSection member={m} />
+            </TabsContent>
+            <TabsContent value="attendance">
+              <MemberAttendance memberId={m.id} />
             </TabsContent>
             <TabsContent value="history">
               {m.memberships.length > 0 ? (

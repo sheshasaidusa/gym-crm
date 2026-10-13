@@ -1,6 +1,6 @@
 "use client";
 
-import { AlarmClockIcon, BanknoteIcon, UserPlusIcon, WalletIcon } from "lucide-react";
+import { AlarmClockIcon, BanknoteIcon, ScanLineIcon, WalletIcon } from "lucide-react";
 
 import { BoardCard, BoardStat, PersonLine } from "@/components/dashboards/parts";
 import { useDeskBoard } from "@/lib/dashboard-queries";
@@ -24,7 +24,7 @@ export function DeskDashboard() {
         <BoardStat label="Renewals" value={b?.renewals_count} icon={AlarmClockIcon} href="/reminders" hint="Ending within 3 days or just ended" tone={b?.renewals_count ? "bad" : undefined} />
         <BoardStat label="Collected today" value={b && money(b.payments_today)} icon={BanknoteIcon} href="/finance?tab=payments" hint={`${b?.payments_today_count ?? 0} payments`} />
         <BoardStat label="Dues outstanding" value={b && money(b.outstanding)} icon={WalletIcon} href="/finance?tab=dues" hint={`${b?.dues_count ?? 0} members owe money`} tone={b?.dues_count ? "bad" : undefined} />
-        <BoardStat label="New today" value={b?.new_members_today} icon={UserPlusIcon} href="/members?sort=newest" hint="Members who joined today" />
+        <BoardStat label="Visits today" value={b?.checkins_today} icon={ScanLineIcon} href="/check-in" hint="Open check-in" />
       </div>
 
       <div className="grid items-stretch gap-6 lg:grid-cols-2">

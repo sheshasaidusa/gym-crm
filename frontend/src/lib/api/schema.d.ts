@@ -746,6 +746,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/m/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attendance History */
+        get: operations["attendance_history_api_m_attendance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/m/plan": {
         parameters: {
             query?: never;
@@ -1501,6 +1518,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Day List
+         * @description Who came in on a day (default today), latest first.
+         */
+        get: operations["day_list_api_attendance_get"];
+        put?: never;
+        /**
+         * Check In
+         * @description Check a member in now. Doing it twice in a day returns the first visit. An expired or
+         *     frozen membership gives a warning but never blocks the visit.
+         */
+        post: operations["check_in_api_attendance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/{visit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Undo Check In
+         * @description Undo a mistaken check-in. Only today's; older visits are history.
+         */
+        delete: operations["undo_check_in_api_attendance__visit_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/{member_id}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Member History */
+        get: operations["member_history_api_members__member_id__attendance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Devices */
+        get: operations["list_devices_api_devices_get"];
+        put?: never;
+        /** Create Device */
+        post: operations["create_device_api_devices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/{device_id}/rotate-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Key
+         * @description A new key; the old one stops working at once.
+         */
+        post: operations["rotate_key_api_devices__device_id__rotate_key_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Device */
+        delete: operations["delete_device_api_devices__device_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Device */
+        patch: operations["update_device_api_devices__device_id__patch"];
+        trace?: never;
+    };
+    "/api/attendance/punches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Punches
+         * @description Scanners and turnstiles post their punches here with an `X-Device-Key` header. Safe to
+         *     resend: a punch already reported, or a second one from a member that day, is counted as a
+         *     duplicate. See docs/attendance-ingestion.md.
+         */
+        post: operations["report_punches_api_attendance_punches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit": {
         parameters: {
             query?: never;
@@ -1899,6 +2056,8 @@ export interface components {
              * @default []
              */
             branch_comparison: components["schemas"]["BranchRow"][];
+            /** Absent 14 Days */
+            absent_14_days?: number | null;
         };
         /** AppAccessOut */
         AppAccessOut: {
@@ -1941,6 +2100,11 @@ export interface components {
             /** Updated */
             updated: number;
         };
+        /**
+         * AttendanceSource
+         * @enum {string}
+         */
+        AttendanceSource: "desk" | "device" | "member_app" | "import";
         /** AuditOut */
         AuditOut: {
             /**
@@ -2068,6 +2232,38 @@ export interface components {
             duplicate_mode: components["schemas"]["DuplicateMode"];
             /** @default dmy */
             date_order: components["schemas"]["DateOrder"];
+        };
+        /** CheckInIn */
+        CheckInIn: {
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+        };
+        /** CheckInOut */
+        CheckInOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /**
+             * Checked In At
+             * Format: date-time
+             */
+            checked_in_at: string;
+            /** Already */
+            already: boolean;
+            /** Warning */
+            warning: string | null;
         };
         /** CheckOut */
         CheckOut: {
@@ -2226,6 +2422,18 @@ export interface components {
          * @enum {string}
          */
         DateOrder: "dmy" | "mdy" | "ymd";
+        /** DayList */
+        DayList: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["VisitRow"][];
+        };
         /** DeskDashboard */
         DeskDashboard: {
             /** Renewals */
@@ -2248,6 +2456,66 @@ export interface components {
             trials_today: components["schemas"]["TrialRow"][];
             /** New Members Today */
             new_members_today: number;
+            /**
+             * Checkins Today
+             * @default 0
+             */
+            checkins_today: number;
+            /**
+             * Attendance Tracked
+             * @default false
+             */
+            attendance_tracked: boolean;
+        };
+        /** DeviceCreated */
+        DeviceCreated: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Api Key */
+            api_key: string;
+        };
+        /** DeviceIn */
+        DeviceIn: {
+            /** Name */
+            name: string;
+            /** Branch Id */
+            branch_id?: string | null;
+        };
+        /** DeviceOut */
+        DeviceOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Last Seen At */
+            last_seen_at: string | null;
+        };
+        /** DeviceUpdate */
+        DeviceUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
         };
         /** DietPlan */
         DietPlan: {
@@ -3201,6 +3469,8 @@ export interface components {
             trainer_id?: string | null;
             /** Branch Id */
             branch_id?: string | null;
+            /** Device User Id */
+            device_user_id?: string | null;
             /** Joined On */
             joined_on?: string | null;
             membership?: components["schemas"]["MembershipIn"] | null;
@@ -3323,6 +3593,8 @@ export interface components {
             medical_notes: string | null;
             /** Notes */
             notes: string | null;
+            /** Device User Id */
+            device_user_id: string | null;
             /** Preview Enabled */
             preview_enabled: boolean;
             /** Preview Url */
@@ -3402,6 +3674,8 @@ export interface components {
             trainer_id?: string | null;
             /** Branch Id */
             branch_id?: string | null;
+            /** Device User Id */
+            device_user_id?: string | null;
             /** Joined On */
             joined_on?: string | null;
             /** Preview Enabled */
@@ -3939,6 +4213,32 @@ export interface components {
             /** Weight Series */
             weight_series: components["schemas"]["Point"][];
         };
+        /** Punch */
+        Punch: {
+            /** User Id */
+            user_id: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Ref */
+            ref: string;
+        };
+        /** PunchesIn */
+        PunchesIn: {
+            /** Punches */
+            punches: components["schemas"]["Punch"][];
+        };
+        /** PunchesOut */
+        PunchesOut: {
+            /** Created */
+            created: number;
+            /** Duplicates */
+            duplicates: number;
+            /** Unknown User Ids */
+            unknown_user_ids: string[];
+        };
         /** ReceiptGym */
         ReceiptGym: {
             /** Name */
@@ -4239,6 +4539,26 @@ export interface components {
             /** Without Plan List */
             without_plan_list: components["schemas"]["MemberRow"][];
             progress: components["schemas"]["CheckupProgress"];
+            /**
+             * Attendance Tracked
+             * @default false
+             */
+            attendance_tracked: boolean;
+            /**
+             * Visits 7D
+             * @default 0
+             */
+            visits_7d: number;
+            /**
+             * At Risk
+             * @default 0
+             */
+            at_risk: number;
+            /**
+             * At Risk List
+             * @default []
+             */
+            at_risk_list: components["schemas"]["MemberRow"][];
         };
         /** TrainerDraft */
         TrainerDraft: {
@@ -4285,6 +4605,8 @@ export interface components {
             on_track: number;
             /** Avg Weight Change */
             avg_weight_change: number | null;
+            /** Visits Per Client Week */
+            visits_per_client_week?: number | null;
         };
         /** TrialRow */
         TrialRow: {
@@ -4357,6 +4679,40 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VisitHistory */
+        VisitHistory: {
+            /** Dates */
+            dates: string[];
+            /** Visits 30D */
+            visits_30d: number;
+            /** Last Visit */
+            last_visit: string | null;
+            /** Streak Weeks */
+            streak_weeks: number;
+        };
+        /** VisitRow */
+        VisitRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Phone */
+            phone: string;
+            /**
+             * Checked In At
+             * Format: date-time
+             */
+            checked_in_at: string;
+            source: components["schemas"]["AttendanceSource"];
         };
         /** VoidIn */
         VoidIn: {
@@ -6010,6 +6366,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberMe"];
+                };
+            };
+        };
+    };
+    attendance_history_api_m_attendance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitHistory"];
                 };
             };
         };
@@ -7682,6 +8058,313 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalesDashboard"];
+                };
+            };
+        };
+    };
+    day_list_api_attendance_get: {
+        parameters: {
+            query?: {
+                date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_in_api_attendance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckInIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckInOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_check_in_api_attendance__visit_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    member_history_api_members__member_id__attendance_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitHistory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_devices_api_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceOut"][];
+                };
+            };
+        };
+    };
+    create_device_api_devices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_key_api_devices__device_id__rotate_key_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_device_api_devices__device_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_device_api_devices__device_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_punches_api_attendance_punches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PunchesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PunchesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

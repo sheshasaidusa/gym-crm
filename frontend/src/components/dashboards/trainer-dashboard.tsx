@@ -69,6 +69,29 @@ export function TrainerDashboard({ trainerId }: { trainerId?: string }) {
           </ul>
         </BoardCard>
 
+        {b?.attendance_tracked && (
+          <BoardCard
+            title="Gone quiet"
+            description={`Running clients with no visit for 14 days · ${b.visits_7d} visits by your clients this week`}
+            loading={board.isPending}
+            empty={!b.at_risk_list.length ? "Everyone has been in recently." : undefined}
+          >
+            <ul className="divide-y">
+              {b.at_risk_list.map((m) => (
+                <PersonLine
+                  key={m.member_id}
+                  href={`/members/${m.member_id}`}
+                  name={m.name}
+                  detail={m.on ? `Last visit ${formatDate(m.on, { year: false })}` : "Hasn't visited yet"}
+                  right={m.days != null ? `${m.days}d ago` : "Never"}
+                  phone={m.phone}
+                  message={`Hi ${m.name.split(" ")[0]}, we haven't seen you at ${gym} in a while. Everything okay? Let's get you back on track!`}
+                />
+              ))}
+            </ul>
+          </BoardCard>
+        )}
+
         <BoardCard
           title="Needs a workout plan"
           description="Running members without a published plan"

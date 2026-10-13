@@ -7,6 +7,7 @@ import {
   HeartPulseIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  ScanLineIcon,
   SettingsIcon,
   UsersIcon,
   WalletIcon,
@@ -77,6 +78,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     label: "Members",
     items: [
       { title: "Members", href: "/members", icon: UsersIcon, caps: ["members_view"] },
+      { title: "Check-in", href: "/check-in", icon: ScanLineIcon, caps: ["attendance"] },
       { title: "Plans", href: "/plans", icon: ClipboardListIcon, caps: ["members_view"] },
       {
         title: "Reminders",

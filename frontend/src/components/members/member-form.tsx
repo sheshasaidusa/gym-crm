@@ -50,7 +50,7 @@ const NONE = "none";
 type Tab = "membership" | "personal" | "fitness" | "notes";
 // Fields that live inside each tab, so a failed submit can jump to the right one.
 const TAB_FIELDS = {
-  personal: ["email", "dob", "gender", "address", "emergency_contact_name", "emergency_contact_phone"],
+  personal: ["email", "dob", "gender", "address", "emergency_contact_name", "emergency_contact_phone", "device_user_id"],
   fitness: ["goals", "diet_pref", "experience_level", "height_cm", "medical_notes"],
   notes: ["notes", "tags"],
 } as const;
@@ -85,6 +85,7 @@ const schema = z.object({
   trainer_id: z.string(),
   branch_id: z.string(),
   joined_on: z.string(),
+  device_user_id: z.string().max(40, "At most 40 characters"),
 });
 type Values = z.infer<typeof schema>;
 
@@ -108,6 +109,7 @@ function toValues(m?: Member): Values {
     trainer_id: m?.trainer?.id ?? NONE,
     branch_id: m?.branch_id ?? NONE,
     joined_on: m?.joined_on ?? todayIso(),
+    device_user_id: m?.device_user_id ?? "",
   };
 }
 
@@ -133,6 +135,7 @@ function toBody(v: Values) {
     trainer_id: v.trainer_id === NONE ? null : v.trainer_id,
     branch_id: v.branch_id === NONE ? null : v.branch_id,
     joined_on: orNull(v.joined_on),
+    device_user_id: orNull(v.device_user_id),
   };
 }
 
@@ -347,6 +350,12 @@ export function MemberForm({ member }: { member?: Member }) {
                   {...form.register("emergency_contact_phone")}
                 />
               </div>
+              <TextField
+                label="Scanner number"
+                placeholder="Optional: the ID on the door scanner"
+                error={errors.device_user_id}
+                {...form.register("device_user_id")}
+              />
             </FieldGroup>
           </TabsContent>
 

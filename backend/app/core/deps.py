@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
@@ -13,6 +13,9 @@ from app.core.security import decode_token
 from app.modules.auth.models import User
 from app.modules.gyms.models import Role, StaffMembership
 from app.modules.members.models import Member
+
+if TYPE_CHECKING:
+    from app.modules.attendance.models import Device
 
 ACCESS_COOKIE = "access_token"
 REFRESH_COOKIE = "refresh_token"
@@ -119,6 +122,33 @@ async def get_member_context(request: Request, db: DbSession) -> MemberContext:
 
 
 CurrentMember = Annotated[MemberContext, Depends(get_member_context)]
+
+
+@dataclass(frozen=True)
+class DeviceContext:
+    """A scanner or turnstile calling with its API key. It can only report punches."""
+
+    device: "Device"
+    gym_id: uuid.UUID
+
+
+async def get_device(request: Request, db: DbSession) -> DeviceContext:
+    import hashlib
+
+    from app.modules.attendance.models import Device
+
+    key = request.headers.get("X-Device-Key", "").strip()
+    if not key:
+        raise _unauthorized("Missing device key")
+    device = await db.scalar(
+        select(Device).where(Device.api_key_hash == hashlib.sha256(key.encode()).hexdigest())
+    )
+    if device is None or not device.is_active:
+        raise _unauthorized("Unknown or disabled device")
+    return DeviceContext(device=device, gym_id=device.gym_id)
+
+
+CurrentDevice = Annotated[DeviceContext, Depends(get_device)]
 
 
 def require_roles(*roles: Role) -> Callable:

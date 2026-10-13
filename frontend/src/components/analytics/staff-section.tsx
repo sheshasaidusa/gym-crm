@@ -40,6 +40,7 @@ export function StaffSection({ months }: { months: number }) {
                   <TableHead className="text-right">Check-ups on time</TableHead>
                   <TableHead className="text-right">On track</TableHead>
                   <TableHead className="text-right">Avg weight</TableHead>
+                  <TableHead className="text-right">Visits / client / wk</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -62,6 +63,7 @@ export function StaffSection({ months }: { months: number }) {
                     <TableCell className="text-right tabular-nums">
                       {t.avg_weight_change == null ? "—" : `${t.avg_weight_change > 0 ? "+" : ""}${t.avg_weight_change} kg`}
                     </TableCell>
+                    <TableCell className="text-right tabular-nums">{t.visits_per_client_week ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

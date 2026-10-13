@@ -22,6 +22,8 @@ from app.core.ratelimit import RateLimiter
 from app.core.security import decode_token
 from app.core.storage import get_storage
 from app.modules.ai_plans.content import PlanContent
+from app.modules.attendance import service as attendance
+from app.modules.attendance.schemas import VisitHistory
 from app.modules.audit import service as audit
 from app.modules.checkups.models import CheckUp, CheckUpPhoto
 from app.modules.gyms.models import Gym
@@ -256,6 +258,12 @@ async def me(ctx: CurrentMember, response: Response, db: DbSession):
         next_checkup_on=next_checkup,
         has_plan=plan is not None and plan.content is not None,
     )
+
+
+@router.get("/attendance", response_model=VisitHistory)
+async def attendance_history(ctx: CurrentMember, response: Response, db: DbSession):
+    _no_store(response)
+    return await attendance.history(db, ctx.member.id, await gym_today(db, ctx.gym_id))
 
 
 @router.get("/plan", response_model=MemberPlan)

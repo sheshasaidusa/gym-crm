@@ -137,9 +137,16 @@ class MemberFields(BaseModel):
     tags: list[str] = []
     trainer_id: uuid.UUID | None = None
     branch_id: uuid.UUID | None = None
+    device_user_id: str | None = Field(None, max_length=40)
 
     _empty = field_validator(
-        "email", "address", "emergency_contact_name", "medical_notes", "notes", mode="before"
+        "email",
+        "address",
+        "emergency_contact_name",
+        "medical_notes",
+        "notes",
+        "device_user_id",
+        mode="before",
     )(_empty_to_none)
     _phone = field_validator("phone")(_phone_if_given)
     _ec_phone = field_validator("emergency_contact_phone")(_optional_phone)
@@ -205,6 +212,7 @@ class MemberOut(MemberListItem):
     experience_level: ExperienceLevel | None
     medical_notes: str | None
     notes: str | None
+    device_user_id: str | None
     preview_enabled: bool
     preview_url: str
     memberships: list[MembershipOut]

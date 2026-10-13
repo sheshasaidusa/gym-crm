@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { ActivityLog } from "@/components/settings/activity-log";
 import { BranchesSettings } from "@/components/settings/branches-settings";
 import { DataSettings } from "@/components/settings/data-settings";
+import { DevicesSettings } from "@/components/settings/devices-settings";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { StaffSettings } from "@/components/settings/staff-settings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +23,7 @@ function SettingsTabs() {
     "general",
     "branches",
     "staff",
+    ...(can.has("devices") ? ["devices"] : []),
     ...(can.has("exports") ? ["data"] : []),
     ...(can.has("audit") ? ["activity"] : []),
   ];
@@ -40,6 +42,7 @@ function SettingsTabs() {
         <TabsTrigger value="general">General</TabsTrigger>
         <TabsTrigger value="branches">Branches</TabsTrigger>
         <TabsTrigger value="staff">Staff</TabsTrigger>
+        {can.has("devices") && <TabsTrigger value="devices">Devices</TabsTrigger>}
         {can.has("exports") && <TabsTrigger value="data">Data</TabsTrigger>}
         {can.has("audit") && <TabsTrigger value="activity">Activity</TabsTrigger>}
       </TabsList>
@@ -52,12 +55,17 @@ function SettingsTabs() {
       <TabsContent value="staff" className="pt-4">
         <StaffSettings />
       </TabsContent>
-      {can.manage && (
+      {can.has("devices") && (
+        <TabsContent value="devices" className="pt-4">
+          <DevicesSettings />
+        </TabsContent>
+      )}
+      {can.has("exports") && (
         <TabsContent value="data" className="pt-4">
           <DataSettings />
         </TabsContent>
       )}
-      {can.own && (
+      {can.has("audit") && (
         <TabsContent value="activity" className="pt-4">
           <ActivityLog />
         </TabsContent>

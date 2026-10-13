@@ -115,6 +115,10 @@ class TrainerDashboard(BaseModel):
     without_plan: int  # running members with no published workout plan
     without_plan_list: list[MemberRow]
     progress: CheckupProgress  # their clients, last 90 days
+    attendance_tracked: bool = False  # false: the gym doesn't record visits, hide the rest
+    visits_7d: int = 0  # visits by their clients in the last 7 days
+    at_risk: int = 0  # running clients with no visit for 14 days
+    at_risk_list: list[MemberRow] = []  # `on` = last visit
 
 
 class DueRow(BaseModel):
@@ -150,6 +154,8 @@ class DeskDashboard(BaseModel):
     payments_by_method: list[MethodAmount]
     trials_today: list[TrialRow]
     new_members_today: int
+    checkins_today: int = 0
+    attendance_tracked: bool = False
 
 
 class LeadRow(BaseModel):
@@ -189,6 +195,7 @@ class TrainerPerformance(BaseModel):
     members_tracked: int
     on_track: int
     avg_weight_change: float | None
+    visits_per_client_week: float | None = None  # None when the gym doesn't record visits
 
 
 class SalesPerformance(BaseModel):
@@ -236,3 +243,6 @@ class AnalyticsOut(BaseModel):
     revenue_by_method: list[MethodAmount] = []
     new_vs_renewal: NewVsRenewal | None = None
     branch_comparison: list[BranchRow] = []  # only when looking at every branch
+    absent_14_days: int | None = (
+        None  # running members with no visit for 14 days; None if untracked
+    )
