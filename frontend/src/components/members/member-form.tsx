@@ -43,7 +43,7 @@ import {
   type Member,
   type MemberUpdate,
 } from "@/lib/member-queries";
-import { ROLE_LABELS, useBranches, useCurrency, useStaff } from "@/lib/queries";
+import { ROLE_LABELS, useBranches, useCoaches, useCurrency } from "@/lib/queries";
 
 const NONE = "none";
 
@@ -141,7 +141,7 @@ export function MemberForm({ member }: { member?: Member }) {
   const isEdit = !!member;
   const create = useCreateMember();
   const update = useUpdateMember(member?.id ?? "");
-  const staff = useStaff();
+  const staff = useCoaches();
   const branches = useBranches();
   const plans = usePlans();
 

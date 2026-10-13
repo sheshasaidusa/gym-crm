@@ -17,6 +17,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   manager: "Manager",
   trainer: "Trainer",
   front_desk: "Front desk",
+  sales: "Sales",
 };
 
 export const keys = {
@@ -38,11 +39,14 @@ export function useMe(enabled = true) {
 }
 
 export function useCan() {
-  const role = useMe().data?.role;
+  const me = useMe().data;
+  const caps = me?.capabilities;
   return {
-    role,
-    manage: role === "owner" || role === "manager",
-    own: role === "owner",
+    role: me?.role,
+    manage: me?.role === "owner" || me?.role === "manager",
+    own: me?.role === "owner",
+    /** Whether this person holds a capability (names mirror backend `Cap`, see core/permissions.py). */
+    has: (cap: string) => caps?.includes(cap) ?? false,
   };
 }
 
@@ -124,6 +128,16 @@ export function useStaff(enabled = true) {
   return useQuery({ queryKey: keys.staff, queryFn: () => unwrap(api.GET("/api/staff")), enabled });
 }
 
+/** Active staff who can be someone's trainer (owners, managers and trainers). */
+export function useCoaches() {
+  return useQuery({
+    queryKey: keys.staff,
+    queryFn: () => unwrap(api.GET("/api/staff")),
+    select: (all) =>
+      all.filter((s) => s.is_active && (s.role === "owner" || s.role === "manager" || s.role === "trainer")),
+  });
+}
+
 export function useUpdateStaff() {
   const qc = useQueryClient();
   return useMutation({
@@ -146,6 +160,45 @@ export function useRemoveStaff() {
       qc.invalidateQueries({ queryKey: keys.staff });
       toast.success("Staff member removed");
     },
+    onError,
+  });
+}
+
+/** Stops a staff member logging in; optionally hands their clients and leads to someone. */
+export function useDeactivateStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: Schemas["StaffDeactivate"] & { id: string }) =>
+      unwrap(api.POST("/api/staff/{staff_id}/deactivate", { params: { path: { staff_id: id } }, body })),
+    onSuccess: () => {
+      // Their clients and leads may have moved.
+      qc.invalidateQueries();
+      toast.success("Staff member deactivated");
+    },
+    onError,
+  });
+}
+
+export function useReactivateStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.POST("/api/staff/{staff_id}/reactivate", { params: { path: { staff_id: id } } })),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.staff });
+      toast.success("Staff member reactivated");
+    },
+    onError,
+  });
+}
+
+/** A fresh link with a fresh expiry; the old link stops working. */
+export function useResendInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.POST("/api/invites/{invite_id}/resend", { params: { path: { invite_id: id } } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.invites }),
     onError,
   });
 }
@@ -181,8 +234,8 @@ export function useRevokeInvite() {
 }
 
 /** The session part of a login/signup response, without the raw tokens. */
-export function toMe({ user, gym, role, gyms }: Schemas["AuthOut"]): Me {
-  return { user, gym, role, gyms };
+export function toMe({ user, gym, role, branch_id, capabilities, gyms }: Schemas["AuthOut"]): Me {
+  return { user, gym, role, branch_id, capabilities, gyms };
 }
 
 /** The current gym's currency code, for formatting money. */

@@ -178,7 +178,7 @@ export default function DashboardPage() {
         title={firstName ? `Welcome, ${firstName}` : "Welcome"}
         description={`Here's what's happening at ${me.data?.gym.name ?? "your gym"}.`}
       >
-        {can.role !== "trainer" && (
+        {can.has("members_edit") && (
           <Button nativeButton={false} render={<Link href="/members/new" />}>
             <PlusIcon />
             Add member

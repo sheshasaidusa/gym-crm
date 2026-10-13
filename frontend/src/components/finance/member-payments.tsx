@@ -29,8 +29,11 @@ export function MemberPayments({ member }: { member: Member }) {
   const [voiding, setVoiding] = useState<Payment | null>(null);
 
   const payables: Payable[] = member.memberships
-    .filter((m) => m.status !== "cancelled" && m.balance > 0)
-    .map((m) => ({ id: m.id, plan_name: m.plan_name, start_date: m.start_date, end_date: m.end_date, balance: m.balance }))
+    .flatMap((m) =>
+      m.status !== "cancelled" && (m.balance ?? 0) > 0
+        ? [{ id: m.id, plan_name: m.plan_name, start_date: m.start_date, end_date: m.end_date, balance: m.balance ?? 0 }]
+        : [],
+    )
     // Oldest first, so the default is the membership that has been owed longest.
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
   const due = payables.reduce((s, p) => s + p.balance, 0);
@@ -106,7 +109,7 @@ export function MemberPayments({ member }: { member: Member }) {
                       >
                         <ReceiptIcon />
                       </Button>
-                      {can.manage && !p.voided_at && (
+                      {can.has("payments_void") && !p.voided_at && (
                         <DropdownMenu>
                           <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Payment actions" />}>
                             <MoreHorizontalIcon />

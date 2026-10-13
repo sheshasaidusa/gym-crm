@@ -17,7 +17,7 @@ function FinanceView() {
   const router = useRouter();
   const pathname = usePathname();
   // Front desk takes payments and chases dues; owners and managers see the full picture.
-  const tabs = can.manage ? ["overview", "payments", "expenses", "dues"] : ["payments", "dues"];
+  const tabs = can.has("finance") ? ["overview", "payments", "expenses", "dues"] : ["payments", "dues"];
   const requested = params.get("tab");
   const tab = requested && tabs.includes(requested) ? requested : tabs[0];
 
@@ -29,12 +29,12 @@ function FinanceView() {
       }}
     >
       <TabsList>
-        {can.manage && <TabsTrigger value="overview">Overview</TabsTrigger>}
+        {can.has("finance") && <TabsTrigger value="overview">Overview</TabsTrigger>}
         <TabsTrigger value="payments">Payments</TabsTrigger>
-        {can.manage && <TabsTrigger value="expenses">Expenses</TabsTrigger>}
+        {can.has("finance") && <TabsTrigger value="expenses">Expenses</TabsTrigger>}
         <TabsTrigger value="dues">Dues</TabsTrigger>
       </TabsList>
-      {can.manage && (
+      {can.has("finance") && (
         <TabsContent value="overview" className="pt-4">
           <FinanceOverview />
         </TabsContent>
@@ -42,7 +42,7 @@ function FinanceView() {
       <TabsContent value="payments" className="pt-4">
         <PaymentsTab />
       </TabsContent>
-      {can.manage && (
+      {can.has("finance") && (
         <TabsContent value="expenses" className="pt-4">
           <ExpensesTab />
         </TabsContent>
@@ -56,7 +56,7 @@ function FinanceView() {
 
 export default function FinancePage() {
   const can = useCan();
-  if (can.role === "trainer") {
+  if (!can.has("payments") && !can.has("finance")) {
     return <p className="text-sm text-muted-foreground">Finance is managed by the front desk and owners.</p>;
   }
   return (

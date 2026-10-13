@@ -104,7 +104,7 @@ function MembershipMenu({
   const unfreeze = useUnfreezeMembership();
   const freezable = canFreeze(m);
   const unfreezable = canUnfreeze(m);
-  const cancellable = can.manage && !["cancelled", "expired"].includes(m.status);
+  const cancellable = can.has("members_delete") && !["cancelled", "expired"].includes(m.status);
   if (!freezable && !unfreezable && !cancellable) return null;
 
   return (
@@ -158,7 +158,10 @@ function CurrentMembershipCard({
   const upcoming = member.memberships.filter(
     (m) => m.status === "upcoming" && m.id !== current?.id,
   );
-  const canSell = can.role !== "trainer";
+  const canSell = can.has("members_edit");
+  // Trainers see the schedule but not prices; the API leaves those fields out for them.
+  const money = can.has("member_money");
+  const balance = current?.balance ?? 0;
 
   if (!current) {
     return (
@@ -245,29 +248,29 @@ function CurrentMembershipCard({
           </div>
         </div>
 
-        <dl className="mt-auto grid grid-cols-3 divide-x divide-border/70 border-t border-border/70 text-sm [&>div]:px-4 [&>div]:py-3">
+        <dl className={cn("mt-auto grid divide-x divide-border/70 border-t border-border/70 text-sm [&>div]:px-4 [&>div]:py-3", money ? "grid-cols-3" : "grid-cols-2")}>
           <div>
             <dt className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">Duration</dt>
             <dd>{shortDuration(current.duration_value, current.duration_unit)}</dd>
           </div>
-          <div>
+          {money && <div>
             <dt className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">
-              {current.status !== "cancelled" && current.balance > 0 ? "Due" : "Total"}
+              {current.status !== "cancelled" && balance > 0 ? "Due" : "Total"}
             </dt>
             <dd
               className={cn(
                 "tabular-nums",
-                current.status !== "cancelled" && current.balance > 0 && "text-red-600 dark:text-red-400",
+                current.status !== "cancelled" && balance > 0 && "text-red-600 dark:text-red-400",
               )}
             >
-              {current.status !== "cancelled" && current.balance > 0
-                ? formatMoney(current.balance, currency)
-                : formatMoney(current.total, currency)}
-              {current.status !== "cancelled" && current.balance <= 0 && (
+              {current.status !== "cancelled" && balance > 0
+                ? formatMoney(balance, currency)
+                : formatMoney(current.total ?? 0, currency)}
+              {current.status !== "cancelled" && balance <= 0 && (
                 <span className="ml-1.5 text-xs text-emerald-600 dark:text-emerald-400">Paid</span>
               )}
             </dd>
-          </div>
+          </div>}
           <div>
             <dt className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">Freeze days</dt>
             <dd className="tabular-nums">
@@ -340,7 +343,7 @@ export default function MemberPage() {
   }
 
   const m = member.data;
-  const canEdit = can.role !== "trainer";
+  const canEdit = can.has("members_edit");
   const previewText = `Hi ${m.name.split(" ")[0]}, here's your membership and fitness plan: ${m.preview_url}`;
 
   return (
@@ -453,7 +456,7 @@ export default function MemberPage() {
                     {m.preview_enabled ? "Turn off member page" : "Turn on member page"}
                   </DropdownMenuItem>
                 )}
-                {can.manage && (
+                {can.has("members_delete") && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onClick={() => setDeleting(true)}>
@@ -529,7 +532,7 @@ export default function MemberPage() {
                   <TableRow>
                     <TableHead className="pl-4">Plan</TableHead>
                     <TableHead>Dates</TableHead>
-                    <TableHead className="hidden sm:table-cell">Amount</TableHead>
+                    {can.has("member_money") && <TableHead className="hidden sm:table-cell">Amount</TableHead>}
                     <TableHead>Status</TableHead>
                     {canEdit && <TableHead className="w-10" />}
                   </TableRow>
@@ -541,15 +544,17 @@ export default function MemberPage() {
                       <TableCell className="text-muted-foreground">
                         {formatDate(ms.start_date, { year: false })} – {formatDate(ms.end_date)}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {formatMoney(ms.total, currency)}
-                        {ms.discount > 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {" "}
-                            (−{formatMoney(ms.discount, currency)})
-                          </span>
-                        )}
-                      </TableCell>
+                      {can.has("member_money") && (
+                        <TableCell className="hidden sm:table-cell">
+                          {formatMoney(ms.total ?? 0, currency)}
+                          {(ms.discount ?? 0) > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              {" "}
+                              (−{formatMoney(ms.discount ?? 0, currency)})
+                            </span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <StatusBadge status={ms.status} />
                       </TableCell>

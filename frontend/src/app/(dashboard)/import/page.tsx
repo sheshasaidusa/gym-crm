@@ -7,7 +7,7 @@ import { useCan } from "@/lib/queries";
 
 export default function ImportPage() {
   const can = useCan();
-  if (can.role && !can.manage) {
+  if (can.role && !can.has("imports")) {
     return (
       <p className="text-sm text-muted-foreground">Only owners and managers can import data.</p>
     );

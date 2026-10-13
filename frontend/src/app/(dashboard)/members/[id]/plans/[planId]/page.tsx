@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 function Review({ plan, memberId, memberName }: { plan: AIPlan; memberId: string; memberName: string }) {
   const can = useCan();
-  const canEdit = can.role !== "front_desk" && (plan.status === "draft" || plan.status === "published");
+  const canEdit = can.has("workout_plans") && (plan.status === "draft" || plan.status === "published");
   const update = useUpdatePlan(plan.id);
   const publish = usePublishPlan();
   const [title, setTitle] = useState(plan.title);
@@ -77,13 +77,13 @@ function Review({ plan, memberId, memberName }: { plan: AIPlan; memberId: string
               Save
             </Button>
           )}
-          {can.role !== "front_desk" && plan.status === "published" && (
+          {can.has("workout_plans") && plan.status === "published" && (
             <Button variant="outline" onClick={() => publish.mutate({ id: plan.id, publish: false })}>
               <Undo2Icon />
               Unpublish
             </Button>
           )}
-          {can.role !== "front_desk" && (plan.status === "draft" || plan.status === "archived") && (
+          {can.has("workout_plans") && (plan.status === "draft" || plan.status === "archived") && (
             <Button
               disabled={publish.isPending || update.isPending || problems.length > 0}
               onClick={() =>

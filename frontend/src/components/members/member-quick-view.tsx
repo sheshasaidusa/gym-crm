@@ -29,7 +29,8 @@ import {
   todayIso,
 } from "@/lib/format";
 import { useMember, type Member } from "@/lib/member-queries";
-import { useCurrency } from "@/lib/queries";
+import { useCan, useCurrency } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -61,9 +62,11 @@ function Stat({ label, value, tone }: { label: string; value: React.ReactNode; t
 
 function Body({ m }: { m: Member }) {
   const currency = useCurrency();
+  const can = useCan();
   const current = m.memberships.find((x) => x.id === m.current_membership?.id);
-  const due = m.memberships.filter((x) => x.status !== "cancelled").reduce((s, x) => s + x.balance, 0);
-  const paid = m.memberships.reduce((s, x) => s + x.paid, 0);
+  const money = can.has("member_money");
+  const due = m.memberships.filter((x) => x.status !== "cancelled").reduce((s, x) => s + (x.balance ?? 0), 0);
+  const paid = m.memberships.reduce((s, x) => s + (x.paid ?? 0), 0);
   const sinceCheckup = m.last_checkup_on ? daysBetween(m.last_checkup_on, todayIso()) : null;
   const age = ageFrom(m.dob);
   const others = m.memberships.filter((x) => x.id !== current?.id);
@@ -98,8 +101,8 @@ function Body({ m }: { m: Member }) {
             value={current ? (current.status === "expired" ? "Expired" : (current.days_left ?? "—")) : "—"}
             tone={current?.status === "expired" ? "bad" : undefined}
           />
-          <Stat label="Due" value={formatMoney(due, currency)} tone={due > 0 ? "bad" : "good"} />
-          <Stat label="Paid total" value={formatMoney(paid, currency)} />
+          {money && <Stat label="Due" value={formatMoney(due, currency)} tone={due > 0 ? "bad" : "good"} />}
+          {money && <Stat label="Paid total" value={formatMoney(paid, currency)} />}
           <Stat
             label="Last check-up"
             value={sinceCheckup == null ? "Never" : sinceCheckup === 0 ? "Today" : `${sinceCheckup}d ago`}
@@ -173,7 +176,7 @@ function Body({ m }: { m: Member }) {
                     </span>
                     <StatusBadge status={x.status} />
                   </div>
-                  <dl className="grid grid-cols-3 divide-x divide-border/70 border-t border-border/70 text-sm [&>div]:px-3 [&>div]:py-2">
+                  <dl className={cn("grid divide-x divide-border/70 border-t border-border/70 text-sm [&>div]:px-3 [&>div]:py-2", money ? "grid-cols-3" : "grid-cols-2")}>
                     <div>
                       <dt className="text-[11px] tracking-wide text-muted-foreground uppercase">From</dt>
                       <dd className="tabular-nums">{formatDate(x.start_date, { year: false })}</dd>
@@ -182,14 +185,16 @@ function Body({ m }: { m: Member }) {
                       <dt className="text-[11px] tracking-wide text-muted-foreground uppercase">To</dt>
                       <dd className="tabular-nums">{formatDate(x.end_date, { year: false })}</dd>
                     </div>
-                    <div>
-                      <dt className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                        {x.balance > 0 && x.status !== "cancelled" ? "Due" : "Total"}
-                      </dt>
-                      <dd className="tabular-nums">
-                        {formatMoney(x.balance > 0 && x.status !== "cancelled" ? x.balance : x.total, currency)}
-                      </dd>
-                    </div>
+                    {money && (
+                      <div>
+                        <dt className="text-[11px] tracking-wide text-muted-foreground uppercase">
+                          {(x.balance ?? 0) > 0 && x.status !== "cancelled" ? "Due" : "Total"}
+                        </dt>
+                        <dd className="tabular-nums">
+                          {formatMoney((x.balance ?? 0) > 0 && x.status !== "cancelled" ? (x.balance ?? 0) : (x.total ?? 0), currency)}
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </article>
               ))}

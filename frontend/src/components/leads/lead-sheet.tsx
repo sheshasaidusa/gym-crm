@@ -280,7 +280,7 @@ function LeadBody({ lead, onClose }: { lead: LeadDetail; onClose: () => void }) 
               Edit
             </Button>
           )}
-          {can.manage && (
+          {can.has("leads_delete") && (
             <Button size="sm" variant="ghost" aria-label="Delete lead" onClick={() => setDeleting(true)}>
               <Trash2Icon />
             </Button>
@@ -314,7 +314,7 @@ function LeadBody({ lead, onClose }: { lead: LeadDetail; onClose: () => void }) 
                 onChange={(v) => changeStage(v as LeadStage)}
               />
             </Field>
-            {can.role !== "trainer" && (
+            {can.has("leads_convert") && (
               <Button onClick={() => setConvertOpen(true)}>
                 <UserCheckIcon />
                 Convert to member

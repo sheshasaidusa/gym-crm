@@ -232,7 +232,7 @@ function LeadsView() {
   return (
     <>
       <PageHeader title="Leads" description="Enquiries from first contact to joining.">
-        {can.manage && (
+        {can.has("lead_form") && (
           <Button variant="outline" onClick={() => setFormOpen(true)}>
             <GlobeIcon />
             Website form

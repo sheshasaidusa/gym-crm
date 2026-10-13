@@ -208,7 +208,7 @@ export function DueList() {
               value={day}
               onChange={setDay}
             />
-            {can.manage && isToday && items.length > 0 && (
+            {can.has("reminders_run") && isToday && items.length > 0 && (
               <Button size="sm" onClick={() => run.mutate()} disabled={run.isPending}>
                 {run.isPending ? <Spinner /> : <SendIcon />}
                 Send emails now

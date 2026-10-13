@@ -97,7 +97,7 @@ function AnalyticsPageBody() {
 
 export default function AnalyticsPage() {
   const can = useCan();
-  if (can.role && !can.manage) {
+  if (can.role && !can.has("analytics")) {
     return (
       <p className="text-sm text-muted-foreground">Analytics are for owners and managers.</p>
     );

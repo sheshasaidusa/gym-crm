@@ -44,10 +44,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ROLE_LABELS,
+  useCan,
   useLogout,
   useMe,
   useSwitchGym,
-  type Role,
 } from "@/lib/queries";
 import { useLeadStats } from "@/lib/lead-queries";
 import { useDueReminders } from "@/lib/reminder-queries";
@@ -56,7 +56,8 @@ type NavItem = {
   title: string;
   href: string;
   icon: LucideIcon;
-  hideFor?: Role[];
+  /** Shown when the user holds any of these capabilities (all users if omitted). */
+  caps?: string[];
 };
 
 const NAV: { label: string; items: NavItem[] }[] = [
@@ -68,27 +69,28 @@ const NAV: { label: string; items: NavItem[] }[] = [
         title: "Analytics",
         href: "/analytics",
         icon: BarChart3Icon,
-        hideFor: ["trainer", "front_desk"],
+        caps: ["analytics"],
       },
     ],
   },
   {
     label: "Members",
     items: [
-      { title: "Members", href: "/members", icon: UsersIcon },
-      { title: "Plans", href: "/plans", icon: ClipboardListIcon },
+      { title: "Members", href: "/members", icon: UsersIcon, caps: ["members_view"] },
+      { title: "Plans", href: "/plans", icon: ClipboardListIcon, caps: ["members_view"] },
       {
         title: "Reminders",
         href: "/reminders",
         icon: BellRingIcon,
-        hideFor: ["trainer"],
+        caps: ["reminders"],
       },
       {
         title: "Check-ups",
         href: "/checkups",
         icon: HeartPulseIcon,
+        caps: ["members_view"],
       },
-      { title: "Leads", href: "/leads", icon: MagnetIcon },
+      { title: "Leads", href: "/leads", icon: MagnetIcon, caps: ["leads", "leads_own"] },
     ],
   },
   {
@@ -98,13 +100,13 @@ const NAV: { label: string; items: NavItem[] }[] = [
         title: "Finance",
         href: "/finance",
         icon: WalletIcon,
-        hideFor: ["trainer"],
+        caps: ["payments", "finance"],
       },
       {
         title: "Import data",
         href: "/import",
         icon: FileUpIcon,
-        hideFor: ["trainer", "front_desk"],
+        caps: ["imports"],
       },
       { title: "Settings", href: "/settings", icon: SettingsIcon },
     ],
@@ -122,14 +124,15 @@ function initials(name: string) {
 export function AppSidebar() {
   const pathname = usePathname();
   const me = useMe();
+  const can = useCan();
   const role = me.data?.role;
-  const due = useDueReminders(undefined, !!role && role !== "trainer");
+  const due = useDueReminders(undefined, can.has("reminders"));
   // Reminders nobody has sent yet (by email or WhatsApp).
   const pendingReminders =
     due.data?.items.filter(
       (i) => i.email_status !== "sent" && !i.whatsapp_sent_at,
     ).length ?? 0;
-  const leadStats = useLeadStats(!!role);
+  const leadStats = useLeadStats(can.has("leads") || can.has("leads_own"));
   const dueFollowUps = leadStats.data?.follow_ups_due ?? 0;
   const badgeFor = (href: string) =>
     href === "/reminders" && pendingReminders > 0
@@ -178,7 +181,7 @@ export function AppSidebar() {
             <SidebarGroupLabel className={group === NAV[0] ? "after:top-[calc(50%-11px)]" : undefined}>{group.label}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items
-                .filter((item) => !(role && item.hideFor?.includes(role)))
+                .filter((item) => !me.data || !item.caps || item.caps.some(can.has))
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -188,7 +191,7 @@ export function AppSidebar() {
                       render={<Link href={item.href} />}
                     >
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{item.href === "/members" && role === "trainer" ? "My clients" : item.title}</span>
                     </SidebarMenuButton>
                     {badgeFor(item.href) && (
                       <SidebarMenuBadge className="rounded-full bg-primary text-primary-foreground">

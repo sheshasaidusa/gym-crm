@@ -220,6 +220,46 @@
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Update Me",
+        "description": "People edit their own display name and phone (trainers' phone is shown to members).",
+        "operationId": "update_me_api_auth_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/auth/switch-gym": {
@@ -743,6 +783,103 @@
         }
       }
     },
+    "/api/staff/{staff_id}/deactivate": {
+      "post": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Deactivate Staff",
+        "description": "Stops someone logging in to this gym while keeping their history. Their clients and\nleads can be handed to another person in the same step.",
+        "operationId": "deactivate_staff_api_staff__staff_id__deactivate_post",
+        "parameters": [
+          {
+            "name": "staff_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Staff Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffDeactivate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/{staff_id}/reactivate": {
+      "post": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Reactivate Staff",
+        "operationId": "reactivate_staff_api_staff__staff_id__reactivate_post",
+        "parameters": [
+          {
+            "name": "staff_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Staff Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/invites": {
       "get": {
         "tags": [
@@ -785,6 +922,50 @@
         },
         "responses": {
           "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invites/{invite_id}/resend": {
+      "post": {
+        "tags": [
+          "gym"
+        ],
+        "summary": "Resend Invite",
+        "description": "A fresh link and a fresh expiry; the old link stops working.",
+        "operationId": "resend_invite_api_invites__invite_id__resend_post",
+        "parameters": [
+          {
+            "name": "invite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invite Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -1512,6 +1693,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/assign-trainer": {
+      "post": {
+        "tags": [
+          "members"
+        ],
+        "summary": "Assign Trainer",
+        "description": "Moves a set of members to one trainer (or none), e.g. when rebalancing clients.",
+        "operationId": "assign_trainer_api_members_assign_trainer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTrainerIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignTrainerOut"
                 }
               }
             }
@@ -5125,6 +5348,51 @@
         ],
         "title": "AnalyticsOut"
       },
+      "AssignTrainerIn": {
+        "properties": {
+          "member_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Member Ids"
+          },
+          "trainer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_ids",
+          "trainer_id"
+        ],
+        "title": "AssignTrainerIn"
+      },
+      "AssignTrainerOut": {
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "title": "Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "updated"
+        ],
+        "title": "AssignTrainerOut"
+      },
       "AuditOut": {
         "properties": {
           "id": {
@@ -5214,6 +5482,26 @@
           },
           "role": {
             "$ref": "#/components/schemas/Role"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities",
+            "default": []
           },
           "gyms": {
             "items": {
@@ -8737,6 +9025,26 @@
           "role": {
             "$ref": "#/components/schemas/Role"
           },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities",
+            "default": []
+          },
           "gyms": {
             "items": {
               "$ref": "#/components/schemas/GymMembershipOut"
@@ -9823,23 +10131,58 @@
             "title": "End Date"
           },
           "price": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Price"
           },
           "discount": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Discount"
           },
           "joining_fee": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Joining Fee"
           },
           "tax_pct": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tax Pct"
           },
           "total": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Total"
           },
           "max_freeze_days": {
@@ -9917,11 +10260,25 @@
             "title": "Days Left"
           },
           "paid": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Paid"
           },
           "balance": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Balance"
           }
         },
@@ -11608,7 +11965,8 @@
           "owner",
           "manager",
           "trainer",
-          "front_desk"
+          "front_desk",
+          "sales"
         ],
         "title": "Role"
       },
@@ -11744,6 +12102,36 @@
         ],
         "title": "SourceCount"
       },
+      "StaffDeactivate": {
+        "properties": {
+          "reassign_members_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reassign Members To"
+          },
+          "reassign_leads_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reassign Leads To"
+          }
+        },
+        "type": "object",
+        "title": "StaffDeactivate"
+      },
       "StaffOut": {
         "properties": {
           "id": {
@@ -11764,6 +12152,17 @@
             "type": "string",
             "title": "Email"
           },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
           "role": {
             "$ref": "#/components/schemas/Role"
           },
@@ -11778,6 +12177,11 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
           },
           "joined_at": {
             "type": "string",
@@ -11839,6 +12243,18 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           }
         },
         "type": "object",
@@ -12008,6 +12424,37 @@
         ],
         "title": "Upcoming"
       },
+      "UpdateMeIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "title": "UpdateMeIn"
+      },
       "UploadOut": {
         "properties": {
           "job": {
@@ -12060,6 +12507,17 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           }
         },
         "type": "object",

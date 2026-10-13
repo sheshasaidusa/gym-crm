@@ -126,7 +126,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Me
+         * @description People edit their own display name and phone (trainers' phone is shown to members).
+         */
+        patch: operations["update_me_api_auth_me_patch"];
         trace?: never;
     };
     "/api/auth/switch-gym": {
@@ -307,6 +311,44 @@ export interface paths {
         patch: operations["update_staff_api_staff__staff_id__patch"];
         trace?: never;
     };
+    "/api/staff/{staff_id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate Staff
+         * @description Stops someone logging in to this gym while keeping their history. Their clients and
+         *     leads can be handed to another person in the same step.
+         */
+        post: operations["deactivate_staff_api_staff__staff_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/{staff_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate Staff */
+        post: operations["reactivate_staff_api_staff__staff_id__reactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/invites": {
         parameters: {
             query?: never;
@@ -319,6 +361,26 @@ export interface paths {
         put?: never;
         /** Create Invite */
         post: operations["create_invite_api_invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invites/{invite_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Invite
+         * @description A fresh link and a fresh expiry; the old link stops working.
+         */
+        post: operations["resend_invite_api_invites__invite_id__resend_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -450,6 +512,26 @@ export interface paths {
          * @description Issues a new preview link; the old one stops working.
          */
         post: operations["regenerate_preview_link_api_members__member_id__preview_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/assign-trainer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign Trainer
+         * @description Moves a set of members to one trainer (or none), e.g. when rebalancing clients.
+         */
+        post: operations["assign_trainer_api_members_assign_trainer_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1518,6 +1600,18 @@ export interface components {
             leads: components["schemas"]["LeadAnalytics"];
             checkups: components["schemas"]["CheckupProgress"];
         };
+        /** AssignTrainerIn */
+        AssignTrainerIn: {
+            /** Member Ids */
+            member_ids: string[];
+            /** Trainer Id */
+            trainer_id: string | null;
+        };
+        /** AssignTrainerOut */
+        AssignTrainerOut: {
+            /** Updated */
+            updated: number;
+        };
         /** AuditOut */
         AuditOut: {
             /**
@@ -1552,6 +1646,13 @@ export interface components {
             user: components["schemas"]["UserOut"];
             gym: components["schemas"]["GymOut"];
             role: components["schemas"]["Role"];
+            /** Branch Id */
+            branch_id?: string | null;
+            /**
+             * Capabilities
+             * @default []
+             */
+            capabilities: string[];
             /** Gyms */
             gyms: components["schemas"]["GymMembershipOut"][];
             /** Access Token */
@@ -2563,6 +2664,13 @@ export interface components {
             user: components["schemas"]["UserOut"];
             gym: components["schemas"]["GymOut"];
             role: components["schemas"]["Role"];
+            /** Branch Id */
+            branch_id?: string | null;
+            /**
+             * Capabilities
+             * @default []
+             */
+            capabilities: string[];
             /** Gyms */
             gyms: components["schemas"]["GymMembershipOut"][];
         };
@@ -2850,15 +2958,15 @@ export interface components {
              */
             end_date: string;
             /** Price */
-            price: number;
+            price: number | null;
             /** Discount */
-            discount: number;
+            discount: number | null;
             /** Joining Fee */
-            joining_fee: number;
+            joining_fee: number | null;
             /** Tax Pct */
-            tax_pct: number;
+            tax_pct: number | null;
             /** Total */
-            total: number;
+            total: number | null;
             /** Max Freeze Days */
             max_freeze_days: number;
             /** Frozen Days */
@@ -2880,9 +2988,9 @@ export interface components {
             /** Days Left */
             days_left: number | null;
             /** Paid */
-            paid: number;
+            paid: number | null;
             /** Balance */
-            balance: number;
+            balance: number | null;
         };
         /** MonthTotals */
         MonthTotals: {
@@ -3394,7 +3502,7 @@ export interface components {
          * Role
          * @enum {string}
          */
-        Role: "owner" | "manager" | "trainer" | "front_desk";
+        Role: "owner" | "manager" | "trainer" | "front_desk" | "sales";
         /** RowProblem */
         RowProblem: {
             /** Row */
@@ -3444,6 +3552,13 @@ export interface components {
             /** Converted */
             converted: number;
         };
+        /** StaffDeactivate */
+        StaffDeactivate: {
+            /** Reassign Members To */
+            reassign_members_to?: string | null;
+            /** Reassign Leads To */
+            reassign_leads_to?: string | null;
+        };
         /** StaffOut */
         StaffOut: {
             /**
@@ -3460,9 +3575,16 @@ export interface components {
             name: string;
             /** Email */
             email: string;
+            /** Phone */
+            phone?: string | null;
             role: components["schemas"]["Role"];
             /** Branch Id */
             branch_id: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
             /**
              * Joined At
              * Format: date-time
@@ -3484,6 +3606,8 @@ export interface components {
             role?: components["schemas"]["Role"] | null;
             /** Branch Id */
             branch_id?: string | null;
+            /** Phone */
+            phone?: string | null;
         };
         /** StageCount */
         StageCount: {
@@ -3548,6 +3672,13 @@ export interface components {
             /** Renewal Value */
             renewal_value: number;
         };
+        /** UpdateMeIn */
+        UpdateMeIn: {
+            /** Name */
+            name?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
         /** UploadOut */
         UploadOut: {
             job: components["schemas"]["ImportJobOut"];
@@ -3571,6 +3702,8 @@ export interface components {
             email: string;
             /** Name */
             name: string;
+            /** Phone */
+            phone?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -3818,6 +3951,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+        };
+    };
+    update_me_api_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4228,6 +4394,72 @@ export interface operations {
             };
         };
     };
+    deactivate_staff_api_staff__staff_id__deactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffDeactivate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reactivate_staff_api_staff__staff_id__reactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_invites_api_invites_get: {
         parameters: {
             query?: never;
@@ -4263,6 +4495,37 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_invite_api_invites__invite_id__resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4687,6 +4950,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_trainer_api_members_assign_trainer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignTrainerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignTrainerOut"];
                 };
             };
             /** @description Validation Error */

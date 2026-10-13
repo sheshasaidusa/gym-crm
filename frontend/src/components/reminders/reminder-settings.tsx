@@ -164,7 +164,7 @@ function TemplateEditor({
 
 function SettingsForm({ initial }: { initial: Settings }) {
   const can = useCan();
-  const readOnly = !can.own;
+  const readOnly = !can.has("gym_settings");
   const save = useUpdateReminderSettings();
   const [enabled, setEnabled] = useState(initial.enabled);
   const [hour, setHour] = useState(initial.hour);

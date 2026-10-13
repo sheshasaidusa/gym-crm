@@ -174,7 +174,7 @@ export function AIPlanSection({ member }: { member: Member }) {
   const remove = useDeletePlan(member.id);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [deleting, setDeleting] = useState<AIPlan | null>(null);
-  const isCoach = can.role !== "front_desk";
+  const isCoach = can.has("workout_plans");
 
   const list = plans.data ?? [];
   const published = list.find((p) => p.status === "published");

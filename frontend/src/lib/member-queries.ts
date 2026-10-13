@@ -148,6 +148,19 @@ export function useUpdateMember(id: string) {
   });
 }
 
+/** Give several members the same trainer (or none) in one go. */
+export function useAssignTrainer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Schemas["AssignTrainerIn"]) => unwrap(api.POST("/api/members/assign-trainer", { body })),
+    onSuccess: ({ updated }) => {
+      qc.invalidateQueries({ queryKey: keys.members });
+      toast.success(`${updated} member${updated === 1 ? "" : "s"} updated`);
+    },
+    onError,
+  });
+}
+
 export function useDeleteMember() {
   const qc = useQueryClient();
   return useMutation({

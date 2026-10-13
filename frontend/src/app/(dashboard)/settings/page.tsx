@@ -22,8 +22,8 @@ function SettingsTabs() {
     "general",
     "branches",
     "staff",
-    ...(can.manage ? ["data"] : []),
-    ...(can.own ? ["activity"] : []),
+    ...(can.has("exports") ? ["data"] : []),
+    ...(can.has("audit") ? ["activity"] : []),
   ];
   const requested = params.get("tab");
   const tab = requested && tabs.includes(requested) ? requested : "general";
@@ -40,8 +40,8 @@ function SettingsTabs() {
         <TabsTrigger value="general">General</TabsTrigger>
         <TabsTrigger value="branches">Branches</TabsTrigger>
         <TabsTrigger value="staff">Staff</TabsTrigger>
-        {can.manage && <TabsTrigger value="data">Data</TabsTrigger>}
-        {can.own && <TabsTrigger value="activity">Activity</TabsTrigger>}
+        {can.has("exports") && <TabsTrigger value="data">Data</TabsTrigger>}
+        {can.has("audit") && <TabsTrigger value="activity">Activity</TabsTrigger>}
       </TabsList>
       <TabsContent value="general" className="pt-4">
         <GeneralSettings />

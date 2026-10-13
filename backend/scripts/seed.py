@@ -2,9 +2,13 @@
 
     uv run python scripts/seed.py
 
-Local-only test accounts (never use these anywhere real):
-    owner:   demo-owner@example.com   / DemoPass123!
-    trainer: demo-trainer@example.com / DemoPass123!
+Local-only test accounts (never use these anywhere real), all with DemoPass123!:
+    owner      demo-owner@example.com
+    manager    demo-manager@example.com    (Main branch only)
+    front desk demo-desk@example.com       (Main branch only)
+    sales      demo-sales@example.com
+    trainer    demo-trainer@example.com    (Main branch; owns the demo members)
+    trainer 2  demo-trainer2@example.com   (Downtown branch; no members yet)
 """
 
 import asyncio
@@ -28,11 +32,19 @@ DEMO_PASSWORD = "DemoPass123!"
 OWNER_EMAIL = "demo-owner@example.com"
 TRAINER_EMAIL = "demo-trainer@example.com"
 
+# (email, name, role, which branch): one login per role so every dashboard can be tried.
+TEAM = [
+    ("demo-manager@example.com", "Demo Manager", Role.MANAGER, "main"),
+    ("demo-desk@example.com", "Demo Front Desk", Role.FRONT_DESK, "main"),
+    ("demo-sales@example.com", "Demo Sales", Role.SALES, None),
+    ("demo-trainer2@example.com", "Demo Trainer Two", Role.TRAINER, "downtown"),
+]
 
-async def get_or_create_user(db, email: str, name: str) -> User:
+
+async def get_or_create_user(db, email: str, name: str, phone: str | None = None) -> User:
     user = await db.scalar(select(User).where(User.email == email))
     if user is None:
-        user = User(email=email, name=name, password_hash=hash_password(DEMO_PASSWORD))
+        user = User(email=email, name=name, phone=phone, password_hash=hash_password(DEMO_PASSWORD))
         db.add(user)
         await db.flush()
     return user
@@ -57,7 +69,19 @@ async def main() -> None:
         db.add(main_branch)
         await db.flush()
 
-        trainer = await get_or_create_user(db, TRAINER_EMAIL, "Demo Trainer")
+        downtown = Branch(gym_id=gym.id, name="Downtown", address="4 Park Street")
+        db.add(downtown)
+        await db.flush()
+        branches = {"main": main_branch.id, "downtown": downtown.id, None: None}
+
+        trainer = await get_or_create_user(db, TRAINER_EMAIL, "Demo Trainer", "+919800000001")
+        for email, name, role, where in TEAM:
+            user = await get_or_create_user(db, email, name)
+            db.add(
+                StaffMembership(
+                    user_id=user.id, gym_id=gym.id, role=role, branch_id=branches[where]
+                )
+            )
         db.add_all(
             [
                 StaffMembership(

@@ -245,7 +245,7 @@ function PlanPanel({ panel, onChange }: { panel: Panel; onChange: (p: Panel) => 
             {shown.mode === "view" && plan ? (
               <>
                 <PlanDetails p={plan} />
-                {can.manage && (
+                {can.has("plans_manage") && (
                   <SheetFooter className="border-t border-border/70 p-5">
                     <Button variant="outline" className="w-full" onClick={() => onChange({ mode: "edit", plan })}>
                       <PencilIcon />
@@ -345,7 +345,7 @@ export function PlansView({ archived }: { archived: boolean }) {
             Archived plans
           </Button>
         )}
-        {can.manage && !archived && (
+        {can.has("plans_manage") && !archived && (
           <Button onClick={() => setPanel({ mode: "new" })}>
             <PlusIcon />
             New plan
@@ -365,7 +365,7 @@ export function PlansView({ archived }: { archived: boolean }) {
             <PlanCard
               key={plan.id}
               plan={plan}
-              canManage={can.manage}
+              canManage={can.has("plans_manage")}
               onDetails={() => setPanel({ mode: "view", plan })}
               onEdit={() => setPanel({ mode: "edit", plan })}
               onDelete={() => setDeleting(plan)}
@@ -389,7 +389,7 @@ export function PlansView({ archived }: { archived: boolean }) {
             <EmptyTitle>No plans yet</EmptyTitle>
             <EmptyDescription>Create your first membership plan: monthly, quarterly, yearly or anything custom.</EmptyDescription>
           </EmptyHeader>
-          {can.manage && (
+          {can.has("plans_manage") && (
             <EmptyContent>
               <Button onClick={() => setPanel({ mode: "new" })}>
                 <PlusIcon />

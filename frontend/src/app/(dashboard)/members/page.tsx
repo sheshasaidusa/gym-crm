@@ -25,6 +25,7 @@ import { PageHeader } from "@/components/page-header";
 import { SimpleSelect } from "@/components/simple-select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,8 +53,8 @@ import {
   TableSurface,
 } from "@/components/ui/table";
 import { daysLeftLabel, formatDate, initials } from "@/lib/format";
-import { useMemberCounts, useMembers, useUpdateMember, type MemberFilters } from "@/lib/member-queries";
-import { ROLE_LABELS, useBranches, useCan, useStaff } from "@/lib/queries";
+import { useAssignTrainer, useMemberCounts, useMembers, useUpdateMember, type MemberFilters } from "@/lib/member-queries";
+import { ROLE_LABELS, useBranches, useCan, useCoaches, useStaff } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
@@ -70,7 +71,7 @@ function TrainerCell({
   trainer: { id: string; name: string } | null;
   canEdit: boolean;
 }) {
-  const staff = useStaff();
+  const staff = useCoaches();
   const update = useUpdateMember(memberId);
   const label = (
     <span className="flex min-w-0 items-center gap-2">
@@ -151,7 +152,12 @@ function MembersView() {
   const params = useSearchParams();
   const can = useCan();
   const staff = useStaff();
+  const coaches = useCoaches();
+  const assign = useAssignTrainer();
   const branches = useBranches();
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkTrainer, setBulkTrainer] = useState(UNASSIGNED);
+  const canBulk = can.has("members_assign_trainer");
 
   const status = (params.get("status") ?? ALL) as (typeof STATUS_TABS)[number]["value"];
   const sort = (params.get("sort") ?? "newest") as MemberFilters["sort"];
@@ -196,11 +202,19 @@ function MembersView() {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const countFor = (key: (typeof STATUS_TABS)[number]["value"]) => counts.data?.[key];
   const filtering = !!(q || shared.trainer_id || shared.branch_id || status !== ALL);
+  const pageIds = members.data?.items.map((m) => m.id) ?? [];
+  const allPicked = pageIds.length > 0 && pageIds.every((id) => picked.has(id));
+  const toggle = (ids: string[], on: boolean) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next[on ? "add" : "delete"](id);
+      return next;
+    });
 
   return (
     <>
       <PageHeader title="Members" description="Everyone who trains at your gym.">
-        {can.role !== "trainer" && (
+        {can.has("members_edit") && (
           <Button nativeButton={false} render={<Link href="/members/new" />}>
             <PlusIcon />
             Add member
@@ -271,6 +285,36 @@ function MembersView() {
         />
       </div>
 
+      {canBulk && picked.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-border/70 bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="font-medium">{picked.size} selected</span>
+          <SimpleSelect
+            className="w-auto min-w-44"
+            options={[
+              { value: UNASSIGNED, label: "No trainer" },
+              ...(coaches.data ?? []).map((s) => ({ value: s.user_id, label: s.name })),
+            ]}
+            value={bulkTrainer}
+            onChange={setBulkTrainer}
+          />
+          <Button
+            size="sm"
+            disabled={assign.isPending}
+            onClick={() =>
+              assign.mutate(
+                { member_ids: [...picked], trainer_id: bulkTrainer === UNASSIGNED ? null : bulkTrainer },
+                { onSuccess: () => setPicked(new Set()) },
+              )
+            }
+          >
+            Assign trainer
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setPicked(new Set())}>
+            Clear
+          </Button>
+        </div>
+      )}
+
       {members.isPending ? (
         <Skeleton className="h-96 w-full rounded-xl" />
       ) : total === 0 ? (
@@ -286,7 +330,7 @@ function MembersView() {
                 : "Add your first member to start tracking memberships."}
             </EmptyDescription>
           </EmptyHeader>
-          {!filtering && can.role !== "trainer" && (
+          {!filtering && can.has("members_edit") && (
             <EmptyContent>
               <Button nativeButton={false} render={<Link href="/members/new" />}>
                 <PlusIcon />
@@ -299,6 +343,7 @@ function MembersView() {
         <TableSurface className="rounded-2xl border-border/70">
           <Table className={cn("table-fixed", members.isPlaceholderData && "opacity-60")}>
             <colgroup>
+              {canBulk && <col className="w-10" />}
               <col className="w-[26%]" />
               <col className="hidden w-[13%] xl:table-column" />
               <col className="w-[13%]" />
@@ -308,7 +353,17 @@ function MembersView() {
             </colgroup>
             <TableHeader>
               <TableRow className="[&>th]:h-11 [&>th]:border-r [&>th]:border-border/70 [&>th]:px-3 [&>th]:font-normal [&>th:last-child]:border-r-0">
-                <TableHead className="pl-4">
+                {canBulk && (
+                  <TableHead className="pl-4">
+                    <Checkbox
+                      aria-label="Select all on this page"
+                      checked={allPicked}
+                      indeterminate={!allPicked && pageIds.some((id) => picked.has(id))}
+                      onCheckedChange={(on) => toggle(pageIds, !!on)}
+                    />
+                  </TableHead>
+                )}
+                <TableHead className={canBulk ? undefined : "pl-4"}>
                   <ColumnTitle icon={UserIcon}>Member</ColumnTitle>
                 </TableHead>
                 <TableHead className="hidden xl:table-cell">
@@ -338,7 +393,16 @@ function MembersView() {
                     // Opens the quick view; ⌘/Ctrl-click goes straight to the full profile.
                     onClick={(e) => (e.metaKey || e.ctrlKey ? router.push(`/members/${m.id}`) : setPreview(i))}
                   >
-                    <TableCell className="pl-4">
+                    {canBulk && (
+                      <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          aria-label={`Select ${m.name}`}
+                          checked={picked.has(m.id)}
+                          onCheckedChange={(on) => toggle([m.id], !!on)}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell className={canBulk ? undefined : "pl-4"}>
                       <Link
                         href={`/members/${m.id}`}
                         className="flex min-w-0 items-center gap-2.5 outline-none"
@@ -378,7 +442,7 @@ function MembersView() {
                       )}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
-                      <TrainerCell memberId={m.id} trainer={m.trainer} canEdit={can.role !== "trainer"} />
+                      <TrainerCell memberId={m.id} trainer={m.trainer} canEdit={can.has("members_edit")} />
                     </TableCell>
                     <TableCell className="hidden truncate text-muted-foreground lg:table-cell">
                       {formatDate(m.joined_on)}
