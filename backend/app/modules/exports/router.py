@@ -14,11 +14,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import aliased
 
-from app.core.deps import DbSession, ManagerContext
+from app.core.deps import DbSession
+from app.core.permissions import Cap, branch_bound, ctx_with
 from app.modules.audit import service as audit
 from app.modules.auth.models import User
 from app.modules.checkups.models import CheckUp
@@ -29,6 +30,8 @@ from app.modules.members.models import Member, Membership
 from app.modules.members.service import gym_today
 from app.modules.members.status import membership_status, pick_current
 from app.modules.plans.models import Plan
+
+ExportContext = ctx_with(Cap.EXPORTS)
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 
@@ -418,7 +421,12 @@ async def _plans(db: DbSession, gym_id: uuid.UUID, tz: ZoneInfo) -> bytes:
 
 
 @router.get("/{entity}.csv", response_class=Response)
-async def export(entity: ExportEntity, ctx: ManagerContext, db: DbSession):
+async def export(entity: ExportEntity, ctx: ExportContext, db: DbSession):
+    if branch_bound(ctx):
+        # Exports span every branch; a branch-bound manager can't be limited to theirs yet.
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "Exports cover every branch. Ask the gym owner."
+        )
     gym = await db.get_one(Gym, ctx.gym_id)
     try:
         tz = ZoneInfo(gym.timezone)

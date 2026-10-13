@@ -48,6 +48,12 @@ class UserOut(BaseModel):
     id: uuid.UUID
     email: str
     name: str
+    phone: str | None = None
+
+
+class UpdateMeIn(BaseModel):
+    name: str | None = Field(None, min_length=2, max_length=120)
+    phone: str | None = Field(None, max_length=30)
 
 
 class GymMembershipOut(BaseModel):
@@ -60,6 +66,9 @@ class MeOut(BaseModel):
     user: UserOut
     gym: GymOut
     role: Role
+    branch_id: uuid.UUID | None = None
+    # What this person may do here (see core/permissions.py); the app shows or hides by these.
+    capabilities: list[str] = []
     gyms: list[GymMembershipOut]
 
 

@@ -7,10 +7,13 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
-from app.core.deps import DbSession, OwnerContext
+from app.core.deps import DbSession
+from app.core.permissions import Cap, ctx_with
 from app.core.schemas import Page
 from app.modules.audit.models import AuditLog
 from app.modules.gyms.models import Gym
+
+AuditContext = ctx_with(Cap.AUDIT)
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -29,7 +32,7 @@ class AuditOut(BaseModel):
 
 @router.get("", response_model=Page[AuditOut])
 async def list_audit(
-    ctx: OwnerContext,
+    ctx: AuditContext,
     db: DbSession,
     target_type: str | None = None,
     actor_id: uuid.UUID | None = None,

@@ -2,16 +2,24 @@ import uuid
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.db import utcnow
-from app.core.deps import CurrentContext, DbSession, ManagerContext, TenantContext, require_roles
+from app.core.deps import DbSession, TenantContext
+from app.core.permissions import (
+    Cap,
+    can,
+    ctx_with,
+    ensure_lead_visible,
+    lead_scope,
+    scope_leads,
+)
 from app.core.security import generate_url_token
 from app.modules.audit import service as audit
-from app.modules.gyms.models import Gym, Role
+from app.modules.gyms.models import Gym
 from app.modules.leads import service
 from app.modules.leads.models import OPEN_STAGES, ActivityKind, Lead, LeadSource, LeadStage
 from app.modules.leads.schemas import (
@@ -51,20 +59,22 @@ STAGE_LABELS = {
     LeadStage.LOST: "Lost",
 }
 
-DeskContext = Annotated[
-    TenantContext, Depends(require_roles(Role.OWNER, Role.MANAGER, Role.FRONT_DESK))
-]
+# Sales and desk work the whole pipeline; trainers add leads and work the ones assigned to them.
+AnyLeadsContext = ctx_with(Cap.LEADS, Cap.LEADS_OWN)
+ConvertContext = ctx_with(Cap.LEADS_CONVERT)
+DeleteContext = ctx_with(Cap.LEADS_DELETE)
+FormContext = ctx_with(Cap.LEAD_FORM)
+PipelineContext = ctx_with(Cap.LEADS)
 
 
-async def _lead(db: DbSession, gym_id: uuid.UUID, lead_id: uuid.UUID) -> Lead:
+async def _lead(db: DbSession, ctx: TenantContext, lead_id: uuid.UUID) -> Lead:
     lead = await db.scalar(
         select(Lead)
-        .where(Lead.gym_id == gym_id, Lead.id == lead_id)
+        .where(Lead.gym_id == ctx.gym_id, Lead.id == lead_id)
         .options(selectinload(Lead.activities))
         .execution_options(populate_existing=True)
     )
-    if lead is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found")
+    ensure_lead_visible(ctx, lead)  # trainers: 404 unless it's assigned to them
     return lead
 
 
@@ -87,7 +97,7 @@ def _duplicate(existing: Lead) -> HTTPException:
 
 @router.get("", response_model=list[LeadOut])
 async def list_leads(
-    ctx: CurrentContext,
+    ctx: AnyLeadsContext,
     db: DbSession,
     q: str | None = None,
     source: LeadSource | None = None,
@@ -99,7 +109,7 @@ async def list_leads(
     include_closed is set. Follow-ups due first."""
     gym = await db.get_one(Gym, ctx.gym_id)
     today = await members_service.gym_today(db, ctx.gym_id)
-    stmt = select(Lead).where(Lead.gym_id == ctx.gym_id)
+    stmt = scope_leads(select(Lead).where(Lead.gym_id == ctx.gym_id), ctx)
     if include_closed:
         stmt = stmt.where(
             or_(Lead.stage.in_(OPEN_STAGES), Lead.updated_at >= utcnow() - timedelta(days=30))
@@ -136,38 +146,47 @@ async def list_leads(
 
 
 @router.get("/stats", response_model=LeadStats)
-async def lead_stats(ctx: CurrentContext, db: DbSession):
+async def lead_stats(ctx: AnyLeadsContext, db: DbSession):
     gym = await db.get_one(Gym, ctx.gym_id)
+    scope = lead_scope(ctx)
+
+    def mine(stmt):
+        return stmt if scope is None else stmt.where(scope)
+
     today = await members_service.gym_today(db, ctx.gym_id)
     by_stage = dict(
         (
             await db.execute(
-                select(Lead.stage, func.count())
-                .where(Lead.gym_id == ctx.gym_id)
-                .group_by(Lead.stage)
+                mine(select(Lead.stage, func.count()).where(Lead.gym_id == ctx.gym_id)).group_by(
+                    Lead.stage
+                )
             )
         ).all()
     )
     due = await db.scalar(
-        select(func.count()).where(
-            Lead.gym_id == ctx.gym_id,
-            Lead.stage.in_(OPEN_STAGES),
-            Lead.next_follow_up_at < service.end_of_day_utc(gym, today),
+        mine(
+            select(func.count()).where(
+                Lead.gym_id == ctx.gym_id,
+                Lead.stage.in_(OPEN_STAGES),
+                Lead.next_follow_up_at < service.end_of_day_utc(gym, today),
+            )
         )
     )
     since_30 = utcnow() - timedelta(days=30)
     since_90 = utcnow() - timedelta(days=90)
     new_30 = await db.scalar(
-        select(func.count()).where(Lead.gym_id == ctx.gym_id, Lead.created_at >= since_30)
+        mine(select(func.count()).where(Lead.gym_id == ctx.gym_id, Lead.created_at >= since_30))
     )
     conv_30 = await db.scalar(
-        select(func.count()).where(Lead.gym_id == ctx.gym_id, Lead.converted_at >= since_30)
+        mine(select(func.count()).where(Lead.gym_id == ctx.gym_id, Lead.converted_at >= since_30))
     )
     rows = (
         await db.execute(
-            select(Lead.source, Lead.stage, func.count())
-            .where(Lead.gym_id == ctx.gym_id, Lead.created_at >= since_90)
-            .group_by(Lead.source, Lead.stage)
+            mine(
+                select(Lead.source, Lead.stage, func.count()).where(
+                    Lead.gym_id == ctx.gym_id, Lead.created_at >= since_90
+                )
+            ).group_by(Lead.source, Lead.stage)
         )
     ).all()
     by_source: dict[LeadSource, dict[str, int]] = {}
@@ -197,9 +216,11 @@ async def lead_stats(ctx: CurrentContext, db: DbSession):
 
 
 @router.post("", response_model=LeadDetail, status_code=status.HTTP_201_CREATED)
-async def create_lead(body: LeadIn, ctx: CurrentContext, db: DbSession):
+async def create_lead(body: LeadIn, ctx: AnyLeadsContext, db: DbSession):
     if existing := await service.open_lead_with_phone(db, ctx.gym_id, body.phone):
         raise _duplicate(existing)
+    if not can(ctx, Cap.LEADS) and body.assigned_to not in (None, ctx.user.id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only add leads for yourself")
     await service.ensure_staff(db, ctx.gym_id, body.assigned_to)
     await _ensure_plan(db, ctx.gym_id, body.interested_plan_id)
     lead = Lead(
@@ -216,19 +237,17 @@ async def create_lead(body: LeadIn, ctx: CurrentContext, db: DbSession):
     )
     db.add(lead)
     await db.commit()
-    return await service.lead_detail(db, await _lead(db, ctx.gym_id, lead.id))
+    return await service.lead_detail(db, await _lead(db, ctx, lead.id))
 
 
 @router.get("/form-settings", response_model=LeadFormSettings)
-async def form_settings(ctx: CurrentContext, db: DbSession):
+async def form_settings(ctx: PipelineContext, db: DbSession):
     gym = await db.get_one(Gym, ctx.gym_id)
     return _form_settings(gym)
 
 
 @router.post("/form-settings", response_model=LeadFormSettings)
-async def set_form_settings(
-    enabled: bool, ctx: ManagerContext, db: DbSession, new_link: bool = False
-):
+async def set_form_settings(enabled: bool, ctx: FormContext, db: DbSession, new_link: bool = False):
     """Turns the public enquiry form on/off. new_link=true issues a fresh URL."""
     gym = await db.get_one(Gym, ctx.gym_id)
     if not enabled:
@@ -248,13 +267,13 @@ def _form_settings(gym: Gym) -> LeadFormSettings:
 
 
 @router.get("/{lead_id}", response_model=LeadDetail)
-async def get_lead(lead_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
-    return await service.lead_detail(db, await _lead(db, ctx.gym_id, lead_id))
+async def get_lead(lead_id: uuid.UUID, ctx: AnyLeadsContext, db: DbSession):
+    return await service.lead_detail(db, await _lead(db, ctx, lead_id))
 
 
 @router.patch("/{lead_id}", response_model=LeadDetail)
-async def update_lead(lead_id: uuid.UUID, body: LeadUpdate, ctx: CurrentContext, db: DbSession):
-    lead = await _lead(db, ctx.gym_id, lead_id)
+async def update_lead(lead_id: uuid.UUID, body: LeadUpdate, ctx: AnyLeadsContext, db: DbSession):
+    lead = await _lead(db, ctx, lead_id)
     values = body.model_dump(exclude_unset=True)
     for required in ("name", "phone", "source"):
         if values.get(required, ...) is None:
@@ -266,18 +285,20 @@ async def update_lead(lead_id: uuid.UUID, body: LeadUpdate, ctx: CurrentContext,
     ):
         raise _duplicate(existing)
     if "assigned_to" in values:
+        if not can(ctx, Cap.LEADS) and values["assigned_to"] != lead.assigned_to:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "You can't reassign leads")
         await service.ensure_staff(db, ctx.gym_id, values["assigned_to"])
     if "interested_plan_id" in values:
         await _ensure_plan(db, ctx.gym_id, values["interested_plan_id"])
     for key, value in values.items():
         setattr(lead, key, value)
     await db.commit()
-    return await service.lead_detail(db, await _lead(db, ctx.gym_id, lead_id))
+    return await service.lead_detail(db, await _lead(db, ctx, lead_id))
 
 
 @router.delete("/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_lead(lead_id: uuid.UUID, ctx: ManagerContext, db: DbSession) -> None:
-    lead = await _lead(db, ctx.gym_id, lead_id)
+async def delete_lead(lead_id: uuid.UUID, ctx: DeleteContext, db: DbSession) -> None:
+    lead = await _lead(db, ctx, lead_id)
     await db.delete(lead)
     audit.record(db, ctx, "lead.deleted", f"Deleted lead {lead.name} ({lead.phone})")
     await db.commit()
@@ -287,8 +308,8 @@ async def delete_lead(lead_id: uuid.UUID, ctx: ManagerContext, db: DbSession) ->
 
 
 @router.post("/{lead_id}/stage", response_model=LeadDetail)
-async def change_stage(lead_id: uuid.UUID, body: StageIn, ctx: CurrentContext, db: DbSession):
-    lead = await _lead(db, ctx.gym_id, lead_id)
+async def change_stage(lead_id: uuid.UUID, body: StageIn, ctx: AnyLeadsContext, db: DbSession):
+    lead = await _lead(db, ctx, lead_id)
     if body.stage == LeadStage.CONVERTED:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "Use “Convert to member” to convert a lead"
@@ -314,14 +335,14 @@ async def change_stage(lead_id: uuid.UUID, body: StageIn, ctx: CurrentContext, d
     lead.stage_changed_at = utcnow()
     service.log(lead, ActivityKind.STAGE, text, ctx.user.id)
     await db.commit()
-    return await service.lead_detail(db, await _lead(db, ctx.gym_id, lead_id))
+    return await service.lead_detail(db, await _lead(db, ctx, lead_id))
 
 
 @router.post(
     "/{lead_id}/activities", response_model=LeadDetail, status_code=status.HTTP_201_CREATED
 )
-async def add_activity(lead_id: uuid.UUID, body: ActivityIn, ctx: CurrentContext, db: DbSession):
-    lead = await _lead(db, ctx.gym_id, lead_id)
+async def add_activity(lead_id: uuid.UUID, body: ActivityIn, ctx: AnyLeadsContext, db: DbSession):
+    lead = await _lead(db, ctx, lead_id)
     service.log(lead, body.kind, body.content.strip(), ctx.user.id)
     if body.clear_follow_up:
         lead.next_follow_up_at = None
@@ -337,13 +358,13 @@ async def add_activity(lead_id: uuid.UUID, body: ActivityIn, ctx: CurrentContext
         lead.stage_changed_at = utcnow()
         service.log(lead, ActivityKind.STAGE, "New → Contacted", ctx.user.id)
     await db.commit()
-    return await service.lead_detail(db, await _lead(db, ctx.gym_id, lead_id))
+    return await service.lead_detail(db, await _lead(db, ctx, lead_id))
 
 
 @router.post("/{lead_id}/convert", response_model=LeadDetail)
-async def convert(lead_id: uuid.UUID, body: ConvertIn, ctx: DeskContext, db: DbSession):
+async def convert(lead_id: uuid.UUID, body: ConvertIn, ctx: ConvertContext, db: DbSession):
     """Creates a member from the lead (optionally with a first membership)."""
-    lead = await _lead(db, ctx.gym_id, lead_id)
+    lead = await _lead(db, ctx, lead_id)
     if lead.stage == LeadStage.CONVERTED:
         raise HTTPException(status.HTTP_409_CONFLICT, "This lead is already a member")
     existing = await db.scalar(
@@ -381,4 +402,4 @@ async def convert(lead_id: uuid.UUID, body: ConvertIn, ctx: DeskContext, db: DbS
     service.log(lead, ActivityKind.CONVERTED, "Converted to a member", ctx.user.id)
     audit.record(db, ctx, "lead.converted", f"Converted lead {lead.name} into a member", member.id)
     await db.commit()
-    return await service.lead_detail(db, await _lead(db, ctx.gym_id, lead_id))
+    return await service.lead_detail(db, await _lead(db, ctx, lead_id))

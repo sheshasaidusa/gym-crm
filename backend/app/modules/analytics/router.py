@@ -4,23 +4,28 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
-from app.core.deps import DbSession, ManagerContext
+from app.core.deps import DbSession
+from app.core.permissions import Cap, branch_bound, ctx_with
 from app.modules.analytics import service
 from app.modules.analytics.schemas import AnalyticsOut
 from app.modules.gyms.models import Branch, Gym
 from app.modules.members.service import gym_today
+
+AnalyticsContext = ctx_with(Cap.ANALYTICS)
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 @router.get("", response_model=AnalyticsOut)
 async def analytics(
-    ctx: ManagerContext,
+    ctx: AnalyticsContext,
     db: DbSession,
     months: Annotated[int, Query(ge=1, le=24)] = 6,
     branch_id: uuid.UUID | None = None,
 ):
     """Members, money, leads and progress over the last `months` months (this one included)."""
+    if branch_bound(ctx):
+        branch_id = ctx.branch_id
     if branch_id is not None:
         found = await db.scalar(
             select(Branch.id).where(Branch.id == branch_id, Branch.gym_id == ctx.gym_id)

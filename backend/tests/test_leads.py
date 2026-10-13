@@ -234,9 +234,9 @@ async def test_public_lead_form(client: AsyncClient, owner: Account):
 
 async def test_roles_and_isolation(client: AsyncClient, owner: Account, other_owner: Account):
     trainer = await invite_and_accept(client, owner, "coach@a.com", "trainer")
-    lead = await make_lead(client, owner)
+    lead = await make_lead(client, owner, assigned_to=trainer.user_id)
     url = f"/api/leads/{lead['id']}"
-    # Trainers work leads but can't convert or delete.
+    # Trainers work their own leads but can't convert or delete.
     res = await client.post(
         f"{url}/activities", json={"kind": "note", "content": "hi"}, headers=trainer.headers
     )
@@ -264,3 +264,68 @@ async def test_roles_and_isolation(client: AsyncClient, owner: Account, other_ow
     assert res.status_code == 404
     await make_lead(client, other_owner, phone=lead["phone"])
     assert (await client.delete(url, headers=owner.headers)).status_code == 204
+
+
+async def test_trainers_see_and_work_only_their_own_leads(client: AsyncClient, owner: Account):
+    coach = await invite_and_accept(client, owner, "coach@a.com", "trainer")
+    coach2 = await invite_and_accept(client, owner, "coach2@a.com", "trainer")
+    sales = await invite_and_accept(client, owner, "sales@a.com", "sales")
+    theirs = await make_lead(client, owner, assigned_to=coach.user_id)
+    elsewhere = await make_lead(client, owner, phone="9000000002", assigned_to=sales.user_id)
+
+    # They only see what's assigned to them, in the list, the stats and by id.
+    res = await client.get("/api/leads", headers=coach.headers)
+    assert [x["id"] for x in res.json()] == [theirs["id"]]
+    assert (await client.get("/api/leads/stats", headers=coach.headers)).json()["open"] == 1
+    assert (
+        await client.get(f"/api/leads/{elsewhere['id']}", headers=coach.headers)
+    ).status_code == 404
+    other = await client.patch(
+        f"/api/leads/{elsewhere['id']}", json={"notes": "mine now"}, headers=coach.headers
+    )
+    assert other.status_code == 404
+    # Sales and the owner see the whole pipeline.
+    assert len((await client.get("/api/leads", headers=sales.headers)).json()) == 2
+
+    # A trainer can add a walk-in: it is assigned to them automatically.
+    added = await client.post(
+        "/api/leads",
+        json={"name": "Walk In", "phone": "9000000003", "source": "walk_in"},
+        headers=coach.headers,
+    )
+    assert added.status_code == 201 and added.json()["assigned_to"]["id"] == coach.user_id
+    # ...but not on someone else's behalf, and they can't hand leads away.
+    res = await client.post(
+        "/api/leads",
+        json={
+            "name": "Xavier",
+            "phone": "9000000004",
+            "source": "walk_in",
+            "assigned_to": coach2.user_id,
+        },
+        headers=coach.headers,
+    )
+    assert res.status_code == 403
+    res = await client.patch(
+        f"/api/leads/{theirs['id']}", json={"assigned_to": coach2.user_id}, headers=coach.headers
+    )
+    assert res.status_code == 403
+    # Editing their own lead is fine.
+    res = await client.patch(
+        f"/api/leads/{theirs['id']}", json={"interest": "Yoga"}, headers=coach.headers
+    )
+    assert res.status_code == 200
+
+
+async def test_sales_cannot_touch_members_or_money(client: AsyncClient, owner: Account):
+    sales = await invite_and_accept(client, owner, "sales@a.com", "sales")
+    for method, url in [
+        ("get", "/api/members"),
+        ("get", "/api/payments"),
+        ("get", "/api/finance/dues"),
+        ("get", "/api/analytics"),
+        ("get", "/api/exports/members.csv"),
+    ]:
+        res = await getattr(client, method)(url, headers=sales.headers)
+        assert res.status_code in (403, 404), (url, res.status_code)
+    assert (await client.get("/api/leads", headers=sales.headers)).status_code == 200

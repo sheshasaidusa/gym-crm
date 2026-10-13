@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.db import as_utc, utcnow
 from app.core.deps import ACCESS_COOKIE, REFRESH_COOKIE
+from app.core.permissions import capabilities
 from app.core.security import create_token, hash_password, verify_password
 from app.modules.auth.models import User
 from app.modules.auth.schemas import AuthOut, GymMembershipOut, MeOut, SignupIn, UserOut
@@ -59,7 +60,7 @@ async def list_memberships(db: AsyncSession, user_id: uuid.UUID) -> list[GymMemb
     rows = await db.execute(
         select(StaffMembership.gym_id, Gym.name, StaffMembership.role)
         .join(Gym, Gym.id == StaffMembership.gym_id)
-        .where(StaffMembership.user_id == user_id)
+        .where(StaffMembership.user_id == user_id, StaffMembership.is_active)
         .order_by(StaffMembership.created_at)
     )
     return [GymMembershipOut(gym_id=g, gym_name=n, role=r) for g, n, r in rows.all()]
@@ -71,10 +72,17 @@ async def build_me(db: AsyncSession, user: User, gym_id: uuid.UUID) -> MeOut:
     if current is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No access to this gym")
     gym = await db.get_one(Gym, gym_id)
+    branch_id = await db.scalar(
+        select(StaffMembership.branch_id).where(
+            StaffMembership.user_id == user.id, StaffMembership.gym_id == gym_id
+        )
+    )
     return MeOut(
         user=UserOut.model_validate(user),
         gym=GymOut.model_validate(gym),
         role=current.role,
+        branch_id=branch_id,
+        capabilities=capabilities(current.role),
         gyms=memberships,
     )
 

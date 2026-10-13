@@ -3,12 +3,15 @@ import uuid
 from fastapi import APIRouter, status
 from sqlalchemy import func, select
 
-from app.core.deps import CurrentContext, DbSession, ManagerContext
+from app.core.deps import CurrentContext, DbSession
+from app.core.permissions import Cap, ctx_with
 from app.modules.audit import service as audit
 from app.modules.members.models import Membership
 from app.modules.members.service import PlanRepository, conflict, gym_today
 from app.modules.plans.models import Plan
 from app.modules.plans.schemas import PlanIn, PlanOut, PlanUpdate
+
+PlansContext = ctx_with(Cap.PLANS_MANAGE)
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -46,7 +49,7 @@ async def list_plans(ctx: CurrentContext, db: DbSession, include_archived: bool 
 
 
 @router.post("", response_model=PlanOut, status_code=status.HTTP_201_CREATED)
-async def create_plan(body: PlanIn, ctx: ManagerContext, db: DbSession):
+async def create_plan(body: PlanIn, ctx: PlansContext, db: DbSession):
     plan = await PlanRepository(db, ctx.gym_id).create(**body.model_dump())
     audit.record(db, ctx, "plan.created", f"Created plan {plan.name}", plan.id)
     await db.commit()
@@ -60,7 +63,7 @@ async def get_plan(plan_id: uuid.UUID, ctx: CurrentContext, db: DbSession):
 
 
 @router.patch("/{plan_id}", response_model=PlanOut)
-async def update_plan(plan_id: uuid.UUID, body: PlanUpdate, ctx: ManagerContext, db: DbSession):
+async def update_plan(plan_id: uuid.UUID, body: PlanUpdate, ctx: PlansContext, db: DbSession):
     """Changes apply to future memberships only; existing ones keep their copied terms."""
     repo = PlanRepository(db, ctx.gym_id)
     values = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
@@ -87,7 +90,7 @@ async def update_plan(plan_id: uuid.UUID, body: PlanUpdate, ctx: ManagerContext,
 
 
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_plan(plan_id: uuid.UUID, ctx: ManagerContext, db: DbSession) -> None:
+async def delete_plan(plan_id: uuid.UUID, ctx: PlansContext, db: DbSession) -> None:
     repo = PlanRepository(db, ctx.gym_id)
     plan = await repo.get_or_404(plan_id)
     used = await db.scalar(select(Membership.id).where(Membership.plan_id == plan.id).limit(1))

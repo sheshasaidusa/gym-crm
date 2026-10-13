@@ -17,8 +17,9 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.db import get_sessionmaker, utcnow
-from app.core.deps import DbSession, ManagerContext
+from app.core.deps import DbSession
 from app.core.jobs import enqueue
+from app.core.permissions import Cap, ctx_with
 from app.core.storage import get_storage
 from app.modules.audit import service as audit
 from app.modules.imports import service
@@ -31,6 +32,8 @@ from app.modules.imports.models import (
     ImportStatus,
 )
 from app.modules.imports.parsing import ParseError, read_table, text
+
+ImportContext = ctx_with(Cap.IMPORTS)
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 
@@ -137,7 +140,7 @@ async def _job(db: DbSession, gym_id: uuid.UUID, job_id: uuid.UUID) -> ImportJob
 
 
 @router.get("/fields", response_model=dict[ImportEntity, list[FieldOut]])
-async def fields(ctx: ManagerContext):
+async def fields(ctx: ImportContext):
     return {
         e: [FieldOut(key=f.key, label=f.label, required=f.required, hint=f.hint) for f in fs]
         for e, fs in FIELDS.items()
@@ -145,7 +148,7 @@ async def fields(ctx: ManagerContext):
 
 
 @router.get("/templates/{entity}", response_class=Response)
-async def template(entity: ImportEntity, ctx: ManagerContext):
+async def template(entity: ImportEntity, ctx: ImportContext):
     return Response(
         service.template_csv(entity).encode("utf-8-sig"),
         media_type="text/csv",
@@ -154,7 +157,7 @@ async def template(entity: ImportEntity, ctx: ManagerContext):
 
 
 @router.get("", response_model=list[ImportJobOut])
-async def list_imports(ctx: ManagerContext, db: DbSession):
+async def list_imports(ctx: ImportContext, db: DbSession):
     await _expire_stale(db, ctx.gym_id)
     jobs = (
         await db.scalars(
@@ -169,7 +172,7 @@ async def list_imports(ctx: ManagerContext, db: DbSession):
 
 @router.post("", response_model=UploadOut, status_code=status.HTTP_201_CREATED)
 async def upload(
-    ctx: ManagerContext,
+    ctx: ImportContext,
     db: DbSession,
     file: UploadFile,
     entity: Annotated[ImportEntity, Form()],
@@ -207,12 +210,12 @@ async def upload(
 
 
 @router.get("/{job_id}", response_model=ImportJobOut)
-async def get_import(job_id: uuid.UUID, ctx: ManagerContext, db: DbSession):
+async def get_import(job_id: uuid.UUID, ctx: ImportContext, db: DbSession):
     return _out(await _job(db, ctx.gym_id, job_id))
 
 
 @router.post("/{job_id}/check", response_model=CheckOut)
-async def check(job_id: uuid.UUID, body: CheckIn, ctx: ManagerContext, db: DbSession):
+async def check(job_id: uuid.UUID, body: CheckIn, ctx: ImportContext, db: DbSession):
     """Saves the column mapping and validates every row (nothing is written)."""
     job = await _job(db, ctx.gym_id, job_id)
     if job.status not in (ImportStatus.UPLOADED, ImportStatus.READY):
@@ -256,7 +259,7 @@ async def check(job_id: uuid.UUID, body: CheckIn, ctx: ManagerContext, db: DbSes
 @router.post("/{job_id}/run", response_model=ImportJobOut, status_code=status.HTTP_202_ACCEPTED)
 async def run(
     job_id: uuid.UUID,
-    ctx: ManagerContext,
+    ctx: ImportContext,
     db: DbSession,
     sessions: Sessions,
     background: BackgroundTasks,
@@ -278,7 +281,7 @@ async def run(
 
 
 @router.get("/{job_id}/problems.csv", response_class=Response)
-async def problems(job_id: uuid.UUID, ctx: ManagerContext, db: DbSession):
+async def problems(job_id: uuid.UUID, ctx: ImportContext, db: DbSession):
     job = await _job(db, ctx.gym_id, job_id)
     data = await get_storage().read(job.error_file_key) if job.error_file_key else None
     if data is None:

@@ -233,7 +233,7 @@ async def submit_lead_form(token: str, body: PublicLeadIn, db: DbSession) -> dic
     await notify_staff(
         db,
         gym.id,
-        roles=(Role.OWNER, Role.MANAGER, Role.FRONT_DESK),
+        roles=(Role.OWNER, Role.MANAGER, Role.FRONT_DESK, Role.SALES),
         kind="lead_new",
         title=title,
         body=body.message[:200] if body.message else "Call them back today.",

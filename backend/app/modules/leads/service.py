@@ -30,7 +30,9 @@ async def ensure_staff(db: AsyncSession, gym_id: uuid.UUID, user_id: uuid.UUID |
         return
     ok = await db.scalar(
         select(StaffMembership.id).where(
-            StaffMembership.gym_id == gym_id, StaffMembership.user_id == user_id
+            StaffMembership.gym_id == gym_id,
+            StaffMembership.user_id == user_id,
+            StaffMembership.is_active,
         )
     )
     if not ok:

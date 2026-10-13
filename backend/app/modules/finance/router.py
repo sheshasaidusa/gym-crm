@@ -4,12 +4,13 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
+from fastapi import APIRouter, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 
 from app.core.db import utcnow
-from app.core.deps import DbSession, ManagerContext, TenantContext, require_roles
+from app.core.deps import DbSession
+from app.core.permissions import Cap, ctx_with, ensure_member_visible, scope_members
 from app.core.schemas import round_money
 from app.core.storage import IMAGE_TYPES, get_storage, sniff_image_type
 from app.modules.audit import service as audit
@@ -33,7 +34,7 @@ from app.modules.finance.schemas import (
     ReceiptOut,
     VoidIn,
 )
-from app.modules.gyms.models import Branch, Gym, Role
+from app.modules.gyms.models import Branch, Gym
 from app.modules.gyms.repository import BranchRepository
 from app.modules.members.models import Member, Membership
 from app.modules.members.schemas import StaffRef
@@ -41,10 +42,9 @@ from app.modules.members.service import gym_today
 
 router = APIRouter(tags=["finance"])
 
-# Front desk takes payments; trainers don't handle money.
-DeskContext = Annotated[
-    TenantContext, Depends(require_roles(Role.OWNER, Role.MANAGER, Role.FRONT_DESK))
-]
+PaymentsContext = ctx_with(Cap.PAYMENTS)  # take payments, receipts, dues
+VoidContext = ctx_with(Cap.PAYMENTS_VOID)
+FinanceContext = ctx_with(Cap.FINANCE)  # expenses and the revenue summary
 
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 ZERO = Decimal("0.00")
@@ -65,12 +65,13 @@ def _shift_month(d: date, months: int) -> date:
 @router.post(
     "/members/{member_id}/payments", response_model=PaymentOut, status_code=status.HTTP_201_CREATED
 )
-async def record_payment(member_id: uuid.UUID, body: PaymentIn, ctx: DeskContext, db: DbSession):
+async def record_payment(
+    member_id: uuid.UUID, body: PaymentIn, ctx: PaymentsContext, db: DbSession
+):
     member = await db.scalar(
         select(Member).where(Member.gym_id == ctx.gym_id, Member.id == member_id)
     )
-    if member is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
+    ensure_member_visible(ctx, member)
     payment = await service.record_payment(
         db, ctx.gym_id, member, body, ctx.user.id, await gym_today(db, ctx.gym_id)
     )
@@ -90,7 +91,7 @@ async def record_payment(member_id: uuid.UUID, body: PaymentIn, ctx: DeskContext
 
 @router.get("/payments", response_model=PaymentList)
 async def list_payments(
-    ctx: DeskContext,
+    ctx: PaymentsContext,
     db: DbSession,
     member_id: uuid.UUID | None = None,
     method: PaymentMethod | None = None,
@@ -101,7 +102,8 @@ async def list_payments(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 25,
 ):
-    stmt = select(Payment).where(Payment.gym_id == ctx.gym_id)
+    stmt = select(Payment).join(Member, Member.id == Payment.member_id)
+    stmt = scope_members(stmt.where(Payment.gym_id == ctx.gym_id), ctx)
     if member_id:
         stmt = stmt.where(Payment.member_id == member_id)
     if method:
@@ -114,7 +116,7 @@ async def list_payments(
         stmt = stmt.where(Payment.voided_at.is_(None))
     if q and q.strip():
         term = f"%{q.strip().lower()}%"
-        stmt = stmt.join(Member, Member.id == Payment.member_id).where(
+        stmt = stmt.where(
             func.lower(Member.name).like(term) | func.lower(Payment.receipt_no).like(term)
         )
     total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
@@ -146,8 +148,9 @@ async def _payment(db: DbSession, gym_id: uuid.UUID, payment_id: uuid.UUID) -> P
 
 
 @router.get("/payments/{payment_id}/receipt", response_model=ReceiptOut)
-async def receipt(payment_id: uuid.UUID, ctx: DeskContext, db: DbSession):
+async def receipt(payment_id: uuid.UUID, ctx: PaymentsContext, db: DbSession):
     p = await _payment(db, ctx.gym_id, payment_id)
+    ensure_member_visible(ctx, await db.get(Member, p.member_id))
     (out,) = await service.payments_out(db, [p])
     gym = await db.get_one(Gym, ctx.gym_id)
     member = await db.get_one(Member, p.member_id)
@@ -183,7 +186,7 @@ async def receipt(payment_id: uuid.UUID, ctx: DeskContext, db: DbSession):
 
 
 @router.post("/payments/{payment_id}/void", response_model=PaymentOut)
-async def void_payment(payment_id: uuid.UUID, body: VoidIn, ctx: ManagerContext, db: DbSession):
+async def void_payment(payment_id: uuid.UUID, body: VoidIn, ctx: VoidContext, db: DbSession):
     p = await _payment(db, ctx.gym_id, payment_id)
     if p.voided_at is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "This payment is already voided")
@@ -208,7 +211,7 @@ async def void_payment(payment_id: uuid.UUID, body: VoidIn, ctx: ManagerContext,
 
 
 @router.get("/finance/dues", response_model=DueList)
-async def dues(ctx: DeskContext, db: DbSession, member_id: uuid.UUID | None = None):
+async def dues(ctx: PaymentsContext, db: DbSession, member_id: uuid.UUID | None = None):
     """Memberships (not cancelled) with money still owed. Oldest first."""
     paid = service.paid_subquery()
     balance = Membership.total - func.coalesce(paid.c.paid, 0)
@@ -223,6 +226,7 @@ async def dues(ctx: DeskContext, db: DbSession, member_id: uuid.UUID | None = No
         )
         .order_by(Membership.start_date)
     )
+    stmt = scope_members(stmt, ctx)
     if member_id:
         stmt = stmt.where(Membership.member_id == member_id)
     items = []
@@ -291,7 +295,7 @@ async def _expense(db: DbSession, gym_id: uuid.UUID, expense_id: uuid.UUID) -> E
 
 @router.get("/expenses", response_model=ExpenseList)
 async def list_expenses(
-    ctx: ManagerContext,
+    ctx: FinanceContext,
     db: DbSession,
     category: ExpenseCategory | None = None,
     date_from: date | None = None,
@@ -341,7 +345,7 @@ def _expense_label(e: Expense) -> str:
 
 
 @router.post("/expenses", response_model=ExpenseOut, status_code=status.HTTP_201_CREATED)
-async def create_expense(body: ExpenseIn, ctx: ManagerContext, db: DbSession):
+async def create_expense(body: ExpenseIn, ctx: FinanceContext, db: DbSession):
     today = await gym_today(db, ctx.gym_id)
     if body.spent_on and body.spent_on > today:
         raise HTTPException(
@@ -367,7 +371,7 @@ async def create_expense(body: ExpenseIn, ctx: ManagerContext, db: DbSession):
 
 @router.patch("/expenses/{expense_id}", response_model=ExpenseOut)
 async def update_expense(
-    expense_id: uuid.UUID, body: ExpenseUpdate, ctx: ManagerContext, db: DbSession
+    expense_id: uuid.UUID, body: ExpenseUpdate, ctx: FinanceContext, db: DbSession
 ):
     e = await _expense(db, ctx.gym_id, expense_id)
     values = body.model_dump(exclude_unset=True)
@@ -393,7 +397,7 @@ async def update_expense(
 
 
 @router.delete("/expenses/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_expense(expense_id: uuid.UUID, ctx: ManagerContext, db: DbSession) -> None:
+async def delete_expense(expense_id: uuid.UUID, ctx: FinanceContext, db: DbSession) -> None:
     e = await _expense(db, ctx.gym_id, expense_id)
     key = e.attachment_key
     await db.delete(e)
@@ -407,7 +411,7 @@ async def delete_expense(expense_id: uuid.UUID, ctx: ManagerContext, db: DbSessi
 
 @router.post("/expenses/{expense_id}/attachment", response_model=ExpenseOut)
 async def upload_attachment(
-    expense_id: uuid.UUID, file: UploadFile, ctx: ManagerContext, db: DbSession
+    expense_id: uuid.UUID, file: UploadFile, ctx: FinanceContext, db: DbSession
 ):
     e = await _expense(db, ctx.gym_id, expense_id)
     data = await file.read(MAX_ATTACHMENT_BYTES + 1)
@@ -431,7 +435,7 @@ async def upload_attachment(
 
 
 @router.get("/expenses/{expense_id}/attachment", response_class=Response)
-async def get_attachment(expense_id: uuid.UUID, ctx: ManagerContext, db: DbSession):
+async def get_attachment(expense_id: uuid.UUID, ctx: FinanceContext, db: DbSession):
     e = await _expense(db, ctx.gym_id, expense_id)
     if not e.attachment_key:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No attachment")
@@ -453,7 +457,7 @@ async def get_attachment(expense_id: uuid.UUID, ctx: ManagerContext, db: DbSessi
 
 @router.get("/finance/summary", response_model=FinanceSummary)
 async def summary(
-    ctx: ManagerContext, db: DbSession, months: Annotated[int, Query(ge=1, le=24)] = 6
+    ctx: FinanceContext, db: DbSession, months: Annotated[int, Query(ge=1, le=24)] = 6
 ):
     """Revenue (non-voided payments) vs expenses per month, oldest first."""
     gym = await db.get_one(Gym, ctx.gym_id)
