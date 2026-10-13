@@ -1,4 +1,5 @@
 import logging
+import re
 from functools import lru_cache
 from typing import Literal
 
@@ -85,6 +86,9 @@ class Settings(BaseSettings):
                 url = "postgresql+asyncpg://" + url[len(prefix) :]
         if url.startswith("postgresql+asyncpg://"):
             url = url.replace("sslmode=", "ssl=")
+            # Neon's copy-paste URL adds channel_binding, a libpq option asyncpg rejects.
+            url = re.sub(r"\?channel_binding=[^&]*&", "?", url)  # first of several options
+            url = re.sub(r"[?&]channel_binding=[^&]*", "", url)  # anywhere else
         return url
 
     @property

@@ -74,6 +74,10 @@ def _make_engine(url: str):
     }
     if url.startswith("sqlite"):
         kwargs = {"connect_args": {"check_same_thread": False}}
+    elif "-pooler." in url:
+        # A PgBouncer pooler (Neon's "pooled connection") shares server connections between
+        # clients, so asyncpg's per-connection prepared statements must be switched off.
+        kwargs["connect_args"] = {"statement_cache_size": 0, "prepared_statement_cache_size": 0}
     engine = create_async_engine(url, **kwargs)
     if url.startswith("sqlite"):
 
