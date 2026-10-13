@@ -1,6 +1,7 @@
 "use client";
 
 import { AnalyticsView } from "@/components/analytics/analytics-view";
+import { StaffSection } from "@/components/analytics/staff-section";
 import { PageHeader } from "@/components/page-header";
 import { SimpleSelect } from "@/components/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -89,6 +90,10 @@ function AnalyticsPageBody() {
       ) : (
         <div className={cn("transition-opacity", analytics.isPlaceholderData && "opacity-60")}>
           <AnalyticsView data={analytics.data} />
+          <section className="mt-8 space-y-3">
+            <h2 className="text-sm font-medium text-muted-foreground">Team</h2>
+            <StaffSection months={months} />
+          </section>
         </div>
       )}
     </div>

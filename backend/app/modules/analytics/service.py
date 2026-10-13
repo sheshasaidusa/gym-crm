@@ -20,12 +20,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.schemas import round_money
 from app.modules.analytics.schemas import (
     AnalyticsOut,
+    BranchRow,
     CheckupProgress,
     FinanceMonth,
     GoalProgress,
     Kpis,
     LeadAnalytics,
     MemberMonth,
+    MethodAmount,
+    NewVsRenewal,
     PlanAmount,
     PlanCount,
     SourceCount,
@@ -34,7 +37,7 @@ from app.modules.analytics.schemas import (
 )
 from app.modules.checkups.models import CheckUp
 from app.modules.finance.models import Expense, Payment
-from app.modules.gyms.models import Gym
+from app.modules.gyms.models import Branch, Gym
 from app.modules.leads.models import Lead, LeadSource, LeadStage
 from app.modules.members.models import Goal, Member, Membership
 
@@ -183,7 +186,14 @@ async def build(
     pay_rows = (
         await db.execute(
             member_scope(
-                select(Payment.paid_on, Payment.amount, Membership.plan_name)
+                select(
+                    Payment.paid_on,
+                    Payment.amount,
+                    Membership.plan_name,
+                    Payment.method,
+                    Payment.member_id,
+                    Membership.start_date,
+                )
                 .join(Member, Member.id == Payment.member_id)
                 .outerjoin(Membership, Membership.id == Payment.membership_id)
                 .where(
@@ -196,10 +206,24 @@ async def build(
     ).all()
     revenue: dict[str, Decimal] = defaultdict(lambda: ZERO)
     by_plan: dict[str, Decimal] = defaultdict(lambda: ZERO)
-    for paid_on, amount, plan_name in pay_rows:
+    by_method: dict[str, list] = defaultdict(lambda: [ZERO, 0])
+    first_start = {mid: min(m.start for m in ms) for mid, ms in by_member.items()}
+    new_money = renewal_money = other_money = ZERO
+    revenue_by_member: dict[uuid.UUID, Decimal] = defaultdict(lambda: ZERO)
+    for paid_on, amount, plan_name, method, member_id, ms_start in pay_rows:
         revenue[month_key(paid_on)] += amount
+        if month_key(paid_on) == this_key:
+            revenue_by_member[member_id] += amount
         if paid_on >= period_start:
             by_plan[plan_name or OTHER_PAYMENTS] += amount
+            by_method[method.value][0] += amount
+            by_method[method.value][1] += 1
+            if ms_start is None:
+                other_money += amount
+            elif ms_start == first_start.get(member_id):
+                new_money += amount  # paid against the member's first membership
+            else:
+                renewal_money += amount
 
     expense_stmt = select(Expense.spent_on, Expense.amount).where(
         Expense.gym_id == gym.id, Expense.spent_on >= period_start, Expense.spent_on <= today
@@ -259,6 +283,46 @@ async def build(
         ),
     )
 
+    # --- Branch comparison (only when looking at the whole gym) ---------------------------
+    branch_rows: list[BranchRow] = []
+    branches = (
+        await db.execute(select(Branch.id, Branch.name).where(Branch.gym_id == gym.id))
+    ).all()
+    if branch_id is None and len(branches) > 1:
+        member_branch = dict(
+            (
+                await db.execute(select(Member.id, Member.branch_id).where(Member.gym_id == gym.id))
+            ).all()
+        )
+        new_by_branch = Counter(
+            b
+            for (b,) in (
+                await db.execute(
+                    select(Member.branch_id).where(
+                        Member.gym_id == gym.id, Member.joined_on >= today.replace(day=1)
+                    )
+                )
+            ).all()
+        )
+        active_by_branch = Counter(
+            member_branch.get(mid)
+            for mid, ms in by_member.items()
+            if any(m.active_on(today) for m in ms)
+        )
+        money_by_branch: dict[uuid.UUID | None, Decimal] = defaultdict(lambda: ZERO)
+        for mid, amount in revenue_by_member.items():
+            money_by_branch[member_branch.get(mid)] += amount
+        for bid, name in [*branches, (None, "No branch")]:
+            if active_by_branch[bid] or new_by_branch[bid] or money_by_branch[bid]:
+                branch_rows.append(
+                    BranchRow(
+                        branch=name,
+                        active_members=active_by_branch[bid],
+                        new_this_month=new_by_branch[bid],
+                        revenue_this_month=round_money(money_by_branch[bid]),
+                    )
+                )
+
     return AnalyticsOut(
         currency=gym.currency,
         today=today,
@@ -286,6 +350,16 @@ async def build(
         ),
         leads=leads,
         checkups=checkup_progress(checkup_rows),
+        revenue_by_method=[
+            MethodAmount(method=m, amount=round_money(a), payments=n)
+            for m, (a, n) in sorted(by_method.items(), key=lambda x: -x[1][0])
+        ],
+        new_vs_renewal=NewVsRenewal(
+            new=round_money(new_money),
+            renewal=round_money(renewal_money),
+            other=round_money(other_money),
+        ),
+        branch_comparison=branch_rows,
     )
 
 

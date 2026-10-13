@@ -4275,6 +4275,147 @@
         }
       }
     },
+    "/api/analytics/staff": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Staff Analytics",
+        "description": "How each trainer and salesperson is doing over the last `months` months.",
+        "operationId": "staff_analytics_api_analytics_staff_get",
+        "parameters": [
+          {
+            "name": "months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "default": 3,
+              "title": "Months"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAnalytics"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/trainer": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Trainer Dashboard",
+        "description": "A trainer's clients and what needs doing. Owners and managers can look at any trainer's.",
+        "operationId": "trainer_dashboard_api_dashboard_trainer_get",
+        "parameters": [
+          {
+            "name": "trainer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trainer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainerDashboard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/desk": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Desk Dashboard",
+        "description": "Today at the front desk: renewals, dues, takings and trials.",
+        "operationId": "desk_dashboard_api_dashboard_desk_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/sales": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Sales Dashboard",
+        "description": "The caller's pipeline against the team's, follow-ups and trials.",
+        "operationId": "sales_dashboard_api_dashboard_sales_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/audit": {
       "get": {
         "tags": [
@@ -5330,6 +5471,32 @@
           },
           "checkups": {
             "$ref": "#/components/schemas/CheckupProgress"
+          },
+          "revenue_by_method": {
+            "items": {
+              "$ref": "#/components/schemas/MethodAmount"
+            },
+            "type": "array",
+            "title": "Revenue By Method",
+            "default": []
+          },
+          "new_vs_renewal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NewVsRenewal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "branch_comparison": {
+            "items": {
+              "$ref": "#/components/schemas/BranchRow"
+            },
+            "type": "array",
+            "title": "Branch Comparison",
+            "default": []
           }
         },
         "type": "object",
@@ -5662,6 +5829,34 @@
           "phone"
         ],
         "title": "BranchOut"
+      },
+      "BranchRow": {
+        "properties": {
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "active_members": {
+            "type": "integer",
+            "title": "Active Members"
+          },
+          "new_this_month": {
+            "type": "integer",
+            "title": "New This Month"
+          },
+          "revenue_this_month": {
+            "type": "number",
+            "title": "Revenue This Month"
+          }
+        },
+        "type": "object",
+        "required": [
+          "branch",
+          "active_members",
+          "new_this_month",
+          "revenue_this_month"
+        ],
+        "title": "BranchRow"
       },
       "BranchUpdate": {
         "properties": {
@@ -6380,6 +6575,76 @@
         ],
         "title": "DateOrder"
       },
+      "DeskDashboard": {
+        "properties": {
+          "renewals": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Renewals"
+          },
+          "renewals_count": {
+            "type": "integer",
+            "title": "Renewals Count"
+          },
+          "outstanding": {
+            "type": "number",
+            "title": "Outstanding"
+          },
+          "dues_count": {
+            "type": "integer",
+            "title": "Dues Count"
+          },
+          "dues": {
+            "items": {
+              "$ref": "#/components/schemas/DueRow"
+            },
+            "type": "array",
+            "title": "Dues"
+          },
+          "payments_today": {
+            "type": "number",
+            "title": "Payments Today"
+          },
+          "payments_today_count": {
+            "type": "integer",
+            "title": "Payments Today Count"
+          },
+          "payments_by_method": {
+            "items": {
+              "$ref": "#/components/schemas/MethodAmount"
+            },
+            "type": "array",
+            "title": "Payments By Method"
+          },
+          "trials_today": {
+            "items": {
+              "$ref": "#/components/schemas/TrialRow"
+            },
+            "type": "array",
+            "title": "Trials Today"
+          },
+          "new_members_today": {
+            "type": "integer",
+            "title": "New Members Today"
+          }
+        },
+        "type": "object",
+        "required": [
+          "renewals",
+          "renewals_count",
+          "outstanding",
+          "dues_count",
+          "dues",
+          "payments_today",
+          "payments_today_count",
+          "payments_by_method",
+          "trials_today",
+          "new_members_today"
+        ],
+        "title": "DeskDashboard"
+      },
       "DietPlan": {
         "properties": {
           "daily_calories": {
@@ -6688,6 +6953,40 @@
           "whatsapp_sent_at"
         ],
         "title": "DueReminderOut"
+      },
+      "DueRow": {
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_id",
+          "name",
+          "phone",
+          "plan_name",
+          "balance"
+        ],
+        "title": "DueRow"
       },
       "DuplicateMode": {
         "type": "string",
@@ -8768,6 +9067,51 @@
         ],
         "title": "LeadOut"
       },
+      "LeadRow": {
+        "properties": {
+          "lead_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Lead Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LeadSource"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_id",
+          "name",
+          "phone",
+          "stage",
+          "source",
+          "at"
+        ],
+        "title": "LeadRow"
+      },
       "LeadSource": {
         "type": "string",
         "enum": [
@@ -9013,6 +9357,24 @@
           "password"
         ],
         "title": "LoginIn"
+      },
+      "LostReason": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "leads": {
+            "type": "integer",
+            "title": "Leads"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "leads"
+        ],
+        "title": "LostReason"
       },
       "MeOut": {
         "properties": {
@@ -9762,6 +10124,54 @@
         ],
         "title": "MemberOut"
       },
+      "MemberRow": {
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Member Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "member_id",
+          "name",
+          "phone"
+        ],
+        "title": "MemberRow",
+        "description": "A member who needs attention, with the one date that matters."
+      },
       "MemberUpdate": {
         "properties": {
           "name": {
@@ -10310,6 +10720,29 @@
         ],
         "title": "MembershipOut"
       },
+      "MethodAmount": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "payments": {
+            "type": "integer",
+            "title": "Payments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "amount",
+          "payments"
+        ],
+        "title": "MethodAmount"
+      },
       "MonthTotals": {
         "properties": {
           "month": {
@@ -10337,6 +10770,29 @@
           "profit"
         ],
         "title": "MonthTotals"
+      },
+      "NewVsRenewal": {
+        "properties": {
+          "new": {
+            "type": "number",
+            "title": "New"
+          },
+          "renewal": {
+            "type": "number",
+            "title": "Renewal"
+          },
+          "other": {
+            "type": "number",
+            "title": "Other"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new",
+          "renewal",
+          "other"
+        ],
+        "title": "NewVsRenewal"
       },
       "NotificationList": {
         "properties": {
@@ -10808,6 +11264,25 @@
           "created_at"
         ],
         "title": "PaymentOut"
+      },
+      "PersonRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "PersonRef"
       },
       "PhotoOut": {
         "properties": {
@@ -12024,6 +12499,149 @@
         ],
         "title": "RunSummaryOut"
       },
+      "SalesDashboard": {
+        "properties": {
+          "pipeline_mine": {
+            "items": {
+              "$ref": "#/components/schemas/StageCount"
+            },
+            "type": "array",
+            "title": "Pipeline Mine"
+          },
+          "pipeline_team": {
+            "items": {
+              "$ref": "#/components/schemas/StageCount"
+            },
+            "type": "array",
+            "title": "Pipeline Team"
+          },
+          "follow_ups_due": {
+            "type": "integer",
+            "title": "Follow Ups Due"
+          },
+          "follow_ups": {
+            "items": {
+              "$ref": "#/components/schemas/LeadRow"
+            },
+            "type": "array",
+            "title": "Follow Ups"
+          },
+          "trials": {
+            "items": {
+              "$ref": "#/components/schemas/LeadRow"
+            },
+            "type": "array",
+            "title": "Trials"
+          },
+          "converted_mine_30d": {
+            "type": "integer",
+            "title": "Converted Mine 30D"
+          },
+          "converted_team_30d": {
+            "type": "integer",
+            "title": "Converted Team 30D"
+          },
+          "conversion_mine_90d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Mine 90D"
+          },
+          "conversion_team_90d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Team 90D"
+          },
+          "lost_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/LostReason"
+            },
+            "type": "array",
+            "title": "Lost Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pipeline_mine",
+          "pipeline_team",
+          "follow_ups_due",
+          "follow_ups",
+          "trials",
+          "converted_mine_30d",
+          "converted_team_30d",
+          "conversion_mine_90d",
+          "conversion_team_90d",
+          "lost_reasons"
+        ],
+        "title": "SalesDashboard"
+      },
+      "SalesPerformance": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "leads": {
+            "type": "integer",
+            "title": "Leads"
+          },
+          "contacted": {
+            "type": "integer",
+            "title": "Contacted"
+          },
+          "trials": {
+            "type": "integer",
+            "title": "Trials"
+          },
+          "converted": {
+            "type": "integer",
+            "title": "Converted"
+          },
+          "conversion_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion Rate"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "name",
+          "leads",
+          "contacted",
+          "trials",
+          "converted",
+          "conversion_rate",
+          "revenue"
+        ],
+        "title": "SalesPerformance"
+      },
       "SendStatus": {
         "type": "string",
         "enum": [
@@ -12101,6 +12719,36 @@
           "converted"
         ],
         "title": "SourceCount"
+      },
+      "StaffAnalytics": {
+        "properties": {
+          "period_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Period Start"
+          },
+          "trainers": {
+            "items": {
+              "$ref": "#/components/schemas/TrainerPerformance"
+            },
+            "type": "array",
+            "title": "Trainers"
+          },
+          "sales": {
+            "items": {
+              "$ref": "#/components/schemas/SalesPerformance"
+            },
+            "type": "array",
+            "title": "Sales"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period_start",
+          "trainers",
+          "sales"
+        ],
+        "title": "StaffAnalytics"
       },
       "StaffDeactivate": {
         "properties": {
@@ -12362,6 +13010,60 @@
         ],
         "title": "Template"
       },
+      "TrainerDashboard": {
+        "properties": {
+          "trainer": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "clients": {
+            "$ref": "#/components/schemas/MemberCounts"
+          },
+          "expiring": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Expiring"
+          },
+          "checkups_due": {
+            "type": "integer",
+            "title": "Checkups Due"
+          },
+          "checkups_due_list": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Checkups Due List"
+          },
+          "without_plan": {
+            "type": "integer",
+            "title": "Without Plan"
+          },
+          "without_plan_list": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRow"
+            },
+            "type": "array",
+            "title": "Without Plan List"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/CheckupProgress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trainer",
+          "clients",
+          "expiring",
+          "checkups_due",
+          "checkups_due_list",
+          "without_plan",
+          "without_plan_list",
+          "progress"
+        ],
+        "title": "TrainerDashboard"
+      },
       "TrainerDraft": {
         "properties": {
           "name": {
@@ -12405,6 +13107,123 @@
           "email"
         ],
         "title": "TrainerDraft"
+      },
+      "TrainerPerformance": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "clients": {
+            "type": "integer",
+            "title": "Clients"
+          },
+          "active_clients": {
+            "type": "integer",
+            "title": "Active Clients"
+          },
+          "renewal_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renewal Rate"
+          },
+          "checkup_compliance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkup Compliance"
+          },
+          "members_tracked": {
+            "type": "integer",
+            "title": "Members Tracked"
+          },
+          "on_track": {
+            "type": "integer",
+            "title": "On Track"
+          },
+          "avg_weight_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Weight Change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "name",
+          "clients",
+          "active_clients",
+          "renewal_rate",
+          "checkup_compliance",
+          "members_tracked",
+          "on_track",
+          "avg_weight_change"
+        ],
+        "title": "TrainerPerformance"
+      },
+      "TrialRow": {
+        "properties": {
+          "lead_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Lead Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "trial_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Trial At"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_id",
+          "name",
+          "phone",
+          "trial_at",
+          "assigned_to"
+        ],
+        "title": "TrialRow"
       },
       "Upcoming": {
         "properties": {

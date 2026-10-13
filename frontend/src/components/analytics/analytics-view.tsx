@@ -33,12 +33,13 @@ import {
 } from "@/components/ui/chart";
 import type { Analytics } from "@/lib/analytics-queries";
 import { compactMoney, formatMoney, GOAL_LABELS, monthLabel } from "@/lib/format";
+import { METHOD_LABELS } from "@/lib/finance-queries";
 import { SOURCE_LABELS, STAGE_LABELS } from "@/lib/lead-queries";
 import { cn } from "@/lib/utils";
 
 // --- Small building blocks ------------------------------------------------------------
 
-function Kpi({
+export function Kpi({
   label,
   value,
   change,
@@ -76,19 +77,19 @@ function Kpi({
   );
 }
 
-function countChange(now: number, before: number) {
+export function countChange(now: number, before: number) {
   if (now === before) return null;
   const diff = now - before;
   return { text: `${Math.abs(diff)}`, good: diff > 0, up: diff > 0 };
 }
 
-function moneyChange(now: number, before: number) {
+export function moneyChange(now: number, before: number) {
   if (!before) return null;
   const change = ((now - before) / Math.abs(before)) * 100;
   return { text: `${Math.abs(change).toFixed(0)}%`, good: change >= 0, up: change >= 0 };
 }
 
-const pctText = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)}%`);
+export const pctText = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)}%`);
 
 /** Horizontal bars for "top N" lists, with the value printed. Callers drop rows with no data. */
 function BarList({
@@ -254,7 +255,7 @@ function MembersSection({ data }: { data: Analytics }) {
   );
 }
 
-function MoneySection({ data }: { data: Analytics }) {
+export function MoneySection({ data }: { data: Analytics }) {
   const c = data.currency;
   const rows = data.finance.map((f) => ({ ...f, label: monthLabel(f.month) }));
   return (
@@ -443,6 +444,73 @@ function LeadsSection({ data }: { data: Analytics }) {
   );
 }
 
+function MixSection({ data }: { data: Analytics }) {
+  const c = data.currency;
+  const nr = data.new_vs_renewal;
+  const money = (v: number) => formatMoney(v, c);
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <Card>
+        <CardHeader>
+          <CardTitle>By payment method</CardTitle>
+          <CardDescription>Payments in this period</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BarList
+            rows={data.revenue_by_method.map((m) => ({
+              label: METHOD_LABELS[m.method as keyof typeof METHOD_LABELS] ?? m.method,
+              value: m.amount,
+              note: `${m.payments}`,
+            }))}
+            format={money}
+            empty="No payments in this period."
+          />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>New vs renewal</CardTitle>
+          <CardDescription>Is growth coming from new joiners or returning members?</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BarList
+            rows={
+              nr
+                ? [
+                    { label: "New members", value: nr.new },
+                    { label: "Renewals", value: nr.renewal },
+                    { label: "Other payments", value: nr.other },
+                  ].filter((r) => r.value > 0)
+                : []
+            }
+            format={money}
+            empty="No payments in this period."
+          />
+        </CardContent>
+      </Card>
+      {data.branch_comparison.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Branches</CardTitle>
+            <CardDescription>Revenue this month, with active members</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BarList
+              rows={data.branch_comparison.map((b) => ({
+                label: b.branch,
+                value: b.revenue_this_month,
+                note: `${b.active_members} active · ${b.new_this_month} new`,
+              }))}
+              format={money}
+              empty="No branch activity yet."
+            />
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 function signed(v: number | null | undefined, unit: string) {
   if (v == null) return "—";
   return `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)}${unit}`;
@@ -525,6 +593,9 @@ export function AnalyticsView({ data }: { data: Analytics }) {
       </Section>
       <Section title="Money">
         <MoneySection data={data} />
+      </Section>
+      <Section title="Revenue mix">
+        <MixSection data={data} />
       </Section>
       <Section title="Leads">
         <LeadsSection data={data} />

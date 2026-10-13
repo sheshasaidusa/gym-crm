@@ -1230,6 +1230,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/analytics/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Staff Analytics
+         * @description How each trainer and salesperson is doing over the last `months` months.
+         */
+        get: operations["staff_analytics_api_analytics_staff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dashboard/trainer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Trainer Dashboard
+         * @description A trainer's clients and what needs doing. Owners and managers can look at any trainer's.
+         */
+        get: operations["trainer_dashboard_api_dashboard_trainer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dashboard/desk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Dashboard
+         * @description Today at the front desk: renewals, dues, takings and trials.
+         */
+        get: operations["desk_dashboard_api_dashboard_desk_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dashboard/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sales Dashboard
+         * @description The caller's pipeline against the team's, follow-ups and trials.
+         */
+        get: operations["sales_dashboard_api_dashboard_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit": {
         parameters: {
             query?: never;
@@ -1599,6 +1679,17 @@ export interface components {
             upcoming: components["schemas"]["Upcoming"];
             leads: components["schemas"]["LeadAnalytics"];
             checkups: components["schemas"]["CheckupProgress"];
+            /**
+             * Revenue By Method
+             * @default []
+             */
+            revenue_by_method: components["schemas"]["MethodAmount"][];
+            new_vs_renewal?: components["schemas"]["NewVsRenewal"] | null;
+            /**
+             * Branch Comparison
+             * @default []
+             */
+            branch_comparison: components["schemas"]["BranchRow"][];
         };
         /** AssignTrainerIn */
         AssignTrainerIn: {
@@ -1703,6 +1794,17 @@ export interface components {
             address: string | null;
             /** Phone */
             phone: string | null;
+        };
+        /** BranchRow */
+        BranchRow: {
+            /** Branch */
+            branch: string;
+            /** Active Members */
+            active_members: number;
+            /** New This Month */
+            new_this_month: number;
+            /** Revenue This Month */
+            revenue_this_month: number;
         };
         /** BranchUpdate */
         BranchUpdate: {
@@ -1886,6 +1988,29 @@ export interface components {
          * @enum {string}
          */
         DateOrder: "dmy" | "mdy" | "ymd";
+        /** DeskDashboard */
+        DeskDashboard: {
+            /** Renewals */
+            renewals: components["schemas"]["MemberRow"][];
+            /** Renewals Count */
+            renewals_count: number;
+            /** Outstanding */
+            outstanding: number;
+            /** Dues Count */
+            dues_count: number;
+            /** Dues */
+            dues: components["schemas"]["DueRow"][];
+            /** Payments Today */
+            payments_today: number;
+            /** Payments Today Count */
+            payments_today_count: number;
+            /** Payments By Method */
+            payments_by_method: components["schemas"]["MethodAmount"][];
+            /** Trials Today */
+            trials_today: components["schemas"]["TrialRow"][];
+            /** New Members Today */
+            new_members_today: number;
+        };
         /** DietPlan */
         DietPlan: {
             /** Daily Calories */
@@ -2001,6 +2126,22 @@ export interface components {
             email_error: string | null;
             /** Whatsapp Sent At */
             whatsapp_sent_at: string | null;
+        };
+        /** DueRow */
+        DueRow: {
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Balance */
+            balance: number;
         };
         /**
          * DuplicateMode
@@ -2592,6 +2733,22 @@ export interface components {
             /** Last Activity At */
             last_activity_at: string | null;
         };
+        /** LeadRow */
+        LeadRow: {
+            /**
+             * Lead Id
+             * Format: uuid
+             */
+            lead_id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            stage: components["schemas"]["LeadStage"];
+            source: components["schemas"]["LeadSource"];
+            /** At */
+            at: string | null;
+        };
         /**
          * LeadSource
          * @enum {string}
@@ -2658,6 +2815,13 @@ export interface components {
             password: string;
             /** Gym Id */
             gym_id?: string | null;
+        };
+        /** LostReason */
+        LostReason: {
+            /** Reason */
+            reason: string;
+            /** Leads */
+            leads: number;
         };
         /** MeOut */
         MeOut: {
@@ -2873,6 +3037,25 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * MemberRow
+         * @description A member who needs attention, with the one date that matters.
+         */
+        MemberRow: {
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** On */
+            on?: string | null;
+            /** Days */
+            days?: number | null;
+        };
         /** MemberUpdate */
         MemberUpdate: {
             /** Name */
@@ -2992,6 +3175,15 @@ export interface components {
             /** Balance */
             balance: number | null;
         };
+        /** MethodAmount */
+        MethodAmount: {
+            /** Method */
+            method: string;
+            /** Amount */
+            amount: number;
+            /** Payments */
+            payments: number;
+        };
         /** MonthTotals */
         MonthTotals: {
             /** Month */
@@ -3002,6 +3194,15 @@ export interface components {
             expenses: number;
             /** Profit */
             profit: number;
+        };
+        /** NewVsRenewal */
+        NewVsRenewal: {
+            /** New */
+            new: number;
+            /** Renewal */
+            renewal: number;
+            /** Other */
+            other: number;
         };
         /** NotificationList */
         NotificationList: {
@@ -3152,6 +3353,16 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** PersonRef */
+        PersonRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** PhotoOut */
         PhotoOut: {
@@ -3523,6 +3734,51 @@ export interface components {
             /** Already Sent */
             already_sent: number;
         };
+        /** SalesDashboard */
+        SalesDashboard: {
+            /** Pipeline Mine */
+            pipeline_mine: components["schemas"]["StageCount"][];
+            /** Pipeline Team */
+            pipeline_team: components["schemas"]["StageCount"][];
+            /** Follow Ups Due */
+            follow_ups_due: number;
+            /** Follow Ups */
+            follow_ups: components["schemas"]["LeadRow"][];
+            /** Trials */
+            trials: components["schemas"]["LeadRow"][];
+            /** Converted Mine 30D */
+            converted_mine_30d: number;
+            /** Converted Team 30D */
+            converted_team_30d: number;
+            /** Conversion Mine 90D */
+            conversion_mine_90d: number | null;
+            /** Conversion Team 90D */
+            conversion_team_90d: number | null;
+            /** Lost Reasons */
+            lost_reasons: components["schemas"]["LostReason"][];
+        };
+        /** SalesPerformance */
+        SalesPerformance: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Name */
+            name: string;
+            /** Leads */
+            leads: number;
+            /** Contacted */
+            contacted: number;
+            /** Trials */
+            trials: number;
+            /** Converted */
+            converted: number;
+            /** Conversion Rate */
+            conversion_rate: number | null;
+            /** Revenue */
+            revenue: number;
+        };
         /**
          * SendStatus
          * @enum {string}
@@ -3551,6 +3807,18 @@ export interface components {
             leads: number;
             /** Converted */
             converted: number;
+        };
+        /** StaffAnalytics */
+        StaffAnalytics: {
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Trainers */
+            trainers: components["schemas"]["TrainerPerformance"][];
+            /** Sales */
+            sales: components["schemas"]["SalesPerformance"][];
         };
         /** StaffDeactivate */
         StaffDeactivate: {
@@ -3643,6 +3911,22 @@ export interface components {
             /** Body */
             body: string;
         };
+        /** TrainerDashboard */
+        TrainerDashboard: {
+            trainer: components["schemas"]["PersonRef"];
+            clients: components["schemas"]["MemberCounts"];
+            /** Expiring */
+            expiring: components["schemas"]["MemberRow"][];
+            /** Checkups Due */
+            checkups_due: number;
+            /** Checkups Due List */
+            checkups_due_list: components["schemas"]["MemberRow"][];
+            /** Without Plan */
+            without_plan: number;
+            /** Without Plan List */
+            without_plan_list: components["schemas"]["MemberRow"][];
+            progress: components["schemas"]["CheckupProgress"];
+        };
         /** TrainerDraft */
         TrainerDraft: {
             /** Name */
@@ -3664,6 +3948,49 @@ export interface components {
              * @enum {string}
              */
             speciality: "weights" | "cardio" | "machines" | "functional" | "studio" | "general";
+        };
+        /** TrainerPerformance */
+        TrainerPerformance: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Name */
+            name: string;
+            /** Clients */
+            clients: number;
+            /** Active Clients */
+            active_clients: number;
+            /** Renewal Rate */
+            renewal_rate: number | null;
+            /** Checkup Compliance */
+            checkup_compliance: number | null;
+            /** Members Tracked */
+            members_tracked: number;
+            /** On Track */
+            on_track: number;
+            /** Avg Weight Change */
+            avg_weight_change: number | null;
+        };
+        /** TrialRow */
+        TrialRow: {
+            /**
+             * Lead Id
+             * Format: uuid
+             */
+            lead_id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /**
+             * Trial At
+             * Format: date-time
+             */
+            trial_at: string;
+            /** Assigned To */
+            assigned_to: string | null;
         };
         /** Upcoming */
         Upcoming: {
@@ -6625,6 +6952,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    staff_analytics_api_analytics_staff_get: {
+        parameters: {
+            query?: {
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffAnalytics"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trainer_dashboard_api_dashboard_trainer_get: {
+        parameters: {
+            query?: {
+                trainer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerDashboard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_dashboard_api_dashboard_desk_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskDashboard"];
+                };
+            };
+        };
+    };
+    sales_dashboard_api_dashboard_sales_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesDashboard"];
                 };
             };
         };

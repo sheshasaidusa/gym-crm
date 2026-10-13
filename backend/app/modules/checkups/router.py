@@ -15,6 +15,7 @@ from app.core.storage import IMAGE_TYPES, get_storage, sniff_image_type
 from app.modules.audit import service as audit
 from app.modules.auth.models import User
 from app.modules.checkups.models import CheckUp, CheckUpPhoto
+from app.modules.checkups.queries import is_due, last_checkup, running_member_ids
 from app.modules.checkups.schemas import (
     CheckUpIn,
     CheckUpOut,
@@ -23,7 +24,7 @@ from app.modules.checkups.schemas import (
     PhotoOut,
 )
 from app.modules.gyms.models import Gym, Role
-from app.modules.members.models import Member, Membership
+from app.modules.members.models import Member
 from app.modules.members.schemas import StaffRef
 from app.modules.members.service import gym_today
 
@@ -281,22 +282,8 @@ async def due_checkups(
     today = await gym_today(db, ctx.gym_id)
     cutoff = today - timedelta(days=gym.checkup_interval_days)
 
-    last = (
-        select(CheckUp.member_id, func.max(CheckUp.recorded_on).label("last_on"))
-        .where(CheckUp.gym_id == ctx.gym_id)
-        .group_by(CheckUp.member_id)
-        .subquery()
-    )
-    running = (
-        select(Membership.member_id)
-        .where(
-            Membership.gym_id == ctx.gym_id,
-            Membership.cancelled_at.is_(None),
-            Membership.start_date <= today,
-            Membership.end_date >= today,
-        )
-        .distinct()
-    )
+    last = last_checkup(ctx.gym_id)
+    running = running_member_ids(ctx.gym_id, today)
     trainer = aliased(User)
     stmt = (
         select(Member, last.c.last_on, trainer.name)
@@ -305,7 +292,7 @@ async def due_checkups(
         .where(
             Member.gym_id == ctx.gym_id,
             Member.id.in_(running),
-            (last.c.last_on.is_(None)) | (last.c.last_on <= cutoff),
+            is_due(last, cutoff),
         )
     )
     if scope == "mine":
