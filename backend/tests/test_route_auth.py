@@ -6,11 +6,11 @@ cross-tenant data leak. Add genuinely public routes to PUBLIC below, with care.
 
 from fastapi.routing import APIRoute
 
-from app.core.deps import get_tenant_context
+from app.core.deps import get_member_context, get_tenant_context
 from app.main import app
 
-# Callers that count as authenticated. Member and device auth join this set when they exist.
-AUTH_DEPENDENCIES = {get_tenant_context}
+# Callers that count as authenticated: staff, and members (who only reach /api/m/*).
+AUTH_DEPENDENCIES = {get_tenant_context, get_member_context}
 
 PUBLIC = {
     ("GET", "/api/health"),
@@ -24,6 +24,11 @@ PUBLIC = {
     ("GET", "/api/public/members/{token}"),
     ("GET", "/api/public/lead-forms/{token}"),
     ("POST", "/api/public/lead-forms/{token}"),
+    ("GET", "/api/m/activate/{token}"),
+    ("POST", "/api/m/activate"),
+    ("POST", "/api/m/auth/login"),
+    ("POST", "/api/m/auth/refresh"),
+    ("POST", "/api/m/auth/logout"),
 }
 
 

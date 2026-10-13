@@ -19,6 +19,8 @@ from app.modules.finance.router import router as finance_router
 from app.modules.gyms.router import router as gyms_router
 from app.modules.imports.router import router as imports_router
 from app.modules.leads.router import router as leads_router
+from app.modules.member_app.router import router as member_app_router
+from app.modules.member_app.router import staff_router as member_access_router
 from app.modules.members.router import router as members_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.plans.router import router as plans_router
@@ -74,6 +76,8 @@ def create_app() -> FastAPI:
     api.include_router(gyms_router)
     api.include_router(plans_router)
     api.include_router(members_router)
+    api.include_router(member_access_router)
+    api.include_router(member_app_router)
     api.include_router(checkups_router)
     api.include_router(ai_plans_router)
     api.include_router(leads_router)

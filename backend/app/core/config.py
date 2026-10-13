@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     cors_origins: list[str] = ["http://localhost:3000"]
     frontend_url: str = "http://localhost:3000"
+    member_refresh_token_days: int = 30  # members stay signed in on their phone
 
     @field_validator("database_url")
     @classmethod
